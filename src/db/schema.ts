@@ -1,0 +1,420 @@
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  foreignKey,
+  index,
+  integer,
+  pgEnum,
+  pgSchema,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+
+const authSchema = pgSchema("auth");
+
+export const authUsers = authSchema.table("users", {
+  id: uuid("id").primaryKey(),
+});
+
+export const memberRoleEnum = pgEnum("member_role", ["OWNER", "MEMBER"]);
+export const invitationStatusEnum = pgEnum("invitation_status", [
+  "PENDING",
+  "ACCEPTED",
+  "CANCELED",
+  "EXPIRED",
+]);
+
+export const taskVisibilityEnum = pgEnum("task_visibility", [
+  "PRIVATE",
+  "HOUSEHOLD_SHARED",
+]);
+export const taskStatusEnum = pgEnum("task_status", [
+  "PENDING",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "SKIPPED",
+  "ARCHIVED",
+]);
+export const taskPriorityEnum = pgEnum("task_priority", [
+  "LOW",
+  "NORMAL",
+  "HIGH",
+  "CRITICAL",
+]);
+export const taskRecurrenceFrequencyEnum = pgEnum("task_recurrence_frequency", [
+  "NONE",
+  "DAILY",
+  "INTERVAL_DAYS",
+  "WEEKLY",
+  "MONTHLY",
+  "YEARLY",
+]);
+export const eventVisibilityEnum = pgEnum("event_visibility", [
+  "PRIVATE",
+  "HOUSEHOLD_SHARED",
+]);
+export const reminderTargetTypeEnum = pgEnum("reminder_target_type", [
+  "TASK",
+  "EVENT",
+]);
+export const reminderStatusEnum = pgEnum("reminder_status", [
+  "PENDING",
+  "SNOOZED",
+  "SENT",
+  "CANCELED",
+]);
+
+export const profiles = pgTable(
+  "profiles",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    fullName: text("full_name").notNull().default(""),
+    timezone: text("timezone").notNull().default("Asia/Tehran"),
+    locale: text("locale").notNull().default("fa-IR"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.id],
+      foreignColumns: [authUsers.id],
+      name: "profiles_id_auth_users_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const households = pgTable(
+  "households",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    createdBy: uuid("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [authUsers.id],
+      name: "households_created_by_auth_users_fk",
+    }).onDelete("restrict"),
+  ],
+);
+
+export const householdMembers = pgTable(
+  "household_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    householdId: uuid("household_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    role: memberRoleEnum("role").notNull().default("MEMBER"),
+    joinedAt: timestamp("joined_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    leftAt: timestamp("left_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.householdId],
+      foreignColumns: [households.id],
+      name: "household_members_household_id_households_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [authUsers.id],
+      name: "household_members_user_id_auth_users_fk",
+    }).onDelete("cascade"),
+    uniqueIndex("household_members_household_user_active_uniq")
+      .on(table.householdId, table.userId)
+      .where(sql`${table.leftAt} is null`),
+    uniqueIndex("household_members_user_active_single_household_uniq")
+      .on(table.userId)
+      .where(sql`${table.leftAt} is null`),
+    index("household_members_household_idx").on(table.householdId),
+  ],
+);
+
+export const householdInvitations = pgTable(
+  "household_invitations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    householdId: uuid("household_id").notNull(),
+    invitedBy: uuid("invited_by").notNull(),
+    inviteCodeHash: text("invite_code_hash").notNull(),
+    status: invitationStatusEnum("status").notNull().default("PENDING"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedBy: uuid("accepted_by"),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    canceledAt: timestamp("canceled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.householdId],
+      foreignColumns: [households.id],
+      name: "household_invitations_household_id_households_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.invitedBy],
+      foreignColumns: [authUsers.id],
+      name: "household_invitations_invited_by_auth_users_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.acceptedBy],
+      foreignColumns: [authUsers.id],
+      name: "household_invitations_accepted_by_auth_users_fk",
+    }).onDelete("set null"),
+    uniqueIndex("household_invitations_invite_code_hash_uniq").on(
+      table.inviteCodeHash,
+    ),
+    index("household_invitations_household_status_idx").on(
+      table.householdId,
+      table.status,
+    ),
+  ],
+);
+
+export const tasks = pgTable(
+  "tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    description: text("description"),
+    creatorId: uuid("creator_id").notNull(),
+    ownerId: uuid("owner_id").notNull(),
+    householdId: uuid("household_id"),
+    visibility: taskVisibilityEnum("visibility").notNull().default("PRIVATE"),
+    status: taskStatusEnum("status").notNull().default("PENDING"),
+    priority: taskPriorityEnum("priority").notNull().default("NORMAL"),
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.creatorId],
+      foreignColumns: [authUsers.id],
+      name: "tasks_creator_id_auth_users_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.ownerId],
+      foreignColumns: [authUsers.id],
+      name: "tasks_owner_id_auth_users_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.householdId],
+      foreignColumns: [households.id],
+      name: "tasks_household_id_households_fk",
+    }).onDelete("cascade"),
+    index("tasks_owner_status_due_idx").on(
+      table.ownerId,
+      table.status,
+      table.dueAt,
+    ),
+    index("tasks_household_visibility_due_idx").on(
+      table.householdId,
+      table.visibility,
+      table.dueAt,
+    ),
+  ],
+);
+
+export const taskAssignees = pgTable(
+  "task_assignees",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    taskId: uuid("task_id").notNull(),
+    assigneeId: uuid("assignee_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.taskId],
+      foreignColumns: [tasks.id],
+      name: "task_assignees_task_id_tasks_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.assigneeId],
+      foreignColumns: [authUsers.id],
+      name: "task_assignees_assignee_id_auth_users_fk",
+    }).onDelete("cascade"),
+    uniqueIndex("task_assignees_task_assignee_uniq").on(
+      table.taskId,
+      table.assigneeId,
+    ),
+    index("task_assignees_assignee_idx").on(table.assigneeId),
+  ],
+);
+
+export const taskRecurrences = pgTable(
+  "task_recurrences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    taskId: uuid("task_id").notNull(),
+    frequency: taskRecurrenceFrequencyEnum("frequency")
+      .notNull()
+      .default("NONE"),
+    intervalDays: integer("interval_days"),
+    weekdays: integer("weekdays").array(),
+    nextOccurrenceAt: timestamp("next_occurrence_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.taskId],
+      foreignColumns: [tasks.id],
+      name: "task_recurrences_task_id_tasks_fk",
+    }).onDelete("cascade"),
+    uniqueIndex("task_recurrences_task_uniq").on(table.taskId),
+  ],
+);
+
+export const events = pgTable(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    description: text("description"),
+    creatorId: uuid("creator_id").notNull(),
+    ownerId: uuid("owner_id").notNull(),
+    householdId: uuid("household_id"),
+    visibility: eventVisibilityEnum("visibility").notNull().default("PRIVATE"),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+    allDay: boolean("all_day").notNull().default(false),
+    location: text("location"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.creatorId],
+      foreignColumns: [authUsers.id],
+      name: "events_creator_id_auth_users_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.ownerId],
+      foreignColumns: [authUsers.id],
+      name: "events_owner_id_auth_users_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.householdId],
+      foreignColumns: [households.id],
+      name: "events_household_id_households_fk",
+    }).onDelete("cascade"),
+    index("events_household_start_idx").on(table.householdId, table.startAt),
+    index("events_owner_start_idx").on(table.ownerId, table.startAt),
+  ],
+);
+
+export const reminders = pgTable(
+  "reminders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    targetType: reminderTargetTypeEnum("target_type").notNull(),
+    targetId: uuid("target_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    householdId: uuid("household_id"),
+    remindAt: timestamp("remind_at", { withTimezone: true }).notNull(),
+    status: reminderStatusEnum("status").notNull().default("PENDING"),
+    snoozedUntil: timestamp("snoozed_until", { withTimezone: true }),
+    snoozeCount: integer("snooze_count").notNull().default(0),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [authUsers.id],
+      name: "reminders_user_id_auth_users_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.householdId],
+      foreignColumns: [households.id],
+      name: "reminders_household_id_households_fk",
+    }).onDelete("cascade"),
+    index("reminders_user_status_remind_idx").on(
+      table.userId,
+      table.status,
+      table.remindAt,
+    ),
+    index("reminders_target_idx").on(table.targetType, table.targetId),
+  ],
+);
+
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    inAppEnabled: boolean("in_app_enabled").notNull().default(true),
+    webPushEnabled: boolean("web_push_enabled").notNull().default(false),
+    quietHoursEnabled: boolean("quiet_hours_enabled").notNull().default(false),
+    quietHoursStart: text("quiet_hours_start"),
+    quietHoursEnd: text("quiet_hours_end"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [authUsers.id],
+      name: "notification_preferences_user_id_auth_users_fk",
+    }).onDelete("cascade"),
+    uniqueIndex("notification_preferences_user_uniq").on(table.userId),
+  ],
+);
+
+export const updateTimestampSql = sql`
+  create or replace function public.set_current_timestamp_updated_at()
+  returns trigger
+  language plpgsql
+  as $$
+  begin
+    new.updated_at = now();
+    return new;
+  end;
+  $$;
+`;
