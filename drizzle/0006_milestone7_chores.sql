@@ -823,3 +823,190 @@ grant execute on function public.complete_chore(
   date,
   uuid
 ) to authenticated;
+
+-- =========================================================
+-- Atomic Chore update RPC
+-- Full replacement semantics for editable chore settings.
+-- Historical completions remain untouched.
+-- =========================================================
+
+create or replace function public.update_chore(
+  p_chore_id uuid,
+  p_title text,
+  p_description text,
+  p_start_date date,
+  p_default_assignee_id uuid,
+  p_frequency public.chore_recurrence_frequency,
+  p_interval_days integer,
+  p_weekdays integer[],
+  p_rotation_user_ids uuid[],
+  p_is_active boolean
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_household_id uuid;
+  v_rotation_user_id uuid;
+  v_position integer := 0;
+begin
+  if v_user_id is null then
+    raise exception 'UNAUTHORIZED';
+  end if;
+
+  select c.household_id
+  into v_household_id
+  from public.chores c
+  where c.id = p_chore_id;
+
+  if v_household_id is null then
+    raise exception 'CHORE_NOT_FOUND';
+  end if;
+
+  if not public.is_household_member(v_household_id) then
+    raise exception 'CHORE_ACCESS_DENIED';
+  end if;
+
+  if trim(coalesce(p_title, '')) = '' then
+    raise exception 'INVALID_CHORE_TITLE';
+  end if;
+
+  if p_start_date is null then
+    raise exception 'INVALID_START_DATE';
+  end if;
+
+  if p_default_assignee_id is not null
+     and not public.valid_chore_member(
+       p_chore_id,
+       p_default_assignee_id
+     ) then
+    raise exception 'INVALID_DEFAULT_ASSIGNEE';
+  end if;
+
+  if p_frequency = 'INTERVAL_DAYS'
+     and (
+       p_interval_days is null
+       or p_interval_days <= 0
+     ) then
+    raise exception 'INVALID_INTERVAL_DAYS';
+  end if;
+
+  if p_frequency = 'WEEKLY'
+     and coalesce(array_length(p_weekdays, 1), 0) = 0 then
+    raise exception 'WEEKDAYS_REQUIRED';
+  end if;
+
+  if p_weekdays is not null
+     and not (
+       p_weekdays <@
+       array[0, 1, 2, 3, 4, 5, 6]::integer[]
+     ) then
+    raise exception 'INVALID_WEEKDAYS';
+  end if;
+
+  if p_rotation_user_ids is not null then
+    if (
+      select count(*)
+      from unnest(p_rotation_user_ids) value
+    ) <> (
+      select count(distinct value)
+      from unnest(p_rotation_user_ids) value
+    ) then
+      raise exception 'DUPLICATE_ROTATION_MEMBER';
+    end if;
+
+    if exists (
+      select 1
+      from unnest(p_rotation_user_ids) rotation_user_id
+      where not public.valid_chore_member(
+        p_chore_id,
+        rotation_user_id
+      )
+    ) then
+      raise exception 'INVALID_ROTATION_MEMBER';
+    end if;
+  end if;
+
+  update public.chores
+  set
+    title = trim(p_title),
+    description = nullif(
+      trim(coalesce(p_description, '')),
+      ''
+    ),
+    start_date = p_start_date,
+    default_assignee_id = p_default_assignee_id,
+    is_active = p_is_active
+  where id = p_chore_id;
+
+  insert into public.chore_recurrences (
+    chore_id,
+    frequency,
+    interval_days,
+    weekdays
+  )
+  values (
+    p_chore_id,
+    p_frequency,
+    p_interval_days,
+    p_weekdays
+  )
+  on conflict (chore_id)
+  do update set
+    frequency = excluded.frequency,
+    interval_days = excluded.interval_days,
+    weekdays = excluded.weekdays;
+
+  delete from public.chore_rotations
+  where chore_id = p_chore_id;
+
+  if p_rotation_user_ids is not null then
+    foreach v_rotation_user_id in array p_rotation_user_ids
+    loop
+      insert into public.chore_rotations (
+        chore_id,
+        user_id,
+        position
+      )
+      values (
+        p_chore_id,
+        v_rotation_user_id,
+        v_position
+      );
+
+      v_position := v_position + 1;
+    end loop;
+  end if;
+
+  return true;
+end;
+$$;
+
+revoke all on function public.update_chore(
+  uuid,
+  text,
+  text,
+  date,
+  uuid,
+  public.chore_recurrence_frequency,
+  integer,
+  integer[],
+  uuid[],
+  boolean
+) from public;
+
+grant execute on function public.update_chore(
+  uuid,
+  text,
+  text,
+  date,
+  uuid,
+  public.chore_recurrence_frequency,
+  integer,
+  integer[],
+  uuid[],
+  boolean
+) to authenticated;
