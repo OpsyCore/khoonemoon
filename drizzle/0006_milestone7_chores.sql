@@ -558,3 +558,178 @@ before update on public.chores
 for each row
 execute function public.protect_chore_ownership_fields();
 
+
+
+-- =========================================================
+-- Atomic Chore creation RPC
+-- =========================================================
+
+create or replace function public.create_chore(
+  p_title text,
+  p_description text,
+  p_start_date date,
+  p_default_assignee_id uuid,
+  p_frequency public.chore_recurrence_frequency,
+  p_interval_days integer,
+  p_weekdays integer[],
+  p_rotation_user_ids uuid[]
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_household_id uuid;
+  v_chore_id uuid;
+  v_rotation_user_id uuid;
+  v_position integer := 0;
+begin
+  if v_user_id is null then
+    raise exception 'UNAUTHORIZED';
+  end if;
+
+  select hm.household_id
+  into v_household_id
+  from public.household_members hm
+  where hm.user_id = v_user_id
+    and hm.left_at is null
+  limit 1;
+
+  if v_household_id is null then
+    raise exception 'NO_HOUSEHOLD_FOR_CHORE';
+  end if;
+
+  if trim(coalesce(p_title, '')) = '' then
+    raise exception 'INVALID_CHORE_TITLE';
+  end if;
+
+  if p_default_assignee_id is not null
+     and not exists (
+       select 1
+       from public.household_members hm
+       where hm.household_id = v_household_id
+         and hm.user_id = p_default_assignee_id
+         and hm.left_at is null
+     ) then
+    raise exception 'INVALID_DEFAULT_ASSIGNEE';
+  end if;
+
+  if p_frequency = 'INTERVAL_DAYS'
+     and (p_interval_days is null or p_interval_days <= 0) then
+    raise exception 'INVALID_INTERVAL_DAYS';
+  end if;
+
+  if p_frequency = 'WEEKLY'
+     and coalesce(array_length(p_weekdays, 1), 0) = 0 then
+    raise exception 'WEEKDAYS_REQUIRED';
+  end if;
+
+  if p_weekdays is not null
+     and not (
+       p_weekdays <@ array[0, 1, 2, 3, 4, 5, 6]::integer[]
+     ) then
+    raise exception 'INVALID_WEEKDAYS';
+  end if;
+
+  if p_rotation_user_ids is not null then
+    if (
+      select count(*)
+      from unnest(p_rotation_user_ids) value
+    ) <> (
+      select count(distinct value)
+      from unnest(p_rotation_user_ids) value
+    ) then
+      raise exception 'DUPLICATE_ROTATION_MEMBER';
+    end if;
+
+    if exists (
+      select 1
+      from unnest(p_rotation_user_ids) rotation_user_id
+      where not exists (
+        select 1
+        from public.household_members hm
+        where hm.household_id = v_household_id
+          and hm.user_id = rotation_user_id
+          and hm.left_at is null
+      )
+    ) then
+      raise exception 'INVALID_ROTATION_MEMBER';
+    end if;
+  end if;
+
+  insert into public.chores (
+    household_id,
+    created_by,
+    default_assignee_id,
+    title,
+    description,
+    start_date
+  )
+  values (
+    v_household_id,
+    v_user_id,
+    p_default_assignee_id,
+    trim(p_title),
+    nullif(trim(coalesce(p_description, '')), ''),
+    p_start_date
+  )
+  returning id into v_chore_id;
+
+  insert into public.chore_recurrences (
+    chore_id,
+    frequency,
+    interval_days,
+    weekdays
+  )
+  values (
+    v_chore_id,
+    p_frequency,
+    p_interval_days,
+    p_weekdays
+  );
+
+  if p_rotation_user_ids is not null then
+    foreach v_rotation_user_id in array p_rotation_user_ids
+    loop
+      insert into public.chore_rotations (
+        chore_id,
+        user_id,
+        position
+      )
+      values (
+        v_chore_id,
+        v_rotation_user_id,
+        v_position
+      );
+
+      v_position := v_position + 1;
+    end loop;
+  end if;
+
+  return v_chore_id;
+end;
+$$;
+
+revoke all on function public.create_chore(
+  text,
+  text,
+  date,
+  uuid,
+  public.chore_recurrence_frequency,
+  integer,
+  integer[],
+  uuid[]
+) from public;
+
+grant execute on function public.create_chore(
+  text,
+  text,
+  date,
+  uuid,
+  public.chore_recurrence_frequency,
+  integer,
+  integer[],
+  uuid[]
+) to authenticated;
