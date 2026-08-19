@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  date,
   foreignKey,
   index,
   integer,
@@ -52,6 +53,18 @@ export const taskRecurrenceFrequencyEnum = pgEnum("task_recurrence_frequency", [
   "MONTHLY",
   "YEARLY",
 ]);
+export const choreRecurrenceFrequencyEnum = pgEnum(
+  "chore_recurrence_frequency",
+  [
+    "NONE",
+    "DAILY",
+    "INTERVAL_DAYS",
+    "WEEKLY",
+    "MONTHLY",
+    "YEARLY",
+  ],
+);
+
 export const eventVisibilityEnum = pgEnum("event_visibility", [
   "PRIVATE",
   "HOUSEHOLD_SHARED",
@@ -295,6 +308,225 @@ export const taskRecurrences = pgTable(
       name: "task_recurrences_task_id_tasks_fk",
     }).onDelete("cascade"),
     uniqueIndex("task_recurrences_task_uniq").on(table.taskId),
+  ],
+);
+
+export const chores = pgTable(
+  "chores",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    householdId: uuid("household_id").notNull(),
+
+    createdBy: uuid("created_by").notNull(),
+
+    defaultAssigneeId: uuid("default_assignee_id"),
+
+    title: text("title").notNull(),
+
+    description: text("description"),
+
+    isActive: boolean("is_active")
+      .notNull()
+      .default(true),
+
+    startDate: date("start_date")
+      .notNull()
+      .default(sql`current_date`),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.householdId],
+      foreignColumns: [households.id],
+      name: "chores_household_id_households_fk",
+    }).onDelete("cascade"),
+
+    foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [authUsers.id],
+      name: "chores_created_by_auth_users_fk",
+    }).onDelete("restrict"),
+
+    foreignKey({
+      columns: [table.defaultAssigneeId],
+      foreignColumns: [authUsers.id],
+      name: "chores_default_assignee_id_auth_users_fk",
+    }).onDelete("set null"),
+
+    index("chores_household_active_idx").on(
+      table.householdId,
+      table.isActive,
+    ),
+
+    index("chores_default_assignee_idx").on(
+      table.defaultAssigneeId,
+    ),
+  ],
+);
+
+export const choreRecurrences = pgTable(
+  "chore_recurrences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    choreId: uuid("chore_id").notNull(),
+
+    frequency: choreRecurrenceFrequencyEnum("frequency")
+      .notNull()
+      .default("NONE"),
+
+    intervalDays: integer("interval_days"),
+
+    weekdays: integer("weekdays").array(),
+
+    nextOccurrenceDate: date("next_occurrence_date"),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.choreId],
+      foreignColumns: [chores.id],
+      name: "chore_recurrences_chore_id_chores_fk",
+    }).onDelete("cascade"),
+
+    uniqueIndex("chore_recurrences_chore_uniq").on(
+      table.choreId,
+    ),
+  ],
+);
+
+export const choreRotations = pgTable(
+  "chore_rotations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    choreId: uuid("chore_id").notNull(),
+
+    userId: uuid("user_id").notNull(),
+
+    position: integer("position").notNull(),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.choreId],
+      foreignColumns: [chores.id],
+      name: "chore_rotations_chore_id_chores_fk",
+    }).onDelete("cascade"),
+
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [authUsers.id],
+      name: "chore_rotations_user_id_auth_users_fk",
+    }).onDelete("cascade"),
+
+    uniqueIndex("chore_rotations_chore_user_uniq").on(
+      table.choreId,
+      table.userId,
+    ),
+
+    uniqueIndex("chore_rotations_chore_position_uniq").on(
+      table.choreId,
+      table.position,
+    ),
+
+    index("chore_rotations_chore_position_idx").on(
+      table.choreId,
+      table.position,
+    ),
+
+    index("chore_rotations_user_idx").on(
+      table.userId,
+    ),
+  ],
+);
+
+export const choreCompletions = pgTable(
+  "chore_completions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    choreId: uuid("chore_id").notNull(),
+
+    forDate: date("for_date").notNull(),
+
+    assignedTo: uuid("assigned_to"),
+
+    completedBy: uuid("completed_by").notNull(),
+
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.choreId],
+      foreignColumns: [chores.id],
+      name: "chore_completions_chore_id_chores_fk",
+    }).onDelete("cascade"),
+
+    foreignKey({
+      columns: [table.assignedTo],
+      foreignColumns: [authUsers.id],
+      name: "chore_completions_assigned_to_auth_users_fk",
+    }).onDelete("set null"),
+
+    foreignKey({
+      columns: [table.completedBy],
+      foreignColumns: [authUsers.id],
+      name: "chore_completions_completed_by_auth_users_fk",
+    }).onDelete("restrict"),
+
+    uniqueIndex("chore_completions_chore_date_uniq").on(
+      table.choreId,
+      table.forDate,
+    ),
+
+    index("chore_completions_chore_date_idx").on(
+      table.choreId,
+      table.forDate,
+    ),
+
+    index("chore_completions_assigned_to_date_idx").on(
+      table.assignedTo,
+      table.forDate,
+    ),
   ],
 );
 
