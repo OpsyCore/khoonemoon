@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
+
 import {
   updateChoreSchema,
-  type UpdateChoreInput,
 } from "@/features/chores/schemas";
-import { validateUpdateChoreForUser } from "@/features/chores/server";
+
+import {
+  validateUpdateChoreForUser,
+} from "@/features/chores/server";
+
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
 
 function mapChoreError(error: unknown) {
   if (!(error instanceof Error)) {
     return "انجام عملیات کار خانه ناموفق بود.";
-  }
-
-  if (error.message.includes("NO_HOUSEHOLD_FOR_CHORE")) {
-    return "برای ساخت کار خانه باید عضو یک خانه باشید.";
   }
 
   if (error.message.includes("INVALID_DEFAULT_ASSIGNEE")) {
@@ -27,12 +28,11 @@ function mapChoreError(error: unknown) {
     return "اعضای چرخش نباید تکراری باشند.";
   }
 
-  if (error.message.includes("CHORE_NOT_FOUND")) {
-    return "کار خانه یافت نشد.";
-  }
-
-  if (error.message.includes("CHORE_ACCESS_DENIED")) {
-    return "دسترسی به این کار خانه مجاز نیست.";
+  if (
+    error.message.includes("CHORE_NOT_FOUND") ||
+    error.message.includes("CHORE_ACCESS_DENIED")
+  ) {
+    return "کار خانه یافت نشد یا به آن دسترسی ندارید.";
   }
 
   if (error.message.includes("INVALID_CHORE_TITLE")) {
@@ -52,15 +52,18 @@ function mapChoreError(error: unknown) {
   }
 
   if (error.message.includes("INVALID_WEEKDAYS")) {
-    return "روزهای هفته باید بین  تا ۶ باشند.";
+    return "روزهای هفته معتبر نیستند.";
   }
 
   return "انجام عملیات کار خانه ناموفق بود.";
 }
 
+
 export async function GET(
   _request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: {
+    params: Promise<{ id: string }>;
+  },
 ) {
   const { id } = await context.params;
 
@@ -77,28 +80,36 @@ export async function GET(
     );
   }
 
-  const { data, error } = await supabase
+  const { data: chore, error } = await supabase
     .from("chores")
     .select(
-      [
-        "id",
-        "household_id",
-        "created_by",
-        "default_assignee_id",
-        "title",
-        "description",
-        "is_active",
-        "start_date",
-        "created_at",
-        "updated_at",
-        "chore_recurrences(frequency, interval_days, weekdays, next_occurrence_date)",
-        "chore_rotations(user_id, position)",
-      ].join(", "),
+      `
+        id,
+        household_id,
+        created_by,
+        default_assignee_id,
+        title,
+        description,
+        is_active,
+        start_date,
+        created_at,
+        updated_at,
+        chore_recurrences (
+          frequency,
+          interval_days,
+          weekdays,
+          next_occurrence_date
+        ),
+        chore_rotations (
+          user_id,
+          position
+        )
+      `,
     )
     .eq("id", id)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error || !chore) {
     return NextResponse.json(
       { message: "کار خانه یافت نشد." },
       { status: 404 },
@@ -106,13 +117,16 @@ export async function GET(
   }
 
   return NextResponse.json({
-    chore: data,
+    chore,
   });
 }
 
+
 export async function PATCH(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: {
+    params: Promise<{ id: string }>;
+  },
 ) {
   const { id } = await context.params;
 
@@ -140,9 +154,7 @@ export async function PATCH(
     );
   }
 
-  const parsed = updateChoreSchema.safeParse(
-    body as UpdateChoreInput,
-  );
+  const parsed = updateChoreSchema.safeParse(body);
 
   if (!parsed.success) {
     return NextResponse.json(
@@ -154,37 +166,162 @@ export async function PATCH(
     );
   }
 
-  try {
-    const input = parsed.data;
+  const { data: existing, error: loadError } =
+    await supabase
+      .from("chores")
+      .select(
+        `
+          id,
+          household_id,
+          title,
+          description,
+          start_date,
+          default_assignee_id,
+          is_active,
+          chore_recurrences (
+            frequency,
+            interval_days,
+            weekdays
+          ),
+          chore_rotations (
+            user_id,
+            position
+          )
+        `,
+      )
+      .eq("id", id)
+      .maybeSingle();
 
-    await validateUpdateChoreForUser({
-      userId: user.id,
-      householdId: input.householdId!,
-      input,
-    });
+  if (loadError || !existing) {
+    return NextResponse.json(
+      { message: "کار خانه یافت نشد." },
+      { status: 404 },
+    );
+  }
 
-    const recurrence = input.recurrence;
-    const rotationUserIds = input.rotationUserIds ?? [];
+  const recurrenceRows =
+    existing.chore_recurrences ?? [];
 
-    const { data: result, error } = await supabase.rpc(
-      "update_chore",
+  const currentRecurrence =
+    recurrenceRows[0];
+
+  if (!currentRecurrence) {
+    return NextResponse.json(
       {
-        p_chore_id: id,
-        p_title: input.title ?? undefined,
-        p_description: input.description ?? null,
-        p_start_date: input.startDate ?? undefined,
-        p_default_assignee_id:
-          input.defaultAssigneeId ?? null,
-        p_frequency: recurrence?.frequency ?? undefined,
-        p_interval_days: recurrence?.intervalDays ?? null,
-        p_weekdays: recurrence?.weekdays ?? null,
-        p_rotation_user_ids: rotationUserIds,
-        p_is_active: input.isActive ?? undefined,
+        message:
+          "تنظیم تکرار فعلی کار خانه یافت نشد.",
       },
+      { status: 400 },
+    );
+  }
+
+  const currentRotationIds = [
+    ...(existing.chore_rotations ?? []),
+  ]
+    .sort(
+      (a, b) =>
+        a.position - b.position,
+    )
+    .map(
+      (item) => item.user_id,
     );
 
-    if (error || !result) {
-      throw new Error(error?.message ?? "UPDATE_CHORE_FAILED");
+  const input = parsed.data;
+
+  const title =
+    input.title ??
+    existing.title;
+
+  const description =
+    input.description === undefined
+      ? existing.description
+      : input.description;
+
+  const startDate =
+    input.startDate ??
+    existing.start_date;
+
+  const defaultAssigneeId =
+    input.defaultAssigneeId === undefined
+      ? existing.default_assignee_id
+      : input.defaultAssigneeId;
+
+  const isActive =
+    input.isActive ??
+    existing.is_active;
+
+  const recurrence =
+    input.recurrence ?? {
+      frequency:
+        currentRecurrence.frequency,
+
+      intervalDays:
+        currentRecurrence.interval_days,
+
+      weekdays:
+        currentRecurrence.weekdays,
+    };
+
+  const rotationUserIds =
+    input.rotationUserIds ??
+    currentRotationIds;
+
+  try {
+    await validateUpdateChoreForUser({
+      userId: user.id,
+      householdId:
+        existing.household_id,
+      input: {
+        title,
+        description,
+        startDate,
+        defaultAssigneeId,
+        isActive,
+        recurrence,
+        rotationUserIds,
+      },
+    });
+
+    const { data: updated, error } =
+      await supabase.rpc(
+        "update_chore",
+        {
+          p_chore_id: id,
+
+          p_title:
+            title,
+
+          p_description:
+            description ?? null,
+
+          p_start_date:
+            startDate,
+
+          p_default_assignee_id:
+            defaultAssigneeId ?? null,
+
+          p_frequency:
+            recurrence.frequency,
+
+          p_interval_days:
+            recurrence.intervalDays ?? null,
+
+          p_weekdays:
+            recurrence.weekdays ?? null,
+
+          p_rotation_user_ids:
+            rotationUserIds,
+
+          p_is_active:
+            isActive,
+        },
+      );
+
+    if (error || !updated) {
+      throw new Error(
+        error?.message ??
+          "UPDATE_CHORE_FAILED",
+      );
     }
 
     return NextResponse.json({
@@ -192,15 +329,21 @@ export async function PATCH(
     });
   } catch (error) {
     return NextResponse.json(
-      { message: mapChoreError(error) },
+      {
+        message:
+          mapChoreError(error),
+      },
       { status: 400 },
     );
   }
 }
 
+
 export async function DELETE(
   _request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: {
+    params: Promise<{ id: string }>;
+  },
 ) {
   const { id } = await context.params;
 
@@ -217,11 +360,12 @@ export async function DELETE(
     );
   }
 
-  const { data: existing, error: loadError } = await supabase
-    .from("chores")
-    .select("id")
-    .eq("id", id)
-    .maybeSingle();
+  const { data: existing, error: loadError } =
+    await supabase
+      .from("chores")
+      .select("id")
+      .eq("id", id)
+      .maybeSingle();
 
   if (loadError || !existing) {
     return NextResponse.json(
@@ -239,7 +383,10 @@ export async function DELETE(
 
   if (error) {
     return NextResponse.json(
-      { message: "غیرفعال کردن کار خانه ناموفق بود." },
+      {
+        message:
+          "غیرفعال کردن کار خانه ناموفق بود.",
+      },
       { status: 400 },
     );
   }
