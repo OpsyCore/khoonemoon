@@ -733,3 +733,93 @@ grant execute on function public.create_chore(
   integer[],
   uuid[]
 ) to authenticated;
+
+-- =========================================================
+-- Atomic Chore completion RPC
+-- =========================================================
+
+create or replace function public.complete_chore(
+  p_chore_id uuid,
+  p_for_date date,
+  p_assigned_to uuid
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_household_id uuid;
+  v_is_active boolean;
+  v_completion_id uuid;
+begin
+  if v_user_id is null then
+    raise exception 'UNAUTHORIZED';
+  end if;
+
+  select
+    c.household_id,
+    c.is_active
+  into
+    v_household_id,
+    v_is_active
+  from public.chores c
+  where c.id = p_chore_id;
+
+  if v_household_id is null then
+    raise exception 'CHORE_NOT_FOUND';
+  end if;
+
+  if not public.is_household_member(v_household_id) then
+    raise exception 'CHORE_ACCESS_DENIED';
+  end if;
+
+  if not v_is_active then
+    raise exception 'CHORE_INACTIVE';
+  end if;
+
+  if p_for_date is null then
+    raise exception 'INVALID_COMPLETION_DATE';
+  end if;
+
+  if p_assigned_to is not null
+     and not public.valid_chore_member(
+       p_chore_id,
+       p_assigned_to
+     ) then
+    raise exception 'INVALID_CHORE_ASSIGNEE';
+  end if;
+
+  insert into public.chore_completions (
+    chore_id,
+    for_date,
+    assigned_to,
+    completed_by
+  )
+  values (
+    p_chore_id,
+    p_for_date,
+    p_assigned_to,
+    v_user_id
+  )
+  returning id into v_completion_id;
+
+  return v_completion_id;
+exception
+  when unique_violation then
+    raise exception 'CHORE_ALREADY_COMPLETED';
+end;
+$$;
+
+revoke all on function public.complete_chore(
+  uuid,
+  date,
+  uuid
+) from public;
+
+grant execute on function public.complete_chore(
+  uuid,
+  date,
+  uuid
+) to authenticated;
