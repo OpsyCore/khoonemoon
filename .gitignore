@@ -4,8 +4,15 @@ out
 build
 coverage
 *.log
+
 .env
 .env.local
 .env.*.local
+
 .vercel
+.netlify
+
 .DS_Store
+
+# TypeScript build cache
+*.tsbuildinfo
