@@ -386,7 +386,9 @@ async function deleteChore(choreId: string, title?: string) {
     setSuccessMessage(null);
     try {
       const response = await fetch(`/api/chores/${choreId}`, {
-        method: "DELETE",
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: false }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {

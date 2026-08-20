@@ -365,6 +365,7 @@ export async function DELETE(
     .select(
       `
         id,
+        household_id,
         title,
         description,
         start_date,
@@ -374,6 +375,10 @@ export async function DELETE(
           frequency,
           interval_days,
           weekdays
+        ),
+        chore_rotations (
+          user_id,
+          position
         )
       `,
     )
@@ -391,10 +396,10 @@ export async function DELETE(
     return NextResponse.json({ ok: true });
   }
 
-  const recurrenceRows = existing.chore_recurrences ?? [];
-  const currentRecurrence = Array.isArray(recurrenceRows)
-    ? recurrenceRows[0]
-    : recurrenceRows;
+  const recurrenceRaw = existing.chore_recurrences;
+  const currentRecurrence = Array.isArray(recurrenceRaw)
+    ? recurrenceRaw[0]
+    : recurrenceRaw;
 
   if (!currentRecurrence?.frequency) {
     return NextResponse.json(
@@ -403,47 +408,68 @@ export async function DELETE(
     );
   }
 
-  // Soft-delete only. Clear assignee/rotation so stale members
-  // cannot block deactivate via update_chore validation.
-  const { data: updated, error } = await supabase.rpc("update_chore", {
+  const rotationRaw = existing.chore_rotations;
+  const rotationRows = Array.isArray(rotationRaw)
+    ? rotationRaw
+    : rotationRaw
+      ? [rotationRaw]
+      : [];
+
+  const rotationUserIds = [...rotationRows]
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    .map((item) => item.user_id)
+    .filter(Boolean);
+
+  // Prefer full update first (keeps title/recurrence). If member validation
+  // blocks, retry with cleared assignee/rotation so soft-delete still works.
+  async function callUpdate(payload) {
+    return supabase.rpc("update_chore", payload);
+  }
+
+  const base = {
     p_chore_id: id,
     p_title: existing.title,
     p_description: existing.description ?? null,
     p_start_date: existing.start_date,
-    p_default_assignee_id: null,
     p_frequency: currentRecurrence.frequency,
     p_interval_days: currentRecurrence.interval_days ?? null,
     p_weekdays: currentRecurrence.weekdays ?? null,
-    p_rotation_user_ids: [],
     p_is_active: false,
+  };
+
+  let result = await callUpdate({
+    ...base,
+    p_default_assignee_id: existing.default_assignee_id ?? null,
+    p_rotation_user_ids: rotationUserIds,
   });
 
-  if (error) {
-    const raw = error.message || "";
-    const message = raw.includes("CHORE_ACCESS_DENIED")
-      ? "به این کار خانه دسترسی ندارید."
-      : raw.includes("CHORE_NOT_FOUND")
-        ? "کار خانه یافت نشد."
-        : raw.includes("INVALID_")
-          || raw.includes("WEEKDAYS")
-          || raw.includes("UNAUTHORIZED")
-          ? mapChoreError(new Error(raw))
-          : raw
-            ? `حذف کار خانه ناموفق بود: ${raw}`
-            : "حذف کار خانه ناموفق بود.";
-
-    return NextResponse.json({ message }, { status: 400 });
+  if (result.error) {
+    result = await callUpdate({
+      ...base,
+      p_default_assignee_id: null,
+      p_rotation_user_ids: [],
+    });
   }
 
-  // update_chore returns boolean; treat null/undefined as failure only
-  if (updated === false) {
+  if (result.error) {
+    const raw = result.error.message || "";
+    return NextResponse.json(
+      {
+        message: raw
+          ? `حذف کار خانه ناموفق بود: ${raw}`
+          : "حذف کار خانه ناموفق بود.",
+      },
+      { status: 400 },
+    );
+  }
+
+  // update_chore returns boolean; only explicit false is failure.
+  if (result.data === false) {
     return NextResponse.json(
       { message: "حذف کار خانه ناموفق بود." },
       { status: 400 },
     );
   }
 
-  return NextResponse.json({
-    ok: true,
-  });
+  return NextResponse.json({ ok: true });
 }
