@@ -14,6 +14,31 @@ function mapRpcError(message: string) {
   return "انجام عملیات ممکن نشد.";
 }
 
+function mapHouseholdUpdateError(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("permission denied") ||
+    normalized.includes("42501")
+  ) {
+    return "دسترسی بروزرسانی خانه در دیتابیس تنظیم نشده است.";
+  }
+
+  if (
+    normalized.includes("household_created_by_immutable") ||
+    normalized.includes("household_id_immutable") ||
+    normalized.includes("household_created_at_immutable")
+  ) {
+    return "تغییر فیلدهای مالکیت خانه مجاز نیست.";
+  }
+
+  if (message.trim()) {
+    return message;
+  }
+
+  return "بروزرسانی نام خانه انجام نشد.";
+}
+
 export async function GET() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -166,17 +191,31 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const { error } = await supabase
+  // Direct update is intentional: RLS households_update_owner + GRANT UPDATE.
+  // Select-after-update catches "0 rows" cases (RLS/privilege) that may not error.
+  const { data: updated, error } = await supabase
     .from("households")
     .update({ name: parsed.data.name })
-    .eq("id", membership.household_id);
+    .eq("id", membership.household_id)
+    .select("id, name, created_by, created_at, updated_at")
+    .maybeSingle();
 
   if (error) {
     return NextResponse.json(
-      { message: "بروزرسانی نام خانه انجام نشد." },
+      { message: mapHouseholdUpdateError(error.message) },
       { status: 400 },
     );
   }
 
-  return NextResponse.json({ ok: true });
+  if (!updated) {
+    return NextResponse.json(
+      {
+        message:
+          "بروزرسانی نام خانه انجام نشد. یا دسترسی کافی نیست یا خانه پیدا نشد.",
+      },
+      { status: 400 },
+    );
+  }
+
+  return NextResponse.json({ ok: true, household: updated });
 }

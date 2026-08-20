@@ -22,7 +22,10 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Input } from "@/shared/ui/input";
-import { formatPersianDate, formatPersianTime } from "@/shared/utils/locale";
+import {
+  formatPersianDate,
+  formatPersianTime,
+} from "@/shared/utils/locale";
 
 type HouseholdManagerProps = {
   household: HouseholdSummary | null;
@@ -77,6 +80,7 @@ export function HouseholdManager({
   const {
     register: registerUpdate,
     handleSubmit: handleSubmitUpdate,
+    reset: resetUpdateForm,
     formState: { errors: updateErrors, isSubmitting: isUpdating },
   } = useForm<UpdateHouseholdInput>({
     resolver: zodResolver(updateHouseholdSchema),
@@ -148,11 +152,18 @@ export function HouseholdManager({
 
     const payload = (await response.json().catch(() => ({}))) as {
       message?: string;
+      household?: HouseholdSummary;
     };
 
     if (!response.ok) {
       setErrorMessage(payload.message ?? "بروزرسانی نام خانه انجام نشد.");
       return;
+    }
+
+    if (payload.household?.name) {
+      resetUpdateForm({ name: payload.household.name });
+    } else {
+      resetUpdateForm({ name: values.name });
     }
 
     setSuccessMessage("نام خانه با موفقیت بروزرسانی شد.");
@@ -396,9 +407,7 @@ export function HouseholdManager({
             <p className="break-all text-sm font-semibold text-sky-700 dark:text-sky-300">
               {generatedInvite.code}
             </p>
-            <p className="text-xs text-zinc-600 dark:text-zinc-300">
-              لینک دعوت
-            </p>
+            <p className="text-xs text-zinc-600 dark:text-zinc-300">لینک دعوت</p>
             <p className="break-all text-xs text-sky-700 dark:text-sky-300">
               {generatedInvite.inviteUrl}
             </p>
@@ -454,9 +463,7 @@ export function HouseholdManager({
       </Card>
 
       {errorMessage ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
-          {errorMessage}
-        </p>
+        <p className="text-sm text-rose-600 dark:text-rose-400">{errorMessage}</p>
       ) : null}
       {successMessage ? (
         <p className="text-sm text-emerald-600 dark:text-emerald-400">

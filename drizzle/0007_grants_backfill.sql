@@ -7,7 +7,7 @@ grant usage on schema public to anon, authenticated, service_role;
 
 grant select, insert, update on table public.profiles to authenticated;
 
-grant select on table public.households to authenticated;
+grant select, update on table public.households to authenticated;
 grant select on table public.household_members to authenticated;
 grant select on table public.household_invitations to authenticated;
 
