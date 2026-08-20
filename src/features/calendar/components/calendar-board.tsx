@@ -1,18 +1,32 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarDays, List, Trash2 } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  List,
+  Loader2,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { ReminderComposer } from "@/features/reminders/components/reminder-composer";
 import {
   createEventSchema,
   type CreateEventInput,
 } from "@/features/calendar/schemas";
 import type { CalendarView, EventRecord } from "@/features/calendar/types";
+import {
+  addDaysDateOnly,
+  buildCalendarChoreItems,
+  dateOnlyToLocalDate,
+  toDateOnlyLocal,
+  type CalendarChoreItem,
+  type CalendarChoreSource,
+} from "@/features/chores/calendar-items";
+import { ReminderComposer } from "@/features/reminders/components/reminder-composer";
 import type { TaskRecord } from "@/features/tasks/types";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
@@ -33,9 +47,15 @@ type CalendarItem = {
   title: string;
   startAt: Date;
   endAt: Date;
-  type: "TASK" | "EVENT";
+  type: "TASK" | "EVENT" | "CHORE";
   status?: string;
+  completed?: boolean;
+  assignedTo?: string | null;
+  choreId?: string;
+  forDate?: string;
 };
+
+type ChoreMember = { userId: string; fullName: string };
 
 function toDateTimeLocal(iso: string) {
   const date = new Date(iso);
@@ -58,13 +78,33 @@ function buildDefaultEventTimes() {
   };
 }
 
+function itemBadge(item: CalendarItem) {
+  if (item.type === "TASK") {
+    return {
+      tone: "warning" as const,
+      label: item.status ? `تسک (${item.status})` : "تسک",
+    };
+  }
+  if (item.type === "CHORE") {
+    return {
+      tone: item.completed ? ("success" as const) : ("info" as const),
+      label: item.completed ? "کار خانه · انجام شد" : "کار خانه",
+    };
+  }
+  return { tone: "neutral" as const, label: "رویداد" };
+}
+
 export function CalendarBoard({
   tasks,
   events,
+  chores = [],
+  choreMembers = [],
   householdId,
 }: {
   tasks: TaskRecord[];
   events: EventRecord[];
+  chores?: CalendarChoreSource[];
+  choreMembers?: ChoreMember[];
   householdId: string | null;
 }) {
   const router = useRouter();
@@ -75,6 +115,7 @@ export function CalendarBoard({
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [editingEvent, setEditingEvent] = useState<EventRecord | null>(null);
+  const [completingKey, setCompletingKey] = useState<string | null>(null);
   const [defaultEventTimes] = useState(() => buildDefaultEventTimes());
 
   const {
@@ -100,13 +141,52 @@ export function CalendarBoard({
   const startAtValue = useWatch({ control, name: "startAt" });
   const endAtValue = useWatch({ control, name: "endAt" });
 
+  const memberName = useMemo(() => {
+    const map = new Map(choreMembers.map((m) => [m.userId, m.fullName]));
+    return (id: string | null | undefined) => {
+      if (!id) return "—";
+      return map.get(id) ?? "کاربر";
+    };
+  }, [choreMembers]);
+
+  /** Wide enough for month nav ±1 and agenda */
+  const choreWindow = useMemo(() => {
+    const base = new Date(cursorDate);
+    const from = new Date(base.getFullYear(), base.getMonth() - 1, 1);
+    const to = new Date(base.getFullYear(), base.getMonth() + 2, 0);
+    // agenda needs a bit of future from "today"
+    const today = new Date();
+    const agendaTo = new Date(today);
+    agendaTo.setDate(today.getDate() + 60);
+    const fromStr =
+      from.getTime() < today.getTime() - 40 * 86400000
+        ? toDateOnlyLocal(from)
+        : toDateOnlyLocal(
+            new Date(today.getFullYear(), today.getMonth(), today.getDate() - 40),
+          );
+    const toCandidate = to.getTime() > agendaTo.getTime() ? to : agendaTo;
+    return {
+      fromDate: fromStr,
+      toDate: toDateOnlyLocal(toCandidate),
+    };
+  }, [cursorDate]);
+
+  const choreOccurrences = useMemo(
+    () =>
+      buildCalendarChoreItems(
+        chores,
+        choreWindow.fromDate,
+        choreWindow.toDate,
+      ),
+    [chores, choreWindow.fromDate, choreWindow.toDate],
+  );
+
   const calendarItems = useMemo<CalendarItem[]>(() => {
     const taskItems: CalendarItem[] = tasks
       .filter((task) => Boolean(task.due_at))
       .map((task) => {
         const start = new Date(task.due_at as string);
         const end = new Date(start.getTime() + 60 * 60 * 1000);
-
         return {
           id: task.id,
           title: task.title,
@@ -125,22 +205,45 @@ export function CalendarBoard({
       type: "EVENT",
     }));
 
-    return [...taskItems, ...eventItems].sort(
+    const choreItems: CalendarItem[] = choreOccurrences.map((item) => {
+      const start = dateOnlyToLocalDate(item.forDate);
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      return {
+        id: `${item.choreId}:${item.forDate}`,
+        title: item.title,
+        startAt: start,
+        endAt: end,
+        type: "CHORE",
+        completed: item.completed,
+        assignedTo: item.assignedTo,
+        choreId: item.choreId,
+        forDate: item.forDate,
+      };
+    });
+
+    return [...taskItems, ...eventItems, ...choreItems].sort(
       (a, b) => a.startAt.getTime() - b.startAt.getTime(),
     );
-  }, [tasks, events]);
+  }, [tasks, events, choreOccurrences]);
 
   const monthGrid = useMemo(() => getMonthGrid(cursorDate), [cursorDate]);
   const weekLabels = useMemo(() => getPersianWeekdayLabels(), []);
 
   const selectedItems = useMemo(
-    () => calendarItems.filter((item) => isSameDay(item.startAt, selectedDate)),
+    () =>
+      calendarItems.filter((item) => isSameDay(item.startAt, selectedDate)),
     [calendarItems, selectedDate],
+  );
+
+  const selectedChores = useMemo(
+    () => selectedItems.filter((item) => item.type === "CHORE"),
+    [selectedItems],
   );
 
   const weekItems = useMemo(() => {
     const start = new Date(selectedDate);
     start.setDate(selectedDate.getDate() - selectedDate.getDay());
+    start.setHours(0, 0, 0, 0);
 
     const end = new Date(start);
     end.setDate(start.getDate() + 7);
@@ -168,6 +271,16 @@ export function CalendarBoard({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tasks" },
+        () => router.refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chores" },
+        () => router.refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chore_completions" },
         () => router.refresh(),
       )
       .subscribe();
@@ -236,6 +349,78 @@ export function CalendarBoard({
 
     router.refresh();
   };
+
+  const completeChore = async (item: CalendarItem) => {
+    if (!item.choreId || !item.forDate) return;
+    const key = `${item.choreId}:${item.forDate}`;
+    setCompletingKey(key);
+    setErrorMessage(null);
+    try {
+      const response = await fetch(`/api/chores/${item.choreId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ forDate: item.forDate }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || "ثبت انجام کار ناموفق بود.");
+      }
+      router.refresh();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "ثبت انجام کار ناموفق بود.",
+      );
+    } finally {
+      setCompletingKey(null);
+    }
+  };
+
+  function renderItemRow(item: CalendarItem) {
+    const badge = itemBadge(item);
+    const choreKey =
+      item.choreId && item.forDate
+        ? `${item.choreId}:${item.forDate}`
+        : null;
+    const busy = choreKey !== null && completingKey === choreKey;
+
+    return (
+      <li
+        key={`${item.type}-${item.id}`}
+        className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+      >
+        <p className="text-sm font-medium">{item.title}</p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          {formatJalaliLongDate(item.startAt)}
+          {item.type !== "CHORE" ? (
+            <>
+              {" - "}
+              {formatPersianTime(item.startAt)}
+            </>
+          ) : (
+            <> · مسئول: {memberName(item.assignedTo)}</>
+          )}
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Badge tone={badge.tone}>{badge.label}</Badge>
+          {item.type === "CHORE" && !item.completed ? (
+            <Button
+              type="button"
+              size="sm"
+              disabled={busy}
+              onClick={() => void completeChore(item)}
+            >
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="size-4" />
+              )}
+              انجام شد
+            </Button>
+          ) : null}
+        </div>
+      </li>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -315,9 +500,11 @@ export function CalendarBoard({
 
             <div className="grid grid-cols-7 gap-1">
               {monthGrid.map((day) => {
-                const hasItem = calendarItems.some((item) =>
+                const dayItems = calendarItems.filter((item) =>
                   isSameDay(item.startAt, day.date),
                 );
+                const hasItem = dayItems.length > 0;
+                const hasChore = dayItems.some((item) => item.type === "CHORE");
                 const selected = isSameDay(day.date, selectedDate);
 
                 return (
@@ -337,7 +524,13 @@ export function CalendarBoard({
                   >
                     <div>{formatJalaliDayNumber(day.date)}</div>
                     {hasItem ? (
-                      <div className="mx-auto mt-1 h-1.5 w-1.5 rounded-full bg-sky-500" />
+                      <div className="mt-1 flex items-center justify-center gap-0.5">
+                        <div
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            hasChore ? "bg-emerald-500" : "bg-sky-500"
+                          }`}
+                        />
+                      </div>
                     ) : null}
                   </button>
                 );
@@ -353,27 +546,11 @@ export function CalendarBoard({
             </p>
             {weekItems.length === 0 ? (
               <EmptyState
-                title="رویدادی در هفته انتخابی نیست"
-                description="می‌توانید از فرم پایین، رویداد جدید ثبت کنید."
+                title="آیتمی در هفته انتخابی نیست"
+                description="رویداد، تسک یا کار خانه در این هفته نیست."
               />
             ) : (
-              <ul className="space-y-2">
-                {weekItems.map((item) => (
-                  <li
-                    key={`${item.type}-${item.id}`}
-                    className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
-                  >
-                    <p className="text-sm font-medium">{item.title}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {formatJalaliLongDate(item.startAt)} -{" "}
-                      {formatPersianTime(item.startAt)}
-                    </p>
-                    <Badge tone={item.type === "TASK" ? "warning" : "neutral"}>
-                      {item.type === "TASK" ? `تسک (${item.status})` : "رویداد"}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
+              <ul className="space-y-2">{weekItems.map(renderItemRow)}</ul>
             )}
           </div>
         ) : null}
@@ -383,37 +560,41 @@ export function CalendarBoard({
             {agendaItems.length === 0 ? (
               <EmptyState
                 title="آیتم آینده‌ای ندارید"
-                description="رویداد یا تسک آینده در فهرست نیست."
+                description="رویداد، تسک یا کار خانهٔ آینده در فهرست نیست."
               />
             ) : (
-              <ul className="space-y-2">
-                {agendaItems.map((item) => (
-                  <li
-                    key={`${item.type}-${item.id}`}
-                    className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
-                  >
-                    <p className="text-sm font-semibold">{item.title}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {formatJalaliLongDate(item.startAt)} -{" "}
-                      {formatPersianTime(item.startAt)}
-                    </p>
-                    <Badge tone={item.type === "TASK" ? "warning" : "neutral"}>
-                      {item.type === "TASK" ? "تسک" : "رویداد"}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
+              <ul className="space-y-2">{agendaItems.map(renderItemRow)}</ul>
             )}
           </div>
         ) : null}
 
         <CardDescription>
           آیتم‌های روز انتخابی: {selectedItems.length}
+          {selectedChores.length > 0
+            ? ` · کار خانه: ${selectedChores.length}`
+            : ""}
         </CardDescription>
+
+        {view === "month" && selectedItems.length > 0 ? (
+          <ul className="space-y-2">{selectedItems.map(renderItemRow)}</ul>
+        ) : null}
+        {view === "month" && selectedItems.length === 0 ? (
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            برای این روز رویداد، تسک یا کار خانه‌ای نیست.
+          </p>
+        ) : null}
       </Card>
 
+      {errorMessage ? (
+        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+          {errorMessage}
+        </p>
+      ) : null}
+
       <Card className="space-y-3">
-        <CardTitle>{editingEvent ? "ویرایش رویداد" : "رویداد جدید"}</CardTitle>
+        <CardTitle>
+          {editingEvent ? "ویرایش رویداد" : "رویداد جدید"}
+        </CardTitle>
         <form
           className="space-y-3"
           onSubmit={handleSubmit(onSubmit)}
@@ -484,12 +665,6 @@ export function CalendarBoard({
             error={errors.location?.message}
             {...register("location")}
           />
-
-          {errorMessage ? (
-            <p className="text-sm text-rose-600 dark:text-rose-400">
-              {errorMessage}
-            </p>
-          ) : null}
 
           <div className="flex gap-2">
             <Button type="submit" isLoading={isSubmitting} className="flex-1">
