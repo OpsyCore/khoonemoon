@@ -422,7 +422,18 @@ export async function DELETE(
 
   // Prefer full update first (keeps title/recurrence). If member validation
   // blocks, retry with cleared assignee/rotation so soft-delete still works.
-  async function callUpdate(payload) {
+  async function callUpdate(payload: {
+    p_chore_id: string;
+    p_title: string;
+    p_description: string | null;
+    p_start_date: string;
+    p_default_assignee_id: string | null;
+    p_frequency: string;
+    p_interval_days: number | null;
+    p_weekdays: number[] | null;
+    p_rotation_user_ids: string[];
+    p_is_active: boolean;
+  }) {
     return supabase.rpc("update_chore", payload);
   }
 
