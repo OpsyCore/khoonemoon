@@ -10,6 +10,12 @@ import {
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+function firstRelation<T>(value: T | T[] | null | undefined): T | null {
+  if (value == null) return null;
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
+
 
 function mapChoreError(error: unknown) {
   if (!(error instanceof Error)) {
@@ -199,13 +205,23 @@ export async function PATCH(
     );
   }
 
-  const recurrenceRows =
-    existing.chore_recurrences ?? [];
+  const currentRecurrence = firstRelation(
+    existing.chore_recurrences as
+      | {
+          frequency: string;
+          interval_days?: number | null;
+          weekdays?: number[] | null;
+        }
+      | {
+          frequency: string;
+          interval_days?: number | null;
+          weekdays?: number[] | null;
+        }[]
+      | null
+      | undefined,
+  );
 
-  const currentRecurrence =
-    recurrenceRows[0];
-
-  if (!currentRecurrence) {
+  if (!currentRecurrence?.frequency) {
     return NextResponse.json(
       {
         message:
@@ -215,16 +231,16 @@ export async function PATCH(
     );
   }
 
-  const currentRotationIds = [
-    ...(existing.chore_rotations ?? []),
-  ]
-    .sort(
-      (a, b) =>
-        a.position - b.position,
-    )
-    .map(
-      (item) => item.user_id,
-    );
+  const rotationRaw = existing.chore_rotations;
+  const rotationRows = Array.isArray(rotationRaw)
+    ? rotationRaw
+    : rotationRaw
+      ? [rotationRaw]
+      : [];
+
+  const currentRotationIds = [...rotationRows]
+    .sort((a, b) => a.position - b.position)
+    .map((item) => item.user_id);
 
   const input = parsed.data;
 
@@ -365,7 +381,6 @@ export async function DELETE(
     .select(
       `
         id,
-        household_id,
         title,
         description,
         start_date,
@@ -396,10 +411,21 @@ export async function DELETE(
     return NextResponse.json({ ok: true });
   }
 
-  const recurrenceRaw = existing.chore_recurrences;
-  const currentRecurrence = Array.isArray(recurrenceRaw)
-    ? recurrenceRaw[0]
-    : recurrenceRaw;
+  const currentRecurrence = firstRelation(
+    existing.chore_recurrences as
+      | {
+          frequency: string;
+          interval_days?: number | null;
+          weekdays?: number[] | null;
+        }
+      | {
+          frequency: string;
+          interval_days?: number | null;
+          weekdays?: number[] | null;
+        }[]
+      | null
+      | undefined,
+  );
 
   if (!currentRecurrence?.frequency) {
     return NextResponse.json(
@@ -408,21 +434,7 @@ export async function DELETE(
     );
   }
 
-  const rotationRaw = existing.chore_rotations;
-  const rotationRows = Array.isArray(rotationRaw)
-    ? rotationRaw
-    : rotationRaw
-      ? [rotationRaw]
-      : [];
-
-  const rotationUserIds = [...rotationRows]
-    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-    .map((item) => item.user_id)
-    .filter(Boolean);
-
-  // Prefer full update first (keeps title/recurrence). If member validation
-  // blocks, retry with cleared assignee/rotation so soft-delete still works.
-  async function callUpdate(payload: {
+  type UpdatePayload = {
     p_chore_id: string;
     p_title: string;
     p_description: string | null;
@@ -433,11 +445,16 @@ export async function DELETE(
     p_weekdays: number[] | null;
     p_rotation_user_ids: string[];
     p_is_active: boolean;
-  }) {
+  };
+
+  async function callUpdate(payload: UpdatePayload) {
     return supabase.rpc("update_chore", payload);
   }
 
-  const base = {
+  const base: Omit<
+    UpdatePayload,
+    "p_default_assignee_id" | "p_rotation_user_ids"
+  > = {
     p_chore_id: id,
     p_title: existing.title,
     p_description: existing.description ?? null,
@@ -447,6 +464,17 @@ export async function DELETE(
     p_weekdays: currentRecurrence.weekdays ?? null,
     p_is_active: false,
   };
+
+  const rotationRaw = existing.chore_rotations;
+  const rotationRows = Array.isArray(rotationRaw)
+    ? rotationRaw
+    : rotationRaw
+      ? [rotationRaw]
+      : [];
+  const rotationUserIds = [...rotationRows]
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    .map((item) => item.user_id)
+    .filter(Boolean);
 
   let result = await callUpdate({
     ...base,
@@ -474,7 +502,6 @@ export async function DELETE(
     );
   }
 
-  // update_chore returns boolean; only explicit false is failure.
   if (result.data === false) {
     return NextResponse.json(
       { message: "حذف کار خانه ناموفق بود." },
