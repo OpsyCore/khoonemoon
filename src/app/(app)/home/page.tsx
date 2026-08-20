@@ -44,7 +44,7 @@ export default async function HomePage({
     return (
       <ErrorState
         title="خطا در دریافت عضویت"
-        description="اطلاعات عضویت خانه قابل دریافت نیست."
+        description={membershipError.message || "اطلاعات عضویت خانه قابل دریافت نیست."}
       />
     );
   }
@@ -70,51 +70,85 @@ export default async function HomePage({
     );
   }
 
-  const [householdResult, membersResult, invitationsResult] = await Promise.all(
-    [
-      supabase
-        .from("households")
-        .select("id, name, created_by, created_at, updated_at")
-        .eq("id", membership.household_id)
-        .single(),
-      supabase
-        .from("household_members")
-        .select("id, user_id, role, joined_at, left_at, profiles(full_name)")
-        .eq("household_id", membership.household_id)
-        .is("left_at", null)
-        .order("joined_at", { ascending: true }),
-      supabase
-        .from("household_invitations")
-        .select("id, status, expires_at, created_at")
-        .eq("household_id", membership.household_id)
-        .order("created_at", { ascending: false })
-        .limit(10),
-    ],
-  );
+  const householdId = membership.household_id;
 
-  if (
-    householdResult.error ||
-    membersResult.error ||
-    invitationsResult.error
-  ) {
+  const householdResult = await supabase
+    .from("households")
+    .select("id, name, created_by, created_at, updated_at")
+    .eq("id", householdId)
+    .single();
+
+  if (householdResult.error || !householdResult.data) {
     return (
       <ErrorState
         title="خطا در بارگذاری خانه"
-        description="لطفاً دوباره تلاش کنید."
+        description={
+          householdResult.error?.message ||
+          "اطلاعات خانه پیدا نشد. لطفاً دوباره وارد شوید یا خانه جدید بسازید."
+        }
       />
     );
   }
 
-  const normalizedMembers: HouseholdMember[] = (membersResult.data ?? []).map(
-    (member) => ({
-      id: member.id,
-      user_id: member.user_id,
-      role: member.role as HouseholdRole,
-      joined_at: member.joined_at,
-      left_at: member.left_at,
-      profiles: member.profiles,
-    }),
-  );
+  // members without embed first (avoids fragile FK embed failures)
+  const membersResult = await supabase
+    .from("household_members")
+    .select("id, user_id, role, joined_at, left_at")
+    .eq("household_id", householdId)
+    .is("left_at", null)
+    .order("joined_at", { ascending: true });
+
+  if (membersResult.error) {
+    return (
+      <ErrorState
+        title="خطا در بارگذاری اعضا"
+        description={membersResult.error.message}
+      />
+    );
+  }
+
+  const memberRows = membersResult.data ?? [];
+  const userIds = memberRows.map((m) => m.user_id);
+
+  const profilesResult =
+    userIds.length > 0
+      ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
+      : { data: [], error: null };
+
+  // profiles failure should not block the whole home page
+  const profileNameById = new Map<string, string>();
+  if (!profilesResult.error) {
+    for (const profile of profilesResult.data ?? []) {
+      profileNameById.set(profile.id, profile.full_name || "کاربر");
+    }
+  }
+
+  const invitationsResult = await supabase
+    .from("household_invitations")
+    .select("id, status, expires_at, created_at")
+    .eq("household_id", householdId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (invitationsResult.error) {
+    return (
+      <ErrorState
+        title="خطا در بارگذاری دعوت‌نامه‌ها"
+        description={invitationsResult.error.message}
+      />
+    );
+  }
+
+  const normalizedMembers: HouseholdMember[] = memberRows.map((member) => ({
+    id: member.id,
+    user_id: member.user_id,
+    role: member.role as HouseholdRole,
+    joined_at: member.joined_at,
+    left_at: member.left_at,
+    profiles: {
+      full_name: profileNameById.get(member.user_id) ?? "کاربر",
+    },
+  }));
 
   const normalizedInvitations: HouseholdInvitation[] = (
     invitationsResult.data ?? []
@@ -146,7 +180,7 @@ export default async function HomePage({
       </section>
 
       <ChoreManager
-        householdId={membership.household_id}
+        householdId={householdId}
         userId={user.id}
         initialMembers={choreMembers}
       />
