@@ -1,12 +1,3 @@
-export type TaskStatusRank =
-  | "TODO"
-  | "IN_PROGRESS"
-  | "COMPLETED"
-  | "DONE"
-  | "CANCELLED";
-
-export type TaskPriorityRank = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-
 export function statusTone(
   status: string,
 ): "neutral" | "info" | "success" | "danger" {

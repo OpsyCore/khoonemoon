@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import type { EventRecord } from "@/features/calendar/types";
 import type { TaskRecord } from "@/features/tasks/types";
 import { Badge } from "@/shared/ui/badge";
+import { priorityLabel, priorityTone, statusLabel, statusTone } from "@/shared/utils/task-ranks";
 import { Button } from "@/shared/ui/button";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -227,9 +228,7 @@ export function TodayDashboard({
                   </div>
                   <Badge
                     tone={task.status === "COMPLETED" ? "success" : "neutral"}
-                  >
-                    {task.status}
-                  </Badge>
+                   tone={statusTone(task.status)}>{statusLabel(task.status)}</Badge>
                 </div>
                 <div className="mt-2 flex gap-2">
                   <Button

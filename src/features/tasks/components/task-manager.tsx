@@ -19,6 +19,7 @@ import {
 import type { TaskMember, TaskRecord } from "@/features/tasks/types";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Badge } from "@/shared/ui/badge";
+import { priorityLabel, priorityTone, statusLabel, statusTone } from "@/shared/utils/task-ranks";
 import { Button } from "@/shared/ui/button";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -518,16 +519,14 @@ export function TaskManager({
                   </div>
                   <Badge
                     tone={task.status === "COMPLETED" ? "success" : "neutral"}
-                  >
-                    {task.status}
-                  </Badge>
+                   tone={statusTone(task.status)}>{statusLabel(task.status)}</Badge>
                 </div>
 
                 <div className="flex flex-wrap gap-2 text-xs">
                   <Badge tone="neutral">
                     {task.visibility === "PRIVATE" ? "خصوصی" : "اشتراکی"}
                   </Badge>
-                  <Badge tone="warning">{task.priority}</Badge>
+                  <Badge tone="warning" tone={priorityTone(task.priority)}>{priorityLabel(task.priority)}</Badge>
                   <Badge tone="neutral">{dueLabel}</Badge>
                 </div>
 
