@@ -9,6 +9,32 @@ import {
 } from "@/features/chores/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+type ChoreListRow = {
+  id: string;
+  household_id: string;
+  created_by: string;
+  default_assignee_id: string | null;
+  title: string;
+  description: string | null;
+  is_active: boolean | null;
+  start_date: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type RecurrenceRow = {
+  chore_id: string;
+  frequency: string;
+  interval_days: number | null;
+  weekdays: number[] | null;
+};
+
+type RotationRow = {
+  chore_id: string;
+  user_id: string;
+  position: number;
+};
+
 function mapChoreError(error: unknown) {
   if (!(error instanceof Error)) {
     return "انجام عملیات کار خانه ناموفق بود.";
@@ -57,22 +83,10 @@ export async function GET() {
 
     const householdId = membership.household_id;
 
-    // 1) Base rows WITHOUT embed (embed can fail RLS/relationship and empty the list)
     const choresResult = await supabase
       .from("chores")
       .select(
-        [
-          "id",
-          "household_id",
-          "created_by",
-          "default_assignee_id",
-          "title",
-          "description",
-          "is_active",
-          "start_date",
-          "created_at",
-          "updated_at",
-        ].join(", "),
+        "id, household_id, created_by, default_assignee_id, title, description, is_active, start_date, created_at, updated_at",
       )
       .eq("household_id", householdId)
       .or("is_active.eq.true,is_active.is.null")
@@ -87,12 +101,11 @@ export async function GET() {
       );
     }
 
-    const choreRows = (choresResult.data ?? []).filter(
+    const choreRows = ((choresResult.data ?? []) as ChoreListRow[]).filter(
       (row) => row.is_active !== false,
     );
     const choreIds = choreRows.map((row) => row.id);
 
-    // 2) Nested data separately
     const recurrencesByChore = new Map<
       string,
       {
@@ -120,7 +133,7 @@ export async function GET() {
       ]);
 
       if (!recResult.error) {
-        for (const row of recResult.data ?? []) {
+        for (const row of (recResult.data ?? []) as RecurrenceRow[]) {
           recurrencesByChore.set(row.chore_id, {
             frequency: row.frequency,
             interval_days: row.interval_days,
@@ -130,7 +143,7 @@ export async function GET() {
       }
 
       if (!rotResult.error) {
-        for (const row of rotResult.data ?? []) {
+        for (const row of (rotResult.data ?? []) as RotationRow[]) {
           const list = rotationsByChore.get(row.chore_id) ?? [];
           list.push({ user_id: row.user_id, position: row.position });
           rotationsByChore.set(row.chore_id, list);
@@ -172,7 +185,7 @@ export async function GET() {
     }
 
     const memberRows = membersResult.data ?? [];
-    const userIds = memberRows.map((row) => row.user_id);
+    const userIds = memberRows.map((row) => row.user_id as string);
 
     const profilesResult =
       userIds.length > 0
@@ -193,8 +206,8 @@ export async function GET() {
     }
 
     const members = memberRows.map((row) => ({
-      user_id: row.user_id,
-      full_name: nameById.get(row.user_id) ?? "کاربر",
+      user_id: row.user_id as string,
+      full_name: nameById.get(row.user_id as string) ?? "کاربر",
     }));
 
     return NextResponse.json({
@@ -270,11 +283,10 @@ export async function POST(request: Request) {
       throw new Error(error?.message ?? "CREATE_CHORE_FAILED");
     }
 
-    // Ensure row is active even if DB default/RPC omitted is_active
     await supabase
       .from("chores")
       .update({ is_active: true })
-      .eq("id", choreId);
+      .eq("id", choreId as string);
 
     return NextResponse.json({ id: choreId }, { status: 201 });
   } catch (error) {
