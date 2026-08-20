@@ -9,6 +9,15 @@ export const choreDateSchema = z
 
 export const choreFrequencySchema = z.enum(CHORE_FREQUENCIES);
 
+/** Select خالی → null (نه رشتهٔ خالی که uuid را می‌شکند) */
+const optionalUuid = z.preprocess(
+  (value) => {
+    if (value === "" || value === undefined) return null;
+    return value;
+  },
+  z.uuid().nullable(),
+);
+
 export const choreRecurrenceSchema = z
   .object({
     frequency: choreFrequencySchema,
@@ -20,10 +29,7 @@ export const choreRecurrenceSchema = z
       .optional(),
   })
   .superRefine((value, ctx) => {
-    if (
-      value.frequency === "INTERVAL_DAYS" &&
-      !value.intervalDays
-    ) {
+    if (value.frequency === "INTERVAL_DAYS" && !value.intervalDays) {
       ctx.addIssue({
         code: "custom",
         path: ["intervalDays"],
@@ -60,20 +66,15 @@ export const createChoreSchema = z.object({
     .trim()
     .min(1, "عنوان کار الزامی است")
     .max(120, "عنوان کار بیش از حد طولانی است"),
-
   description: z
     .string()
     .trim()
     .max(1000, "توضیحات بیش از حد طولانی است")
     .nullable()
     .optional(),
-
   startDate: choreDateSchema,
-
-  defaultAssigneeId: z.uuid().nullable().optional(),
-
+  defaultAssigneeId: optionalUuid,
   recurrence: choreRecurrenceSchema,
-
   rotationUserIds: z
     .array(z.uuid())
     .max(20)
@@ -84,11 +85,9 @@ export const createChoreSchema = z.object({
     ),
 });
 
-export const updateChoreSchema = createChoreSchema
-  .partial()
-  .extend({
-    isActive: z.boolean().optional(),
-  });
+export const updateChoreSchema = createChoreSchema.partial().extend({
+  isActive: z.boolean().optional(),
+});
 
 export const completeChoreSchema = z.object({
   forDate: choreDateSchema,

@@ -1,7 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, Loader2, PauseCircle, Plus } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  PauseCircle,
+  Pencil,
+  Plus,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
@@ -61,12 +67,17 @@ type ListResponse = {
     userId?: string;
     full_name?: string;
     fullName?: string;
-    profiles?: { full_name?: string } | { full_name?: string }[] | null;
+    profiles?:
+      | { full_name?: string }
+      | { full_name?: string }[]
+      | null;
   }>;
   householdId?: string | null;
   household_id?: string | null;
   message?: string;
 };
+
+type NormalizedChore = ReturnType<typeof normalizeChore>;
 
 const WEEKDAYS = [
   { value: 0, label: "یکشنبه" },
@@ -95,7 +106,9 @@ function todayDateOnly() {
   return `${y}-${m}-${d}`;
 }
 
-function normalizeMember(raw: ListResponse["members"] extends (infer M)[] | undefined ? M : never): ChoreMember {
+function normalizeMember(
+  raw: NonNullable<ListResponse["members"]>[number],
+): ChoreMember {
   const userId = raw.userId ?? raw.user_id ?? "";
   let fullName = raw.fullName ?? raw.full_name ?? "";
   if (!fullName && raw.profiles) {
@@ -136,6 +149,42 @@ function normalizeChore(chore: ApiChore) {
   };
 }
 
+function buildDefaultValues(
+  userId: string,
+  chore?: NormalizedChore | null,
+): CreateChoreInput {
+  if (!chore) {
+    return {
+      title: "",
+      description: "",
+      startDate: todayDateOnly(),
+      defaultAssigneeId: userId,
+      recurrence: { frequency: "NONE", intervalDays: null, weekdays: null },
+      rotationUserIds: [],
+    };
+  }
+
+  const frequency = (chore.recurrence?.frequency ??
+    "NONE") as ChoreFrequency;
+
+  return {
+    title: chore.title,
+    description: chore.description ?? "",
+    startDate: chore.startDate || todayDateOnly(),
+    defaultAssigneeId: chore.defaultAssigneeId,
+    recurrence: {
+      frequency,
+      intervalDays:
+        frequency === "INTERVAL_DAYS"
+          ? (chore.recurrence?.intervalDays ?? null)
+          : null,
+      weekdays:
+        frequency === "WEEKLY" ? (chore.recurrence?.weekdays ?? []) : null,
+    },
+    rotationUserIds: chore.rotation.map((item) => item.userId),
+  };
+}
+
 export function ChoreManager({
   householdId,
   userId,
@@ -150,8 +199,7 @@ export function ChoreManager({
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [editMessage, setEditMessage] = useState<string | null>(null);
-  const [chores, setChores] = useState<ReturnType<typeof normalizeChore>[]>([]);
+  const [chores, setChores] = useState<NormalizedChore[]>([]);
   const [members, setMembers] = useState<ChoreMember[]>(initialMembers);
   const [showForm, setShowForm] = useState(false);
   const [editingChoreId, setEditingChoreId] = useState<string | null>(null);
@@ -165,19 +213,15 @@ export function ChoreManager({
     formState: { errors, isSubmitting },
   } = useForm<CreateChoreInput>({
     resolver: zodResolver(createChoreSchema) as Resolver<CreateChoreInput>,
-    defaultValues: {
-      title: "",
-      description: "",
-      startDate: todayDateOnly(),
-      defaultAssigneeId: userId,
-      recurrence: { frequency: "NONE" },
-      rotationUserIds: [],
-    },
+    defaultValues: buildDefaultValues(userId),
   });
 
   const frequency = useWatch({ control, name: "recurrence.frequency" });
-  const rotationUserIds = useWatch({ control, name: "rotationUserIds" }) ?? [];
+  const rotationUserIds =
+    useWatch({ control, name: "rotationUserIds" }) ?? [];
   const weekdays = useWatch({ control, name: "recurrence.weekdays" }) ?? [];
+
+  const isEditing = Boolean(editingChoreId);
 
   async function loadChores() {
     setLoading(true);
@@ -189,8 +233,7 @@ export function ChoreManager({
         throw new Error(data.message || "بارگذاری کارها ناموفق بود.");
       }
 
-      const list = (data.chores ?? []).map(normalizeChore);
-      setChores(list);
+      setChores((data.chores ?? []).map(normalizeChore));
 
       if (data.members && data.members.length > 0) {
         setMembers(data.members.map((item) => normalizeMember(item)));
@@ -219,17 +262,45 @@ export function ChoreManager({
     return members.find((member) => member.userId === id)?.fullName ?? "کاربر";
   };
 
-  async function onCreate(values: CreateChoreInput) {
+  function openCreateForm() {
+    setEditingChoreId(null);
+    setShowForm(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    reset(buildDefaultValues(userId));
+  }
+
+  function openEditForm(chore: NormalizedChore) {
+    setEditingChoreId(chore.id);
+    setShowForm(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    reset(buildDefaultValues(userId, chore));
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingChoreId(null);
+    setErrorMessage(null);
+    reset(buildDefaultValues(userId));
+  }
+
+  function toggleFormHeaderButton() {
+    if (showForm) {
+      closeForm();
+      return;
+    }
+    openCreateForm();
+  }
+
+  async function onSubmit(values: CreateChoreInput) {
     setErrorMessage(null);
     setSuccessMessage(null);
 
     const payload: CreateChoreInput = {
       ...values,
       description: values.description?.trim() ? values.description : null,
-      defaultAssigneeId:
-        values.defaultAssigneeId && values.defaultAssigneeId.length > 0
-          ? values.defaultAssigneeId
-          : null,
+      defaultAssigneeId: values.defaultAssigneeId || null,
       rotationUserIds: values.rotationUserIds ?? [],
       recurrence: {
         frequency: values.recurrence.frequency,
@@ -244,34 +315,35 @@ export function ChoreManager({
       },
     };
 
-    const url = editingChoreId ? `/api/chores/${editingChoreId}` : "/api/chores";
+    const url = editingChoreId
+      ? `/api/chores/${editingChoreId}`
+      : "/api/chores";
     const method = editingChoreId ? "PATCH" : "POST";
+
     const response = await fetch(url, {
-      method: method,
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
     const data = await response.json().catch(() => ({}));
+
     if (!response.ok) {
       setErrorMessage(
         data.message ||
-          (data.errors ? "اطلاعات فرم معتبر نیست." : "ثبت کار خانه ناموفق بود.")
+          (data.errors
+            ? "اطلاعات فرم معتبر نیست."
+            : isEditing
+              ? "ویرایش کار خانه ناموفق بود."
+              : "ثبت کار خانه ناموفق بود."),
       );
       return;
     }
 
-    setSuccessMessage(editingChoreId ? "کار خانه ویرایش شد." : "کار خانه ثبت شد.");
-    setShowForm(false);
-    setEditingChoreId(null);
-      reset({
-      title: "",
-      description: "",
-      startDate: todayDateOnly(),
-      defaultAssigneeId: userId,
-      recurrence: { frequency: "NONE" },
-      rotationUserIds: [],
-    });
+    setSuccessMessage(
+      isEditing ? "کار خانه ویرایش شد." : "کار خانه ثبت شد.",
+    );
+    closeForm();
     await loadChores();
     router.refresh();
   }
@@ -315,6 +387,9 @@ export function ChoreManager({
         throw new Error(data.message || "غیرفعال‌سازی ناموفق بود.");
       }
       setSuccessMessage("کار خانه غیرفعال شد.");
+      if (editingChoreId === choreId) {
+        closeForm();
+      }
       await loadChores();
       router.refresh();
     } catch (error) {
@@ -335,11 +410,13 @@ export function ChoreManager({
     });
   }
 
-  function toggleRotation(userIdValue: string) {
+  function toggleRotation(memberId: string) {
     const current = new Set(rotationUserIds);
-    if (current.has(userIdValue)) current.delete(userIdValue);
-    else current.add(userIdValue);
-    setValue("rotationUserIds", Array.from(current), { shouldValidate: true });
+    if (current.has(memberId)) current.delete(memberId);
+    else current.add(memberId);
+    setValue("rotationUserIds", Array.from(current), {
+      shouldValidate: true,
+    });
   }
 
   return (
@@ -353,16 +430,7 @@ export function ChoreManager({
             تعریف کار مشترک، تکرار، چرخش نوبت و ثبت انجام روزانه.
           </p>
         </div>
-        <Button
-          size="sm"
-          type="button"
-          onClick={() => {
-            setShowForm((value) => !value);
-            if (!showForm) { setEditingChoreId(null); setEditMessage(null); }
-            setSuccessMessage(null);
-            setErrorMessage(null);
-          }}
-        >
+        <Button size="sm" type="button" onClick={toggleFormHeaderButton}>
           <Plus className="size-4" />
           {showForm ? "بستن فرم" : "کار جدید"}
         </Button>
@@ -381,12 +449,18 @@ export function ChoreManager({
 
       {showForm ? (
         <Card id="quick-add-chore" className="space-y-4">
-          <CardTitle>کار خانه جدید</CardTitle>
-          <CardDescription>
-            کار فقط در سطح خانه مشترک است و برای همه اعضا دیده می‌شود.
-          </CardDescription>
+          <div className="space-y-1">
+            <CardTitle>
+              {isEditing ? "ویرایش کار خانه" : "کار خانه جدید"}
+            </CardTitle>
+            <CardDescription>
+              {isEditing
+                ? "تغییرات روی عنوان، تکرار، مسئول و چرخش اعمال می‌شود. تاریخچه انجام‌های قبلی حفظ می‌ماند."
+                : "کار فقط در سطح خانه مشترک است و برای همه اعضا دیده می‌شود."}
+            </CardDescription>
+          </div>
 
-          <form className="space-y-3" onSubmit={handleSubmit(onCreate)}>
+          <form className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
             <Input
               label="عنوان"
               placeholder="مثلاً جارو کردن پذیرایی"
@@ -426,6 +500,11 @@ export function ChoreManager({
                   </option>
                 ))}
               </select>
+              {errors.defaultAssigneeId?.message ? (
+                <p className="text-xs text-rose-600 dark:text-rose-400">
+                  {errors.defaultAssigneeId.message}
+                </p>
+              ) : null}
             </label>
 
             <label className="block space-y-1.5">
@@ -450,7 +529,9 @@ export function ChoreManager({
                 type="number"
                 min={1}
                 error={errors.recurrence?.intervalDays?.message}
-                {...register("recurrence.intervalDays", { valueAsNumber: true })}
+                {...register("recurrence.intervalDays", {
+                  valueAsNumber: true,
+                })}
               />
             ) : null}
 
@@ -492,7 +573,8 @@ export function ChoreManager({
                 چرخش نوبت (اختیاری)
               </p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                اگر چند نفر را انتخاب کنید، نوبت به‌صورت گردشی بین آن‌ها عوض می‌شود.
+                اگر چند نفر را انتخاب کنید، نوبت به‌صورت گردشی بین آن‌ها عوض
+                می‌شود.
               </p>
               <div className="space-y-2">
                 {members.map((member) => {
@@ -512,18 +594,40 @@ export function ChoreManager({
                   );
                 })}
               </div>
+              {errors.rotationUserIds?.message ? (
+                <p className="text-xs text-rose-600 dark:text-rose-400">
+                  {errors.rotationUserIds.message}
+                </p>
+              ) : null}
             </div>
 
-            <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  در حال ثبت...
-                </>
-              ) : (
-                "ثبت کار خانه"
-              )}
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full sm:flex-1"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    {isEditing ? "در حال ذخیره..." : "در حال ثبت..."}
+                  </>
+                ) : isEditing ? (
+                  "ذخیره تغییرات"
+                ) : (
+                  "ثبت کار خانه"
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full sm:w-auto"
+                disabled={isSubmitting}
+                onClick={closeForm}
+              >
+                انصراف
+              </Button>
+            </div>
           </form>
         </Card>
       ) : null}
@@ -544,9 +648,17 @@ export function ChoreManager({
             const freq = (chore.recurrence?.frequency ??
               "NONE") as (typeof CHORE_FREQUENCIES)[number];
             const busy = submittingId === chore.id;
+            const editingThis = editingChoreId === chore.id;
+
             return (
               <li key={chore.id}>
-                <Card className="space-y-3">
+                <Card
+                  className={cn(
+                    "space-y-3",
+                    editingThis &&
+                      "ring-2 ring-sky-400/60 dark:ring-sky-500/40",
+                  )}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                       <CardTitle>{chore.title}</CardTitle>
@@ -593,18 +705,21 @@ export function ChoreManager({
                       size="sm"
                       variant="ghost"
                       disabled={busy}
+                      onClick={() => openEditForm(chore)}
+                    >
+                      <Pencil className="size-4" />
+                      {editingThis ? "در حال ویرایش" : "ویرایش"}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
                       onClick={() => void deactivateChore(chore.id)}
                     >
                       <PauseCircle className="size-4" />
                       غیرفعال
                     </Button>
-                  <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => { setEditingChoreId(chore.id); setEditMessage(null); setShowForm(true); reset({ title: chore.title, description: chore.description || "", startDate: chore.startDate || "", defaultAssigneeId: chore.defaultAssigneeId || "", recurrence: {
-                      frequency: (chore.recurrence?.frequency || "NONE") as ChoreFrequency,
-                      intervalDays: chore.recurrence?.intervalDays ?? null,
-                      weekdays: chore.recurrence?.weekdays ?? null,
-                    }, rotationUserIds: chore.rotation.map((r: any) => r.userId) || [] }); }}>
-                    ویرایش
-                  </Button>
                   </div>
                 </Card>
               </li>
