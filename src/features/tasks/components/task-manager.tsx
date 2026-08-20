@@ -517,9 +517,7 @@ export function TaskManager({
                       {task.description || "بدون توضیحات"}
                     </CardDescription>
                   </div>
-                  <Badge
-                    tone={task.status === "COMPLETED" ? "success" : "neutral"}
-                   tone={statusTone(task.status)}>{statusLabel(task.status)}</Badge>
+                  <Badge tone={statusTone(task.status)}>{statusLabel(task.status)}</Badge>
                 </div>
 
                 <div className="flex flex-wrap gap-2 text-xs">
