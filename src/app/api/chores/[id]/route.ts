@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   updateChoreSchema,
 } from "@/features/chores/schemas";
+import type { ChoreFrequency } from "@/features/chores/types";
 
 import {
   validateUpdateChoreForUser,
@@ -268,14 +269,9 @@ export async function PATCH(
 
   const recurrence =
     input.recurrence ?? {
-      frequency:
-        currentRecurrence.frequency,
-
-      intervalDays:
-        currentRecurrence.interval_days,
-
-      weekdays:
-        currentRecurrence.weekdays,
+      frequency: currentRecurrence.frequency as ChoreFrequency,
+      intervalDays: currentRecurrence.interval_days ?? null,
+      weekdays: currentRecurrence.weekdays ?? null,
     };
 
   const rotationUserIds =
@@ -459,7 +455,7 @@ export async function DELETE(
     p_title: existing.title,
     p_description: existing.description ?? null,
     p_start_date: existing.start_date,
-    p_frequency: currentRecurrence.frequency,
+    p_frequency: currentRecurrence.frequency as ChoreFrequency,
     p_interval_days: currentRecurrence.interval_days ?? null,
     p_weekdays: currentRecurrence.weekdays ?? null,
     p_is_active: false,
