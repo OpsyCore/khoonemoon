@@ -1,26 +1,32 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { profileSchema, type ProfileInput } from "@/features/profile/schema";
+import { profileSchema } from "@/features/profile/schema";
 import type { ProfileRecord } from "@/features/profile/types";
 import { Button } from "@/shared/ui/button";
+import { Card, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
+import { z } from "zod";
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function ProfileForm({
   profile,
 }: {
   profile: Pick<ProfileRecord, "full_name" | "timezone" | "locale">;
 }) {
-  const [serverMessage, setServerMessage] = useState<string | null>(null);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const router = useRouter();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<ProfileInput>({
+  } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       full_name: profile.full_name,
@@ -29,63 +35,66 @@ export function ProfileForm({
     },
   });
 
-  const onSubmit = async (values: ProfileInput) => {
-    setServerError(null);
-    setServerMessage(null);
+  async function onSubmit(values: ProfileFormValues) {
+    setErrorMessage(null);
+    setSuccessMessage(null);
 
     const response = await fetch("/api/profile", {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
     });
 
+    const data = await response.json().catch(() => ({}));
+
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      setError(data.message || "بروزرسانی انجام نشد.");
+      setErrorMessage(data.message || "بروزرسانی انجام نشد.");
       return;
     }
 
-    setServerMessage("پروفایل با موفقیت ذخیره شد.");
-  };
+    setSuccessMessage("پروفایل ذخیره شد.");
+    router.refresh();
+  }
 
   return (
-    <form
-      className="space-y-3 rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-      onSubmit={handleSubmit(onSubmit)}
-      noValidate
-    >
-      <Input
-        label="نام"
-        error={errors.full_name?.message}
-        {...register("full_name")}
-      />
-      <Input
-        label="منطقه زمانی"
-        error={errors.timezone?.message}
-        {...register("timezone")}
-      />
-      <Input
-        label="زبان"
-        error={errors.locale?.message}
-        {...register("locale")}
-      />
+    <Card className="space-y-4">
+      <CardTitle>ویرایش پروفایل</CardTitle>
 
-      {serverError ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
-          {serverError}
-        </p>
-      ) : null}
-      {serverMessage ? (
-        <p className="text-sm text-emerald-600 dark:text-emerald-400">
-          {serverMessage}
+      {errorMessage ? (
+        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+          {errorMessage}
         </p>
       ) : null}
 
-      <Button type="submit" className="w-full" isLoading={isSubmitting}>
-        ذخیره تغییرات
-      </Button>
-    </form>
+      {successMessage ? (
+        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+          {successMessage}
+        </p>
+      ) : null}
+
+      <form className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
+        <Input
+          label="نام"
+          error={errors.full_name?.message}
+          {...register("full_name")}
+        />
+
+        <Input
+          label="منطقه زمانی"
+          error={errors.timezone?.message}
+          {...register("timezone")}
+        />
+
+        <Input
+          label="زبان"
+          error={errors.locale?.message}
+          {...register("locale")}
+        />
+
+        <Button type="submit" disabled={isSubmitting} className="w-full">
+          {isSubmitting ? "در حال ذخیره..." : "ذخیره پروفایل"}
+        </Button>
+      </form>
+    </Card>
   );
 }
