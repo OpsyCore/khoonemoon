@@ -21,7 +21,7 @@ export async function GET() {
 
   if (error) {
     return NextResponse.json(
-      { message: "Failed to load profile" },
+      { message: `Failed to load profile: ${error.message}` },
       { status: 500 },
     );
   }
@@ -44,12 +44,24 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { message: "درخواست JSON معتبر نیست." },
+      { status: 400 },
+    );
+  }
+
   const parsed = profileSchema.safeParse(body);
 
   if (!parsed.success) {
     return NextResponse.json(
-      { message: "Validation failed", errors: parsed.error.flatten() },
+      {
+        message: "Validation failed",
+        errors: parsed.error.flatten(),
+      },
       { status: 400 },
     );
   }
@@ -64,7 +76,7 @@ export async function PATCH(request: Request) {
 
   if (error) {
     return NextResponse.json(
-      { message: "Failed to update profile" },
+      { message: `Failed to update profile: ${error.message}` },
       { status: 500 },
     );
   }

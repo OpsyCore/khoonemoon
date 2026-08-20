@@ -226,7 +226,10 @@ export function ChoreManager({
     const payload: CreateChoreInput = {
       ...values,
       description: values.description?.trim() ? values.description : null,
-      defaultAssigneeId: values.defaultAssigneeId || null,
+      defaultAssigneeId:
+        values.defaultAssigneeId && values.defaultAssigneeId.length > 0
+          ? values.defaultAssigneeId
+          : null,
       rotationUserIds: values.rotationUserIds ?? [],
       recurrence: {
         frequency: values.recurrence.frequency,
@@ -251,7 +254,10 @@ export function ChoreManager({
 
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      setErrorMessage(data.message || "ثبت کار خانه ناموفق بود.");
+      setErrorMessage(
+        data.message ||
+          (data.errors ? "اطلاعات فرم معتبر نیست." : "ثبت کار خانه ناموفق بود.")
+      );
       return;
     }
 
