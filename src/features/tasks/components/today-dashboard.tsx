@@ -226,9 +226,7 @@ export function TodayDashboard({
                         : "بدون زمان"}
                     </p>
                   </div>
-                  <Badge
-                    tone={task.status === "COMPLETED" ? "success" : "neutral"}
-                   tone={statusTone(task.status)}>{statusLabel(task.status)}</Badge>
+                  <Badge tone={statusTone(task.status)}>{statusLabel(task.status)}</Badge>
                 </div>
                 <div className="mt-2 flex gap-2">
                   <Button
