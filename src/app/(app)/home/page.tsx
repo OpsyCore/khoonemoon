@@ -44,7 +44,9 @@ export default async function HomePage({
     return (
       <ErrorState
         title="خطا در دریافت عضویت"
-        description={membershipError.message || "اطلاعات عضویت خانه قابل دریافت نیست."}
+        description={
+          membershipError.message || "اطلاعات عضویت خانه قابل دریافت نیست."
+        }
       />
     );
   }
@@ -90,7 +92,6 @@ export default async function HomePage({
     );
   }
 
-  // members without embed first (avoids fragile FK embed failures)
   const membersResult = await supabase
     .from("household_members")
     .select("id, user_id, role, joined_at, left_at")
@@ -113,9 +114,8 @@ export default async function HomePage({
   const profilesResult =
     userIds.length > 0
       ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
-      : { data: [], error: null };
+      : { data: [] as { id: string; full_name: string | null }[], error: null };
 
-  // profiles failure should not block the whole home page
   const profileNameById = new Map<string, string>();
   if (!profilesResult.error) {
     for (const profile of profilesResult.data ?? []) {
@@ -145,9 +145,11 @@ export default async function HomePage({
     role: member.role as HouseholdRole,
     joined_at: member.joined_at,
     left_at: member.left_at,
-    profiles: {
-      full_name: profileNameById.get(member.user_id) ?? "کاربر",
-    },
+    profiles: [
+      {
+        full_name: profileNameById.get(member.user_id) ?? "کاربر",
+      },
+    ],
   }));
 
   const normalizedInvitations: HouseholdInvitation[] = (
