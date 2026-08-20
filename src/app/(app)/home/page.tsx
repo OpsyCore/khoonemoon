@@ -1,3 +1,4 @@
+import { ChoreManager } from "@/features/chores/components/chore-manager";
 import { HouseholdManager } from "@/features/households/components/household-manager";
 import type {
   HouseholdInvitation,
@@ -91,7 +92,11 @@ export default async function HomePage({
     ],
   );
 
-  if (householdResult.error || membersResult.error || invitationsResult.error) {
+  if (
+    householdResult.error ||
+    membersResult.error ||
+    invitationsResult.error
+  ) {
     return (
       <ErrorState
         title="خطا در بارگذاری خانه"
@@ -120,14 +125,31 @@ export default async function HomePage({
     created_at: invitation.created_at,
   }));
 
+  const choreMembers = normalizedMembers.map((member) => {
+    const profile = Array.isArray(member.profiles)
+      ? member.profiles[0]
+      : member.profiles;
+    return {
+      userId: member.user_id,
+      fullName: profile?.full_name ?? "کاربر",
+    };
+  });
+
   return (
     <div className="space-y-4">
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">خونه</h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          مدیریت خانه، اعضا، دعوت‌نامه‌ها و دسترسی‌ها در این بخش انجام می‌شود.
+          مدیریت خانه، اعضا، دعوت‌نامه‌ها و کارهای مشترک خانه در این بخش انجام
+          می‌شود.
         </p>
       </section>
+
+      <ChoreManager
+        householdId={membership.household_id}
+        userId={user.id}
+        initialMembers={choreMembers}
+      />
 
       <HouseholdManager
         household={householdResult.data as HouseholdSummary}
