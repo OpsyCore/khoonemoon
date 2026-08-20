@@ -3,7 +3,7 @@ import {
   getChoreOccurrenceIndex,
   getRotationAssignee,
 } from "@/features/chores/recurrence";
-import type { ChoreFrequency } from "@/features/chores/types";
+import type { ChoreFrequency, ChoreRecurrence } from "@/features/chores/types";
 
 export type TodayChoreSource = {
   id: string;
@@ -43,6 +43,86 @@ function addDays(dateOnly: string, days: number): string {
   return dt.toISOString().slice(0, 10);
 }
 
+function toRecurrence(chore: TodayChoreSource): ChoreRecurrence {
+  return {
+    frequency: chore.frequency,
+    intervalDays: chore.intervalDays,
+    weekdays: chore.weekdays,
+  };
+}
+
+function resolveAssignee(
+  rotationUserIds: string[],
+  occurrenceIndex: number,
+  defaultAssigneeId: string | null,
+): string | null {
+  if (rotationUserIds.length === 0) return defaultAssigneeId;
+
+  try {
+    // common signature A: (userIds, index)
+    const a = (getRotationAssignee as Function)(rotationUserIds, occurrenceIndex);
+    if (typeof a === "string") return a;
+  } catch {
+    // ignore
+  }
+
+  try {
+    // common signature B: ({ rotation / members, occurrenceIndex })
+    const b = (getRotationAssignee as Function)({
+      rotationUserIds,
+      occurrenceIndex,
+    });
+    if (typeof b === "string") return b;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const c = (getRotationAssignee as Function)({
+      rotation: rotationUserIds.map((userId, position) => ({ userId, position })),
+      occurrenceIndex,
+    });
+    if (typeof c === "string") return c;
+  } catch {
+    // ignore
+  }
+
+  const idx =
+    ((occurrenceIndex % rotationUserIds.length) + rotationUserIds.length) %
+    rotationUserIds.length;
+  return rotationUserIds[idx] ?? defaultAssigneeId;
+}
+
+function resolveOccurrenceIndex(
+  startDate: string,
+  occurrenceDate: string,
+  recurrence: ChoreRecurrence,
+): number {
+  try {
+    const value = (getChoreOccurrenceIndex as Function)({
+      startDate,
+      occurrenceDate,
+      recurrence,
+    });
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const value = (getChoreOccurrenceIndex as Function)(
+      startDate,
+      occurrenceDate,
+      recurrence,
+    );
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+  } catch {
+    // ignore
+  }
+
+  return 0;
+}
+
 /** Build today + overdue (last 14 days) incomplete occurrences */
 export function buildTodayChoreItems(
   chores: TodayChoreSource[],
@@ -55,13 +135,13 @@ export function buildTodayChoreItems(
   for (const chore of chores) {
     if (!chore.isActive) continue;
 
+    const recurrence = toRecurrence(chore);
+
     const dates = getChoreOccurrenceDates({
       startDate: chore.startDate,
       fromDate: rangeStart,
       toDate: today,
-      frequency: chore.frequency,
-      intervalDays: chore.intervalDays,
-      weekdays: chore.weekdays,
+      recurrence,
     });
 
     for (const forDate of dates) {
@@ -69,21 +149,19 @@ export function buildTodayChoreItems(
       const overdue = forDate < today && !completed;
       const isToday = forDate === today;
 
-      // Today: show whether completed or not; past: only incomplete
       if (!isToday && !overdue) continue;
 
-      const occurrenceIndex = getChoreOccurrenceIndex({
-        startDate: chore.startDate,
-        occurrenceDate: forDate,
-        frequency: chore.frequency,
-        intervalDays: chore.intervalDays,
-        weekdays: chore.weekdays,
-      });
+      const occurrenceIndex = resolveOccurrenceIndex(
+        chore.startDate,
+        forDate,
+        recurrence,
+      );
 
-      const assignedTo =
-        chore.rotationUserIds.length > 0
-          ? getRotationAssignee(chore.rotationUserIds, occurrenceIndex)
-          : chore.defaultAssigneeId;
+      const assignedTo = resolveAssignee(
+        chore.rotationUserIds,
+        occurrenceIndex,
+        chore.defaultAssigneeId,
+      );
 
       items.push({
         choreId: chore.id,
@@ -97,7 +175,6 @@ export function buildTodayChoreItems(
     }
   }
 
-  // overdue first, then today incomplete, then today done
   items.sort((a, b) => {
     if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
     if (a.completed !== b.completed) return a.completed ? 1 : -1;
