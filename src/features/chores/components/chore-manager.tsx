@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, Loader2, PauseCircle, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import {
   createChoreSchema,
   type CreateChoreInput,
@@ -161,7 +161,7 @@ export function ChoreManager({
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<CreateChoreInput>({
-    resolver: zodResolver(createChoreSchema),
+    resolver: zodResolver(createChoreSchema) as Resolver<CreateChoreInput>,
     defaultValues: {
       title: "",
       description: "",
