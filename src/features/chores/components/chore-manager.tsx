@@ -149,9 +149,11 @@ export function ChoreManager({
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [editMessage, setEditMessage] = useState<string | null>(null);
   const [chores, setChores] = useState<ReturnType<typeof normalizeChore>[]>([]);
   const [members, setMembers] = useState<ChoreMember[]>(initialMembers);
   const [showForm, setShowForm] = useState(false);
+  const [editingChoreId, setEditingChoreId] = useState<string | null>(null);
 
   const {
     register,
@@ -238,8 +240,10 @@ export function ChoreManager({
       },
     };
 
-    const response = await fetch("/api/chores", {
-      method: "POST",
+    const url = editingChoreId ? `/api/chores/${editingChoreId}` : "/api/chores";
+    const method = editingChoreId ? "PATCH" : "POST";
+    const response = await fetch(url, {
+      method: method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
@@ -250,9 +254,10 @@ export function ChoreManager({
       return;
     }
 
-    setSuccessMessage("کار خانه ثبت شد.");
+    setSuccessMessage(editingChoreId ? "کار خانه ویرایش شد." : "کار خانه ثبت شد.");
     setShowForm(false);
-    reset({
+    setEditingChoreId(null);
+      reset({
       title: "",
       description: "",
       startDate: todayDateOnly(),
@@ -346,6 +351,7 @@ export function ChoreManager({
           type="button"
           onClick={() => {
             setShowForm((value) => !value);
+            if (!showForm) { setEditingChoreId(null); setEditMessage(null); }
             setSuccessMessage(null);
             setErrorMessage(null);
           }}
@@ -585,6 +591,9 @@ export function ChoreManager({
                       <PauseCircle className="size-4" />
                       غیرفعال
                     </Button>
+                  <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setEditingChoreId(chore.id); setEditMessage(null); setShowForm(true); reset({ title: chore.title, description: chore.description || "", startDate: chore.startDate || "", defaultAssigneeId: chore.defaultAssigneeId || "", recurrence: chore.recurrence || { frequency: "NONE" }, rotationUserIds: chore.rotation.map((r: any) => r.userId) || [] }); }}>
+                    ویرایش
+                  </Button>
                   </div>
                 </Card>
               </li>
