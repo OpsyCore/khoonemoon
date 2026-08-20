@@ -62,52 +62,68 @@ export default async function TodayPage() {
     eventsResult.error ||
     remindersResult.error
   ) {
+    const detail =
+      membershipResult.error?.message ||
+      tasksResult.error?.message ||
+      eventsResult.error?.message ||
+      remindersResult.error?.message ||
+      "لطفاً دوباره تلاش کنید.";
+
     return (
-      <ErrorState
-        title="خطا در دریافت اطلاعات امروز"
-        description="لطفاً دوباره تلاش کنید."
-      />
+      <ErrorState title="خطا در دریافت اطلاعات امروز" description={detail} />
     );
   }
 
   const householdId = membershipResult.data?.household_id ?? null;
 
-  const memberListResult = householdId
-    ? await supabase
-        .from("household_members")
-        .select("user_id, profiles(full_name)")
-        .eq("household_id", householdId)
-        .is("left_at", null)
-    : { data: [], error: null };
+  let effectiveMembers: TaskMember[] = [
+    {
+      user_id: user.id,
+      full_name: "من",
+    },
+  ];
 
-  if (memberListResult.error) {
-    return (
-      <ErrorState
-        title="خطا در دریافت اعضا"
-        description="لطفاً دوباره تلاش کنید."
-      />
-    );
+  if (householdId) {
+    const memberListResult = await supabase
+      .from("household_members")
+      .select("user_id")
+      .eq("household_id", householdId)
+      .is("left_at", null);
+
+    if (memberListResult.error) {
+      return (
+        <ErrorState
+          title="خطا در دریافت اعضا"
+          description={memberListResult.error.message}
+        />
+      );
+    }
+
+    const memberRows = memberListResult.data ?? [];
+    const userIds = memberRows.map((row) => row.user_id);
+
+    const profilesResult =
+      userIds.length > 0
+        ? await supabase
+            .from("profiles")
+            .select("id, full_name")
+            .in("id", userIds)
+        : { data: [] as { id: string; full_name: string | null }[], error: null };
+
+    const nameById = new Map<string, string>();
+    if (!profilesResult.error) {
+      for (const profile of profilesResult.data ?? []) {
+        nameById.set(profile.id, profile.full_name || "کاربر");
+      }
+    }
+
+    if (memberRows.length > 0) {
+      effectiveMembers = memberRows.map((row) => ({
+        user_id: row.user_id,
+        full_name: nameById.get(row.user_id) ?? "کاربر",
+      }));
+    }
   }
-
-  const members = (
-    (memberListResult.data ?? []) as {
-      user_id: string;
-      profiles: { full_name: string }[] | null;
-    }[]
-  ).map((item) => ({
-    user_id: item.user_id,
-    full_name: item.profiles?.[0]?.full_name ?? "کاربر",
-  })) as TaskMember[];
-
-  const effectiveMembers =
-    members.length > 0
-      ? members
-      : [
-          {
-            user_id: user.id,
-            full_name: "من",
-          },
-        ];
 
   const tasks = (tasksResult.data ?? []) as TaskRecord[];
   const events = (eventsResult.data ?? []) as EventRecord[];
@@ -128,7 +144,10 @@ export default async function TodayPage() {
       </section>
 
       <TodayDashboard tasks={tasks} events={events} />
-      <UpcomingReminders reminders={upcomingReminders as ReminderRecord[]} />
+
+      <UpcomingReminders
+        reminders={upcomingReminders as ReminderRecord[]}
+      />
 
       <TaskManager
         tasks={tasks}
