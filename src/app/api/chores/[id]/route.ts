@@ -374,10 +374,6 @@ export async function DELETE(
           frequency,
           interval_days,
           weekdays
-        ),
-        chore_rotations (
-          user_id,
-          position
         )
       `,
     )
@@ -396,33 +392,51 @@ export async function DELETE(
   }
 
   const recurrenceRows = existing.chore_recurrences ?? [];
-  const currentRecurrence = recurrenceRows[0];
+  const currentRecurrence = Array.isArray(recurrenceRows)
+    ? recurrenceRows[0]
+    : recurrenceRows;
 
-  if (!currentRecurrence) {
+  if (!currentRecurrence?.frequency) {
     return NextResponse.json(
       { message: "تنظیم تکرار فعلی کار خانه یافت نشد." },
       { status: 400 },
     );
   }
 
-  const rotationUserIds = [...(existing.chore_rotations ?? [])]
-    .sort((a, b) => a.position - b.position)
-    .map((item) => item.user_id);
-
+  // Soft-delete only. Clear assignee/rotation so stale members
+  // cannot block deactivate via update_chore validation.
   const { data: updated, error } = await supabase.rpc("update_chore", {
     p_chore_id: id,
     p_title: existing.title,
     p_description: existing.description ?? null,
     p_start_date: existing.start_date,
-    p_default_assignee_id: existing.default_assignee_id ?? null,
+    p_default_assignee_id: null,
     p_frequency: currentRecurrence.frequency,
     p_interval_days: currentRecurrence.interval_days ?? null,
     p_weekdays: currentRecurrence.weekdays ?? null,
-    p_rotation_user_ids: rotationUserIds,
+    p_rotation_user_ids: [],
     p_is_active: false,
   });
 
-  if (error || !updated) {
+  if (error) {
+    const raw = error.message || "";
+    const message = raw.includes("CHORE_ACCESS_DENIED")
+      ? "به این کار خانه دسترسی ندارید."
+      : raw.includes("CHORE_NOT_FOUND")
+        ? "کار خانه یافت نشد."
+        : raw.includes("INVALID_")
+          || raw.includes("WEEKDAYS")
+          || raw.includes("UNAUTHORIZED")
+          ? mapChoreError(new Error(raw))
+          : raw
+            ? `حذف کار خانه ناموفق بود: ${raw}`
+            : "حذف کار خانه ناموفق بود.";
+
+    return NextResponse.json({ message }, { status: 400 });
+  }
+
+  // update_chore returns boolean; treat null/undefined as failure only
+  if (updated === false) {
     return NextResponse.json(
       { message: "حذف کار خانه ناموفق بود." },
       { status: 400 },
