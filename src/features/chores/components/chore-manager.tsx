@@ -591,7 +591,7 @@ export function ChoreManager({
                       <PauseCircle className="size-4" />
                       غیرفعال
                     </Button>
-                  <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setEditingChoreId(chore.id); setEditMessage(null); setShowForm(true); reset({ title: chore.title, description: chore.description || "", startDate: chore.startDate || "", defaultAssigneeId: chore.defaultAssigneeId || "", recurrence: chore.recurrence || { frequency: "NONE" }, rotationUserIds: chore.rotation.map((r: any) => r.userId) || [] }); }}>
+                  <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => { setEditingChoreId(chore.id); setEditMessage(null); setShowForm(true); reset({ title: chore.title, description: chore.description || "", startDate: chore.startDate || "", defaultAssigneeId: chore.defaultAssigneeId || "", recurrence: chore.recurrence || { frequency: "NONE" }, rotationUserIds: chore.rotation.map((r: any) => r.userId) || [] }); }}>
                     ویرایش
                   </Button>
                   </div>
