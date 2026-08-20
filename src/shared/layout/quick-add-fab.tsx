@@ -54,10 +54,10 @@ const quickActions: QuickAction[] = [
   },
   {
     key: "shopping",
-    label: "آیتم خرید",
+    label: "لیست خرید",
     icon: ShoppingCart,
-    enabled: false,
-    soon: true,
+    href: "/lists#quick-add-shopping",
+    enabled: true,
   },
   {
     key: "bill",
