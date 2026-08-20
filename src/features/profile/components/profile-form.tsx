@@ -42,7 +42,8 @@ export function ProfileForm({
     });
 
     if (!response.ok) {
-      setServerError("ذخیره پروفایل ناموفق بود. دوباره تلاش کنید.");
+      const data = await response.json().catch(() => ({}));
+      setError(data.message || "بروزرسانی انجام نشد.");
       return;
     }
 
