@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* next-themes sets class="dark" on <html>; Tailwind v4 must use class strategy */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   color-scheme: light;
 }
@@ -15,6 +18,14 @@
 body {
   margin: 0;
   min-height: 100dvh;
+  background-color: #f8fafc;
+  color: #18181b;
+}
+
+.dark body,
+html.dark body {
+  background-color: #09090b;
+  color: #f4f4f5;
 }
 
 ::selection {
