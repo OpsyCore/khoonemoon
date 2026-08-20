@@ -7,21 +7,83 @@ import {
   Wallet,
   CalendarPlus,
   CircleCheckBig,
+  House,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/utils/cn";
 
-const quickActions = [
-  { key: "task", label: "تسک جدید", icon: CircleCheckBig },
-  { key: "event", label: "رویداد جدید", icon: CalendarPlus },
-  { key: "shopping", label: "آیتم خرید", icon: ShoppingCart },
-  { key: "bill", label: "هزینه / قبض", icon: Wallet },
-  { key: "note", label: "یادداشت سریع", icon: StickyNote },
-] as const;
+type QuickAction =
+  | {
+      key: string;
+      label: string;
+      icon: typeof Plus;
+      href: string;
+      enabled: true;
+    }
+  | {
+      key: string;
+      label: string;
+      icon: typeof Plus;
+      enabled: false;
+      soon?: boolean;
+    };
+
+const quickActions: QuickAction[] = [
+  {
+    key: "task",
+    label: "تسک جدید",
+    icon: CircleCheckBig,
+    href: "/today#quick-add-task",
+    enabled: true,
+  },
+  {
+    key: "event",
+    label: "رویداد جدید",
+    icon: CalendarPlus,
+    href: "/calendar#quick-add-event",
+    enabled: true,
+  },
+  {
+    key: "chore",
+    label: "کار خانه",
+    icon: House,
+    href: "/home#chores",
+    enabled: true,
+  },
+  {
+    key: "shopping",
+    label: "آیتم خرید",
+    icon: ShoppingCart,
+    enabled: false,
+    soon: true,
+  },
+  {
+    key: "bill",
+    label: "هزینه / قبض",
+    icon: Wallet,
+    enabled: false,
+    soon: true,
+  },
+  {
+    key: "note",
+    label: "یادداشت سریع",
+    icon: StickyNote,
+    enabled: false,
+    soon: true,
+  },
+];
 
 export function QuickAddFab() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+
+  function handleAction(action: QuickAction) {
+    if (!action.enabled) return;
+    setIsOpen(false);
+    router.push(action.href);
+  }
 
   return (
     <>
@@ -62,23 +124,35 @@ export function QuickAddFab() {
           <ul className="space-y-2">
             {quickActions.map((action) => {
               const Icon = action.icon;
+              const disabled = !action.enabled;
+
               return (
                 <li key={action.key}>
                   <button
                     type="button"
-                    className="flex w-full items-center justify-between rounded-2xl border border-zinc-200 px-3 py-3 text-right text-sm text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                    disabled={disabled}
+                    onClick={() => handleAction(action)}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-right text-sm transition",
+                      disabled
+                        ? "cursor-not-allowed border-zinc-100 text-zinc-400 dark:border-zinc-800 dark:text-zinc-500"
+                        : "border-zinc-200 text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800",
+                    )}
                   >
-                    <span>{action.label}</span>
-                    <Icon className="size-4" />
+                    <span className="flex items-center gap-2">
+                      {action.label}
+                      {disabled && action.soon ? (
+                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                          به‌زودی
+                        </span>
+                      ) : null}
+                    </span>
+                    <Icon className="size-4 shrink-0" />
                   </button>
                 </li>
               );
             })}
           </ul>
-
-          <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-            این بخش فعلاً پوسته رابط کاربری است و به منطق ثبت داده متصل نشده.
-          </p>
         </section>
       </div>
     </>
