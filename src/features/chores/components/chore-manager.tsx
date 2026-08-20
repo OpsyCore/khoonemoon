@@ -4,9 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CheckCircle2,
   Loader2,
-  PauseCircle,
   Pencil,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -374,7 +374,13 @@ export function ChoreManager({
     }
   }
 
-  async function deactivateChore(choreId: string) {
+async function deleteChore(choreId: string, title?: string) {
+    const label = title?.trim() ? `«${title.trim()}»` : "این کار";
+    const ok = window.confirm(
+      `حذف ${label}؟\nاز لیست فعال‌ها برداشته می‌شود (تاریخچه انجام‌ها می‌ماند).`,
+    );
+    if (!ok) return;
+
     setSubmittingId(choreId);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -384,9 +390,9 @@ export function ChoreManager({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.message || "غیرفعال‌سازی ناموفق بود.");
+        throw new Error(data.message || "حذف کار خانه ناموفق بود.");
       }
-      setSuccessMessage("کار خانه غیرفعال شد.");
+      setSuccessMessage("کار خانه حذف شد.");
       if (editingChoreId === choreId) {
         closeForm();
       }
@@ -394,7 +400,7 @@ export function ChoreManager({
       router.refresh();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "غیرفعال‌سازی ناموفق بود.",
+        error instanceof Error ? error.message : "حذف کار خانه ناموفق بود.",
       );
     } finally {
       setSubmittingId(null);
@@ -715,10 +721,10 @@ export function ChoreManager({
                       size="sm"
                       variant="ghost"
                       disabled={busy}
-                      onClick={() => void deactivateChore(chore.id)}
+                      onClick={() => void deleteChore(chore.id, chore.title)}
                     >
-                      <PauseCircle className="size-4" />
-                      غیرفعال
+                      <Trash2 className="size-4" />
+                      حذف
                     </Button>
                   </div>
                 </Card>

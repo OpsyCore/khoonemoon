@@ -360,12 +360,29 @@ export async function DELETE(
     );
   }
 
-  const { data: existing, error: loadError } =
-    await supabase
-      .from("chores")
-      .select("id")
-      .eq("id", id)
-      .maybeSingle();
+  const { data: existing, error: loadError } = await supabase
+    .from("chores")
+    .select(
+      `
+        id,
+        title,
+        description,
+        start_date,
+        default_assignee_id,
+        is_active,
+        chore_recurrences (
+          frequency,
+          interval_days,
+          weekdays
+        ),
+        chore_rotations (
+          user_id,
+          position
+        )
+      `,
+    )
+    .eq("id", id)
+    .maybeSingle();
 
   if (loadError || !existing) {
     return NextResponse.json(
@@ -374,19 +391,40 @@ export async function DELETE(
     );
   }
 
-  const { error } = await supabase
-    .from("chores")
-    .update({
-      is_active: false,
-    })
-    .eq("id", id);
+  if (existing.is_active === false) {
+    return NextResponse.json({ ok: true });
+  }
 
-  if (error) {
+  const recurrenceRows = existing.chore_recurrences ?? [];
+  const currentRecurrence = recurrenceRows[0];
+
+  if (!currentRecurrence) {
     return NextResponse.json(
-      {
-        message:
-          "غیرفعال کردن کار خانه ناموفق بود.",
-      },
+      { message: "تنظیم تکرار فعلی کار خانه یافت نشد." },
+      { status: 400 },
+    );
+  }
+
+  const rotationUserIds = [...(existing.chore_rotations ?? [])]
+    .sort((a, b) => a.position - b.position)
+    .map((item) => item.user_id);
+
+  const { data: updated, error } = await supabase.rpc("update_chore", {
+    p_chore_id: id,
+    p_title: existing.title,
+    p_description: existing.description ?? null,
+    p_start_date: existing.start_date,
+    p_default_assignee_id: existing.default_assignee_id ?? null,
+    p_frequency: currentRecurrence.frequency,
+    p_interval_days: currentRecurrence.interval_days ?? null,
+    p_weekdays: currentRecurrence.weekdays ?? null,
+    p_rotation_user_ids: rotationUserIds,
+    p_is_active: false,
+  });
+
+  if (error || !updated) {
+    return NextResponse.json(
+      { message: "حذف کار خانه ناموفق بود." },
       { status: 400 },
     );
   }
