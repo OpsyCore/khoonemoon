@@ -57,6 +57,7 @@ export async function GET() {
 
     const householdId = membership.household_id;
 
+    // 1) Base rows WITHOUT embed (embed can fail RLS/relationship and empty the list)
     const choresResult = await supabase
       .from("chores")
       .select(
@@ -71,12 +72,10 @@ export async function GET() {
           "start_date",
           "created_at",
           "updated_at",
-          "chore_recurrences(frequency, interval_days, weekdays)",
-          "chore_rotations(user_id, position)",
         ].join(", "),
       )
       .eq("household_id", householdId)
-      .eq("is_active", true)
+      .or("is_active.eq.true,is_active.is.null")
       .order("created_at", { ascending: false });
 
     if (choresResult.error) {
@@ -87,6 +86,75 @@ export async function GET() {
         { status: 500 },
       );
     }
+
+    const choreRows = (choresResult.data ?? []).filter(
+      (row) => row.is_active !== false,
+    );
+    const choreIds = choreRows.map((row) => row.id);
+
+    // 2) Nested data separately
+    const recurrencesByChore = new Map<
+      string,
+      {
+        frequency: string;
+        interval_days: number | null;
+        weekdays: number[] | null;
+      }
+    >();
+    const rotationsByChore = new Map<
+      string,
+      Array<{ user_id: string; position: number }>
+    >();
+
+    if (choreIds.length > 0) {
+      const [recResult, rotResult] = await Promise.all([
+        supabase
+          .from("chore_recurrences")
+          .select("chore_id, frequency, interval_days, weekdays")
+          .in("chore_id", choreIds),
+        supabase
+          .from("chore_rotations")
+          .select("chore_id, user_id, position")
+          .in("chore_id", choreIds)
+          .order("position", { ascending: true }),
+      ]);
+
+      if (!recResult.error) {
+        for (const row of recResult.data ?? []) {
+          recurrencesByChore.set(row.chore_id, {
+            frequency: row.frequency,
+            interval_days: row.interval_days,
+            weekdays: row.weekdays,
+          });
+        }
+      }
+
+      if (!rotResult.error) {
+        for (const row of rotResult.data ?? []) {
+          const list = rotationsByChore.get(row.chore_id) ?? [];
+          list.push({ user_id: row.user_id, position: row.position });
+          rotationsByChore.set(row.chore_id, list);
+        }
+      }
+    }
+
+    const chores = choreRows.map((row) => {
+      const rec = recurrencesByChore.get(row.id);
+      return {
+        ...row,
+        is_active: row.is_active ?? true,
+        chore_recurrences: rec
+          ? [
+              {
+                frequency: rec.frequency,
+                interval_days: rec.interval_days,
+                weekdays: rec.weekdays,
+              },
+            ]
+          : [],
+        chore_rotations: rotationsByChore.get(row.id) ?? [],
+      };
+    });
 
     const membersResult = await supabase
       .from("household_members")
@@ -108,8 +176,14 @@ export async function GET() {
 
     const profilesResult =
       userIds.length > 0
-        ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
-        : { data: [] as { id: string; full_name: string | null }[], error: null };
+        ? await supabase
+            .from("profiles")
+            .select("id, full_name")
+            .in("id", userIds)
+        : {
+            data: [] as { id: string; full_name: string | null }[],
+            error: null,
+          };
 
     const nameById = new Map<string, string>();
     if (!profilesResult.error) {
@@ -124,7 +198,7 @@ export async function GET() {
     }));
 
     return NextResponse.json({
-      chores: choresResult.data ?? [],
+      chores,
       members,
       householdId,
     });
@@ -195,6 +269,12 @@ export async function POST(request: Request) {
     if (error || !choreId) {
       throw new Error(error?.message ?? "CREATE_CHORE_FAILED");
     }
+
+    // Ensure row is active even if DB default/RPC omitted is_active
+    await supabase
+      .from("chores")
+      .update({ is_active: true })
+      .eq("id", choreId);
 
     return NextResponse.json({ id: choreId }, { status: 201 });
   } catch (error) {
