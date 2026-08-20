@@ -9,6 +9,7 @@ import {
   createChoreSchema,
   type CreateChoreInput,
 } from "@/features/chores/schemas";
+import type { ChoreFrequency } from "@/features/chores/types";
 import { CHORE_FREQUENCIES } from "@/features/chores/types";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -591,7 +592,11 @@ export function ChoreManager({
                       <PauseCircle className="size-4" />
                       غیرفعال
                     </Button>
-                  <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => { setEditingChoreId(chore.id); setEditMessage(null); setShowForm(true); reset({ title: chore.title, description: chore.description || "", startDate: chore.startDate || "", defaultAssigneeId: chore.defaultAssigneeId || "", recurrence: chore.recurrence || { frequency: "NONE" }, rotationUserIds: chore.rotation.map((r: any) => r.userId) || [] }); }}>
+                  <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => { setEditingChoreId(chore.id); setEditMessage(null); setShowForm(true); reset({ title: chore.title, description: chore.description || "", startDate: chore.startDate || "", defaultAssigneeId: chore.defaultAssigneeId || "", recurrence: {
+                      frequency: (chore.recurrence?.frequency || "NONE") as ChoreFrequency,
+                      intervalDays: chore.recurrence?.intervalDays ?? null,
+                      weekdays: chore.recurrence?.weekdays ?? null,
+                    }, rotationUserIds: chore.rotation.map((r: any) => r.userId) || [] }); }}>
                     ویرایش
                   </Button>
                   </div>
