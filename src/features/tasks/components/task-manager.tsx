@@ -524,7 +524,7 @@ export function TaskManager({
                   <Badge tone="neutral">
                     {task.visibility === "PRIVATE" ? "خصوصی" : "اشتراکی"}
                   </Badge>
-                  <Badge tone="warning" tone={priorityTone(task.priority)}>{priorityLabel(task.priority)}</Badge>
+                  <Badge  tone={priorityTone(task.priority)}>{priorityLabel(task.priority)}</Badge>
                   <Badge tone="neutral">{dueLabel}</Badge>
                 </div>
 
