@@ -1,4 +1,11 @@
 import type { EventRecord } from "@/features/calendar/types";
+import { TodayChores } from "@/features/chores/components/today-chores";
+import {
+  buildTodayChoreItems,
+  toDateOnlyLocal,
+  type TodayChoreSource,
+} from "@/features/chores/today";
+import type { ChoreFrequency } from "@/features/chores/types";
 import { calculateUpcomingReminders } from "@/features/reminders/calculations";
 import { UpcomingReminders } from "@/features/reminders/components/upcoming-reminders";
 import type { ReminderRecord } from "@/features/reminders/types";
@@ -83,6 +90,11 @@ export default async function TodayPage() {
     },
   ];
 
+  let todayChoreItems: ReturnType<typeof buildTodayChoreItems> = [];
+  let choreMembers: { userId: string; fullName: string }[] = [
+    { userId: user.id, fullName: "من" },
+  ];
+
   if (householdId) {
     const memberListResult = await supabase
       .from("household_members")
@@ -108,7 +120,10 @@ export default async function TodayPage() {
             .from("profiles")
             .select("id, full_name")
             .in("id", userIds)
-        : { data: [] as { id: string; full_name: string | null }[], error: null };
+        : {
+            data: [] as { id: string; full_name: string | null }[],
+            error: null,
+          };
 
     const nameById = new Map<string, string>();
     if (!profilesResult.error) {
@@ -122,6 +137,74 @@ export default async function TodayPage() {
         user_id: row.user_id,
         full_name: nameById.get(row.user_id) ?? "کاربر",
       }));
+      choreMembers = effectiveMembers.map((m) => ({
+        userId: m.user_id,
+        fullName: m.full_name,
+      }));
+    }
+
+    const today = toDateOnlyLocal();
+    const lookbackStart = (() => {
+      const [y, m, d] = today.split("-").map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      dt.setUTCDate(dt.getUTCDate() - 14);
+      return dt.toISOString().slice(0, 10);
+    })();
+
+    const [choresResult, completionsResult] = await Promise.all([
+      supabase
+        .from("chores")
+        .select(
+          "id, title, description, is_active, start_date, default_assignee_id, chore_recurrences(frequency, interval_days, weekdays), chore_rotations(user_id, position)",
+        )
+        .eq("household_id", householdId)
+        .eq("is_active", true),
+      supabase
+        .from("chore_completions")
+        .select("chore_id, for_date")
+        .gte("for_date", lookbackStart)
+        .lte("for_date", today),
+    ]);
+
+    // chores failure should not kill whole Today — show empty chores
+    if (!choresResult.error) {
+      const completionsByChore = new Map<string, Set<string>>();
+      if (!completionsResult.error) {
+        for (const row of completionsResult.data ?? []) {
+          const set = completionsByChore.get(row.chore_id) ?? new Set<string>();
+          set.add(row.for_date);
+          completionsByChore.set(row.chore_id, set);
+        }
+      }
+
+      const sources: TodayChoreSource[] = (choresResult.data ?? []).map(
+        (row) => {
+          const rec = Array.isArray(row.chore_recurrences)
+            ? row.chore_recurrences[0]
+            : row.chore_recurrences;
+          const rotations = Array.isArray(row.chore_rotations)
+            ? [...row.chore_rotations].sort(
+                (a, b) => (a.position ?? 0) - (b.position ?? 0),
+              )
+            : [];
+
+          return {
+            id: row.id,
+            title: row.title,
+            description: row.description ?? null,
+            isActive: row.is_active ?? true,
+            startDate: row.start_date,
+            defaultAssigneeId: row.default_assignee_id ?? null,
+            frequency: (rec?.frequency ?? "NONE") as ChoreFrequency,
+            intervalDays: rec?.interval_days ?? null,
+            weekdays: rec?.weekdays ?? null,
+            rotationUserIds: rotations.map((r) => r.user_id),
+            completedDates: completionsByChore.get(row.id) ?? new Set<string>(),
+          };
+        },
+      );
+
+      todayChoreItems = buildTodayChoreItems(sources, today, 14);
     }
   }
 
@@ -145,9 +228,9 @@ export default async function TodayPage() {
 
       <TodayDashboard tasks={tasks} events={events} />
 
-      <UpcomingReminders
-        reminders={upcomingReminders as ReminderRecord[]}
-      />
+      <TodayChores items={todayChoreItems} members={choreMembers} />
+
+      <UpcomingReminders reminders={upcomingReminders as ReminderRecord[]} />
 
       <TaskManager
         tasks={tasks}
