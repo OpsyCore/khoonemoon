@@ -39,23 +39,18 @@ function mapChoreError(error: unknown) {
   if (!(error instanceof Error)) {
     return "انجام عملیات کار خانه ناموفق بود.";
   }
-
   if (error.message.includes("NO_HOUSEHOLD_FOR_CHORE")) {
     return "برای ساخت کار خانه باید عضو یک خانه باشید.";
   }
-
   if (error.message.includes("INVALID_DEFAULT_ASSIGNEE")) {
     return "مسئول پیش‌فرض انتخاب‌شده معتبر نیست.";
   }
-
   if (error.message.includes("INVALID_ROTATION_MEMBER")) {
     return "یکی از اعضای چرخش معتبر نیست.";
   }
-
   if (error.message.includes("DUPLICATE_ROTATION_MEMBER")) {
     return "اعضای چرخش نباید تکراری باشند.";
   }
-
   return error.message || "انجام عملیات کار خانه ناموفق بود.";
 }
 
@@ -83,13 +78,13 @@ export async function GET() {
 
     const householdId = membership.household_id;
 
+    // NO is_active filter here — return all, UI filters
     const choresResult = await supabase
       .from("chores")
       .select(
         "id, household_id, created_by, default_assignee_id, title, description, is_active, start_date, created_at, updated_at",
       )
       .eq("household_id", householdId)
-      .or("is_active.eq.true,is_active.is.null")
       .order("created_at", { ascending: false });
 
     if (choresResult.error) {
@@ -101,23 +96,14 @@ export async function GET() {
       );
     }
 
-    const choreRows = ((choresResult.data ?? []) as ChoreListRow[]).filter(
-      (row) => row.is_active !== false,
-    );
+    const choreRows = (choresResult.data ?? []) as ChoreListRow[];
     const choreIds = choreRows.map((row) => row.id);
 
     const recurrencesByChore = new Map<
       string,
-      {
-        frequency: string;
-        interval_days: number | null;
-        weekdays: number[] | null;
-      }
+      { frequency: string; interval_days: number | null; weekdays: number[] | null }
     >();
-    const rotationsByChore = new Map<
-      string,
-      Array<{ user_id: string; position: number }>
-    >();
+    const rotationsByChore = new Map<string, Array<{ user_id: string; position: number }>>();
 
     if (choreIds.length > 0) {
       const [recResult, rotResult] = await Promise.all([
@@ -157,13 +143,7 @@ export async function GET() {
         ...row,
         is_active: row.is_active ?? true,
         chore_recurrences: rec
-          ? [
-              {
-                frequency: rec.frequency,
-                interval_days: rec.interval_days,
-                weekdays: rec.weekdays,
-              },
-            ]
+          ? [{ frequency: rec.frequency, interval_days: rec.interval_days, weekdays: rec.weekdays }]
           : [],
         chore_rotations: rotationsByChore.get(row.id) ?? [],
       };
@@ -177,9 +157,7 @@ export async function GET() {
 
     if (membersResult.error) {
       return NextResponse.json(
-        {
-          message: `دریافت اعضای خانه ناموفق بود: ${membersResult.error.message}`,
-        },
+        { message: `دریافت اعضای خانه ناموفق بود: ${membersResult.error.message}` },
         { status: 500 },
       );
     }
@@ -189,14 +167,8 @@ export async function GET() {
 
     const profilesResult =
       userIds.length > 0
-        ? await supabase
-            .from("profiles")
-            .select("id, full_name")
-            .in("id", userIds)
-        : {
-            data: [] as { id: string; full_name: string | null }[],
-            error: null,
-          };
+        ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
+        : { data: [] as { id: string; full_name: string | null }[], error: null };
 
     const nameById = new Map<string, string>();
     if (!profilesResult.error) {
@@ -210,18 +182,11 @@ export async function GET() {
       full_name: nameById.get(row.user_id as string) ?? "کاربر",
     }));
 
-    return NextResponse.json({
-      chores,
-      members,
-      householdId,
-    });
+    return NextResponse.json({ chores, members, householdId });
   } catch (error) {
     return NextResponse.json(
       {
-        message:
-          error instanceof Error
-            ? error.message
-            : "دریافت کارهای خانه ناموفق بود.",
+        message: error instanceof Error ? error.message : "دریافت کارهای خانه ناموفق بود.",
       },
       { status: 500 },
     );
@@ -240,33 +205,23 @@ export async function POST(request: Request) {
   }
 
   let body: unknown;
-
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { message: "درخواست JSON معتبر نیست." },
-      { status: 400 },
-    );
+    return NextResponse.json({ message: "درخواست JSON معتبر نیست." }, { status: 400 });
   }
 
   const parsed = createChoreSchema.safeParse(body as CreateChoreInput);
 
   if (!parsed.success) {
     return NextResponse.json(
-      {
-        message: "Validation failed",
-        errors: parsed.error.flatten(),
-      },
+      { message: "Validation failed", errors: parsed.error.flatten() },
       { status: 400 },
     );
   }
 
   try {
-    await validateCreateChoreForUser({
-      userId: user.id,
-      input: parsed.data,
-    });
+    await validateCreateChoreForUser({ userId: user.id, input: parsed.data });
 
     const { data: choreId, error } = await supabase.rpc("create_chore", {
       p_title: parsed.data.title,
@@ -283,16 +238,11 @@ export async function POST(request: Request) {
       throw new Error(error?.message ?? "CREATE_CHORE_FAILED");
     }
 
-    await supabase
-      .from("chores")
-      .update({ is_active: true })
-      .eq("id", choreId as string);
+    // Ensure active
+    await supabase.from("chores").update({ is_active: true }).eq("id", choreId as string);
 
     return NextResponse.json({ id: choreId }, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { message: mapChoreError(error) },
-      { status: 400 },
-    );
+    return NextResponse.json({ message: mapChoreError(error) }, { status: 400 });
   }
 }
