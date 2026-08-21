@@ -38,6 +38,7 @@ type List = {
 type ListsResponse = {
   lists?: List[];
   message?: string;
+  detail?: string;
 };
 
 function itemQuantity(item: Item) {
@@ -86,7 +87,11 @@ export function ShoppingManager() {
       const data = (await response.json().catch(() => ({}))) as ListsResponse;
 
       if (!response.ok) {
-        throw new Error(data.message || "دریافت لیست‌های خرید ناموفق بود.");
+        throw new Error(
+        data.detail
+          ? `${data.message || "دریافت لیست‌های خرید ناموفق بود."} — ${data.detail}`
+          : data.message || "دریافت لیست‌های خرید ناموفق بود.",
+      );
       }
 
       setLists(data.lists ?? []);
