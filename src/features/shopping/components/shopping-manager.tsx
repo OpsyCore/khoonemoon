@@ -76,25 +76,29 @@ export function ShoppingManager() {
   const [editItemUnit, setEditItemUnit] = useState("");
   const [editItemNote, setEditItemNote] = useState("");
 
+  const fetchLists = useCallback(async () => {
+    const response = await fetch("/api/shopping/lists", {
+      cache: "no-store",
+    });
+    const data = (await response.json().catch(() => ({}))) as ListsResponse;
+
+    if (!response.ok) {
+      throw new Error(
+        data.detail
+          ? `${data.message || "دریافت لیست‌های خرید ناموفق بود."} — ${data.detail}`
+          : data.message || "دریافت لیست‌های خرید ناموفق بود.",
+      );
+    }
+
+    return data.lists ?? [];
+  }, []);
+
   const loadLists = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/shopping/lists", {
-        cache: "no-store",
-      });
-      const data = (await response.json().catch(() => ({}))) as ListsResponse;
-
-      if (!response.ok) {
-        throw new Error(
-        data.detail
-          ? `${data.message || "دریافت لیست‌های خرید ناموفق بود."} — ${data.detail}`
-          : data.message || "دریافت لیست‌های خرید ناموفق بود.",
-      );
-      }
-
-      setLists(data.lists ?? []);
+      setLists(await fetchLists());
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "دریافت لیست‌های خرید ناموفق بود.",
@@ -102,11 +106,30 @@ export function ShoppingManager() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchLists]);
 
   useEffect(() => {
-    void loadLists();
-  }, [loadLists]);
+    let cancelled = false;
+
+    void fetchLists()
+      .then((nextLists) => {
+        if (cancelled) return;
+        setLists(nextLists);
+        setError(null);
+        setLoading(false);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setError(
+          e instanceof Error ? e.message : "دریافت لیست‌های خرید ناموفق بود.",
+        );
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchLists]);
 
   function clearMessages() {
     setError(null);

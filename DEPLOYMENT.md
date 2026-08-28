@@ -70,13 +70,7 @@ npm run build
 npm run lint
 ```
 
-Lint فعلی سه خطای ازپیش‌موجود `react-hooks/set-state-in-effect` دارد:
-
-- `src/features/chores/components/chore-manager.tsx`
-- `src/features/shopping/components/shopping-manager.tsx`
-- `src/shared/layout/theme-toggle.tsx`
-
-این‌ها از M8/M11 باقی مانده‌اند و در M12 اصلاح نشدند.
+`npm run lint` باید بدون خطا باشد (چرخهٔ fetch اولیهٔ chores/shopping و hydration تم در ThemeToggle بدون `setState` همزمان داخل `useEffect`).
 
 فونت Vazirmatn به‌صورت local در `src/app/fonts/` است تا `next build` به Google Fonts در زمان کامپایل وابسته نباشد.
 

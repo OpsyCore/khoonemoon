@@ -223,21 +223,27 @@ export function ChoreManager({
 
   const isEditing = Boolean(editingChoreId);
 
+  async function fetchChoreList() {
+    const response = await fetch("/api/chores");
+    const data = (await response.json()) as ListResponse;
+    if (!response.ok) {
+      throw new Error(data.message || "بارگذاری کارها ناموفق بود.");
+    }
+    return data;
+  }
+
+  function applyChoreList(data: ListResponse) {
+    setChores((data.chores ?? []).map(normalizeChore));
+    if (data.members && data.members.length > 0) {
+      setMembers(data.members.map((item) => normalizeMember(item)));
+    }
+  }
+
   async function loadChores() {
     setLoading(true);
     setErrorMessage(null);
     try {
-      const response = await fetch("/api/chores");
-      const data = (await response.json()) as ListResponse;
-      if (!response.ok) {
-        throw new Error(data.message || "بارگذاری کارها ناموفق بود.");
-      }
-
-      setChores((data.chores ?? []).map(normalizeChore));
-
-      if (data.members && data.members.length > 0) {
-        setMembers(data.members.map((item) => normalizeMember(item)));
-      }
+      applyChoreList(await fetchChoreList());
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "بارگذاری کارها ناموفق بود.",
@@ -248,8 +254,26 @@ export function ChoreManager({
   }
 
   useEffect(() => {
-    void loadChores();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+
+    void fetchChoreList()
+      .then((data) => {
+        if (cancelled) return;
+        applyChoreList(data);
+        setErrorMessage(null);
+        setLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setErrorMessage(
+          error instanceof Error ? error.message : "بارگذاری کارها ناموفق بود.",
+        );
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [householdId]);
 
   const activeChores = useMemo(
