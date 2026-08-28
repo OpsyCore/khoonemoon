@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { isBottomNavActive } from "@/shared/layout/nav-active";
 import { cn } from "@/shared/utils/cn";
 
 const navItems = [
@@ -26,8 +27,7 @@ export function BottomNav() {
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 md:hidden">
       <ul className="mx-auto grid w-full max-w-md grid-cols-5 gap-1">
         {navItems.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive = isBottomNavActive(pathname, item.href);
           const Icon = item.icon;
 
           return (

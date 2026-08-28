@@ -9,7 +9,7 @@ import {
   CircleCheckBig,
   House,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/utils/cn";
@@ -77,11 +77,25 @@ const quickActions: QuickAction[] = [
 
 export function QuickAddFab() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
   function handleAction(action: QuickAction) {
     if (!action.enabled) return;
     setIsOpen(false);
+
+    const hashIndex = action.href.indexOf("#");
+    if (hashIndex >= 0) {
+      const path = action.href.slice(0, hashIndex) || pathname;
+      const hash = action.href.slice(hashIndex);
+      if (pathname === path) {
+        window.dispatchEvent(
+          new CustomEvent("khoonemoon:quick-add", { detail: hash }),
+        );
+        return;
+      }
+    }
+
     router.push(action.href);
   }
 

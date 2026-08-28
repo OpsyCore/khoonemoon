@@ -143,14 +143,30 @@ export function FinanceManager({
     const loadTimer = window.setTimeout(() => {
       void loadRecords();
     }, 0);
-    const hashTimer = window.setTimeout(() => {
-      if (window.location.hash === "#quick-add-finance") {
+
+    function openIfHash(hash = window.location.hash) {
+      if (hash === "#quick-add-finance") {
         setShowForm(true);
       }
-    }, 0);
+    }
+
+    function onHashChange() {
+      openIfHash();
+    }
+
+    function onQuickAdd(event: Event) {
+      const hash = (event as CustomEvent<string>).detail;
+      openIfHash(hash);
+    }
+
+    const hashTimer = window.setTimeout(() => openIfHash(), 0);
+    window.addEventListener("hashchange", onHashChange);
+    window.addEventListener("khoonemoon:quick-add", onQuickAdd);
     return () => {
       window.clearTimeout(loadTimer);
       window.clearTimeout(hashTimer);
+      window.removeEventListener("hashchange", onHashChange);
+      window.removeEventListener("khoonemoon:quick-add", onQuickAdd);
     };
   }, [householdId]);
 

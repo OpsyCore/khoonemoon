@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { buildPayAction } from "@/features/finance/components/finance-payload";
@@ -102,9 +103,17 @@ export function TodayBills({ items }: { items: TodayBillItem[] }) {
   if (visibleItems.length === 0) {
     return (
       <section className="space-y-3">
-        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-          قبض‌ها
-        </h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            قبض‌ها
+          </h3>
+          <Link
+            href="/finance"
+            className="text-xs font-medium text-sky-700 dark:text-sky-300"
+          >
+            همه مالی
+          </Link>
+        </div>
         <EmptyState
           title="قبض سررسید یا معوقی ندارید"
           description="قبض‌های پرداخت‌نشدهٔ امروز و معوق اینجا دیده می‌شوند."
@@ -119,7 +128,13 @@ export function TodayBills({ items }: { items: TodayBillItem[] }) {
         <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
           قبض‌ها
         </h3>
-        <div className="flex flex-wrap gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <Link
+            href="/finance"
+            className="font-medium text-sky-700 dark:text-sky-300"
+          >
+            همه مالی
+          </Link>
           {overdue.length > 0 ? (
             <Badge tone="danger">{overdue.length} معوق</Badge>
           ) : null}

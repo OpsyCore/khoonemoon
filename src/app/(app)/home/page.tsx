@@ -1,5 +1,5 @@
 import { ChoreManager } from "@/features/chores/components/chore-manager";
-import { FinanceManager } from "@/features/finance/components/finance-manager";
+import { HomeFinanceSection } from "@/features/finance/components/home-finance-section";
 import { HouseholdManager } from "@/features/households/components/household-manager";
 import type {
   HouseholdInvitation,
@@ -62,11 +62,7 @@ export default async function HomePage({
           </p>
         </section>
 
-        <FinanceManager
-          householdId={null}
-          userId={user.id}
-          initialMembers={[{ userId: user.id, fullName: "من" }]}
-        />
+        <HomeFinanceSection />
 
         <HouseholdManager
           household={null}
@@ -188,11 +184,7 @@ export default async function HomePage({
         </p>
       </section>
 
-      <FinanceManager
-        householdId={householdId}
-        userId={user.id}
-        initialMembers={choreMembers}
-      />
+      <HomeFinanceSection />
 
       <ChoreManager
         householdId={householdId}
