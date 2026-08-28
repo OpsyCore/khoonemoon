@@ -1,6 +1,6 @@
 # DEPLOYMENT.md
 
-وضعیت: **Milestone 12 documentation/deployment readiness** بر اساس stack واقعی ریپو. اعمال زندهٔ `0010`/`0011` روی hosted Supabase در این محیط تأیید نشده است.
+وضعیت: **Milestone 12 code complete.** Live schema/RLS/Storage/two-user QA در این محیط **اجرا نشده** (بدون `DATABASE_URL` / `NEXT_PUBLIC_SUPABASE_*` / `SUPABASE_ACCESS_TOKEN`).
 
 ## محصول
 
@@ -41,11 +41,15 @@
 10. `drizzle/0010_milestone9_finance.sql`
 11. `drizzle/0011_milestone12_documents.sql`
 
-`0010` باید همان فایل workspace باشد (Finance Lite: `finance_records` با `EXPENSE | BILL`). اشیای ZIP قدیمی مثل `finance_goals` / `INCOME` / `SAVING` بخشی از این ریپو نیستند.
+زنجیرهٔ فایل‌های ریپو: `0001` → `0011`.
+
+`0010` باید همان فایل workspace باشد (Finance Lite: `finance_records` با `EXPENSE | BILL`). مدل محصول فقط `finance_records` است.
 
 `0011` جداول `documents` / `document_attachments` و bucket خصوصی `documents` را می‌سازد و جداول M1–M11 را ALTER نمی‌کند.
 
-اعمال زندهٔ `0010` و `0011` روی پروژهٔ hosted Supabase در این محیط **تأیید نشده** است.
+روی hosted DB ممکن است تاریخچهٔ جداگانه‌ای به نام `repair_m9_finance_lite` وجود داشته باشد؛ آن فایل در `drizzle/` این ریپو نیست و از این محیط inspect نشده. اگر جداول legacy `finance_goals` / `finance_transactions` موجودند **حذف نکنید** — محصول از آن‌ها استفاده نمی‌کند.
+
+اعمال/RLS/bucket زنده و QA دوکاربره در این محیط **تأیید نشده** است.
 
 ## Auth redirect
 

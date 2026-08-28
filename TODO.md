@@ -5,7 +5,8 @@
 - Phase 1 (MVP) ✅ Completed (M1–M11)
 - Phase 2: **Milestone 12 (Documents & Attachments)** ✅ Completed
 - Next milestone: not defined (Health / Vehicles / Meal / Goals / Advanced Finance remain out of scope until specified)
-- Live apply of `drizzle/0010` and `drizzle/0011` on hosted Supabase is **not verified** in this environment
+- Live apply/inspect of `drizzle/0010`, optional hosted `repair_m9_finance_lite`, and `drizzle/0011` is **not verified** in this environment (no Supabase credentials)
+- LIVE TWO-USER QA = NOT EXECUTED
 
 ## Planning Deliverables
 
