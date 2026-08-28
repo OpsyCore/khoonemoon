@@ -11,6 +11,7 @@
 ## 2) Enumهای اصلی
 
 - `task_visibility` / `event_visibility` / `finance_visibility` / `document_visibility`: PRIVATE | HOUSEHOLD_SHARED
+- `document_entity_type`: TASK | EVENT | CHORE | SHOPPING_LIST | FINANCE_RECORD
 - `task_status`: PENDING | IN_PROGRESS | COMPLETED | SKIPPED | ARCHIVED
 - `task_priority`: LOW | NORMAL | HIGH | CRITICAL
 - `member_role`: OWNER | MEMBER
@@ -132,6 +133,8 @@
 
 ## 6) Shopping Domain
 
+جداول خرید در `drizzle/0009_milestone8_shopping_lists.sql` هستند و در runtime با PostgREST استفاده می‌شوند؛ در `src/db/schema.ts` آینه نشده‌اند.
+
 ### shopping_lists
 
 - `id` (uuid)
@@ -245,13 +248,15 @@ Implemented in `drizzle/0011_milestone12_documents.sql`. Does not ALTER previous
 - `entity_id` (uuid, no FK to domain tables)
 - `created_by`, `created_at`
 
-Storage bucket `documents` is private. Signed URLs are issued only after metadata SELECT succeeds.
+Storage bucket `documents` is private (`public = false`, 10MB, mime allowlist). Signed URLs are issued only after metadata SELECT succeeds (`GET /api/documents/[id]/url`).
+
+اعمال زندهٔ `0011` روی hosted Supabase در این محیط تأیید نشده است.
 
 ## 9) Shared Support Tables
 
 ### inbox_items
 
-- quick capture text, parse_status, parsed_payload(jsonb optional)
+- در M1–M12 پیاده‌سازی نشده (خارج از محدوده).
 
 ### notification_preferences
 
@@ -264,7 +269,7 @@ Storage bucket `documents` is private. Signed URLs are issued only after metadat
 
 ### push_subscriptions
 
-- endpoint, keys, user_id, device info, revoked_at
+- در M1–M12 پیاده‌سازی نشده (خارج از محدوده).
 
 ## 10) ایندکس‌های کلیدی
 
@@ -277,6 +282,10 @@ Storage bucket `documents` is private. Signed URLs are issued only after metadat
 - `finance_records(household_id, visibility, due_at)`
 - unpaid bills partial index: `finance_records(due_at) WHERE record_type = 'BILL' AND paid_at IS NULL`
 - `household_invitations(household_id, status, expires_at)`
+- `documents(created_by, created_at desc)`
+- `documents(household_id, visibility, created_at desc)`
+- `document_attachments(entity_type, entity_id)`
+- `document_attachments(document_id)`
 
 ## 11) RLS Policy Model (خلاصه)
 
@@ -304,6 +313,6 @@ Storage bucket `documents` is private. Signed URLs are issued only after metadat
 
 ## 14) Migration Strategy
 
-- schema از طریق Drizzle migrations versioned می‌شود.
-- migrationها idempotent و non-destructive خواهند بود.
-- اعمال روی sandbox: `drizzle-kit push` پس از bootstrap محیط.
+- schema از طریق فایل‌های SQL شماره‌دار در `drizzle/` versioned می‌شود (`0001` … `0011`).
+- migrationها idempotent و non-destructive طراحی شده‌اند.
+- اعمال روی hosted Supabase دستی است؛ این محیط `0010` و `0011` را اعمال/verify نکرده است.

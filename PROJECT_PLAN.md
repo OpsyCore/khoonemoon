@@ -8,10 +8,11 @@
 
 ## وضعیت فعلی ریپازیتوری
 
-- پروژه یک Starter مینیمال Next.js + Drizzle + PostgreSQL است.
-- هنوز هیچ دامنه محصولی (auth, household, tasks, realtime, PWA) پیاده‌سازی نشده است.
-- اسکیمای دیتابیس خالی است.
-- فعلاً فقط `DATABASE_URL` تنظیم شده و تنظیمات Supabase وجود ندارد.
+- محصول **خونه‌مون**: Next.js App Router + Supabase Auth/RLS/Storage + مهاجرت‌های SQL Drizzle.
+- Phase 1 (M1–M11) و **Milestone 12 (Documents & Attachments)** در کد پیاده‌سازی شده‌اند.
+- زنجیره مهاجرت در ریپو: `drizzle/0001` تا `drizzle/0011`.
+- Runtime صفحات از کلاینت authenticated Supabase (anon + session) استفاده می‌کند؛ **بدون service-role**.
+- اعمال زندهٔ `0010` و `0011` روی پروژهٔ hosted Supabase در این محیط **تأیید نشده** (credentials موجود نیست).
 
 ## اهداف MVP (Phase 1)
 
@@ -34,10 +35,10 @@ MVP باید حداقل این قابلیت‌ها را end-to-end داشته ب
 ## فازبندی کلان
 
 - **Phase 1 (MVP)**: foundation + auth + household + tasks + calendar + shopping realtime + finance-lite + search + settings + PWA پایه
-- **Phase 2**: attachments/documents + health + vehicles + meal + goals + advanced finance/reporting
+- **Phase 2**: attachments/documents ✅ (M12) + health + vehicles + meal + goals + advanced finance/reporting (بقیه تعریف/پیاده‌سازی نشده)
 - **Phase 3**: AI/voice + intelligent parsing + smart planning + external integrations
 
-اولین milestone اجرایی Phase 2: **Milestone 12 — Documents & Attachments** (بقیهٔ آیتم‌های Phase 2 خارج از M12 هستند).
+Milestone 12 — Documents & Attachments در کد **تکمیل شده**. بقیهٔ آیتم‌های Phase 2 خارج از محدوده هستند تا جداگانه تعریف شوند.
 
 ## معماری اجرایی فاز 1
 
@@ -64,7 +65,7 @@ MVP باید حداقل این قابلیت‌ها را end-to-end داشته ب
 
 ## Milestones اجرایی (Phase 2)
 
-12. **Milestone 12**: Documents & Attachments — metadata + private Storage + signed URL + household isolation (بدون Health/Vehicles/Meal/Goals/Advanced Finance)
+12. **Milestone 12** ✅: Documents & Attachments — metadata + private Storage + signed URL + household isolation (بدون Health/Vehicles/Meal/Goals/Advanced Finance)
 
 ## کیفیت و Definition of Done
 
@@ -138,14 +139,14 @@ MVP باید حداقل این قابلیت‌ها را end-to-end داشته ب
 - PWA metadata معتبر باشد
 - build بدون خطا پاس شود
 
-## الزامات محیطی آینده نزدیک
+## الزامات محیطی
 
-- افزودن متغیرهای Supabase در `.env.example`
-- تنظیم redirect/auth URLها برای محیط local/staging/prod
+متغیرها در `.env.example`: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (هرگز در کلاینت), `NEXT_PUBLIC_APP_URL`.
+
+Redirect/auth URLها باید در داشبورد Supabase با دامنهٔ واقعی ست شوند (`DEPLOYMENT.md`).
 
 ## ترتیب اجرای بعدی
 
-پس از تایید برنامه:
+M1–M12 در ریپو تکمیل شده‌اند. milestone بعدی محصول (Health / Vehicles / Meal / Goals / Advanced Finance) تعریف نشده و نباید بدون spec ساخته شود.
 
-- فقط Milestone 1 پیاده‌سازی می‌شود.
-- پس از اتمام Milestone 1، QA و سپس توقف برای تایید Milestone 2.
+برای hosting تولیدی: env روی host، اعمال مهاجرت‌های `0001`–`0011` روی همان پروژهٔ Supabase، و QA دوکاربره زنده (`E2E.md` / `SECURITY_TESTS.md`).

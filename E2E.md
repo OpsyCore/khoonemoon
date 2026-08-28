@@ -54,6 +54,16 @@ Realtime کامل مرورگر در M8 جزئی است؛ پذیرش MVP حداق
 
 بدون household هم قبض PRIVATE از `/finance` باید کار کند.
 
+## سفر ۷ — مدارک
+
+اتوماسیون قرارداد API در `src/app/api/documents/documents-api.test.ts`. سفر زنده دوکاربره اینجا اجرا نشده است.
+
+1. A مدرک PRIVATE بارگذاری کند؛ B آن را در `GET /api/documents` نبیند.
+2. A مدرک HOUSEHOLD_SHARED بارگذاری کند؛ B عضو همان خانه آن را ببیند؛ کاربر خانهٔ دیگر نبیند.
+3. مشاهده/دانلود فقط با `GET /api/documents/[id]/url` پس از دسترسی metadata (signed URL کوتاه‌عمر).
+4. پیوست فقط به موجودیتی که RLS همان کاربر آن را نشان می‌دهد.
+5. بدون احراز هویت list/get/upload/sign → 401.
+
 ## مسیرهای محافظت‌شده
 
-کاربر خارج‌شده نباید `/today` `/home` `/finance` `/lists` `/settings` `/search` `/calendar` `/profile` را ببیند؛ redirect به `/auth/login`.
+کاربر خارج‌شده نباید `/today` `/home` `/finance` `/documents` `/lists` `/settings` `/search` `/calendar` `/profile` را ببیند؛ redirect به `/auth/login`.

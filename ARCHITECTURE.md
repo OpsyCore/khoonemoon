@@ -17,7 +17,7 @@
 - Zod برای validation مشترک
 - React Hook Form برای فرم‌ها
 
-> نکته: با توجه به baseline پروژه، دسترسی server-side به دیتابیس از طریق Drizzle حفظ می‌شود؛ اما auth/realtime/storage/policies بر بستر Supabase طراحی می‌شود.
+> نکته: مدل‌سازی/مهاجرت با Drizzle SQL files است. Runtime خواندن/نوشتن دامنه از کلاینت authenticated Supabase (PostgREST + RLS) است، نه queryهای Drizzle در Route Handlerها.
 
 ## 3) مرزبندی Server / Client
 
@@ -56,108 +56,24 @@
 ```text
 src/
   app/
-    (public)/
-      welcome/page.tsx
-      auth/login/page.tsx
-      auth/signup/page.tsx
-      auth/forgot-password/page.tsx
-    (onboarding)/
-      profile/page.tsx
-      household/page.tsx
-      invite/page.tsx
-      notifications/page.tsx
-    (app)/
-      today/page.tsx
-      calendar/page.tsx
-      home/page.tsx
-      lists/page.tsx
-      profile/page.tsx
-      settings/page.tsx
-      search/page.tsx
-    api/
-      health/route.ts
-      auth/callback/route.ts
-      notifications/subscribe/route.ts
-      storage/sign/route.ts
+    (public)/auth/{login,signup,forgot-password,update-password}/
+    (app)/{today,calendar,home,lists,profile,settings,search,finance,documents}/
+    api/{auth,health,profile,household,tasks,events,reminders,reminder-preferences,
+         chores,shopping,finance,search,documents}/
     offline/page.tsx
     manifest.ts
-    layout.tsx
-    globals.css
+  features/{auth,households,tasks,calendar,reminders,chores,shopping,finance,search,settings,documents,hardening,profile}/
+  shared/{ui,layout,offline,utils}/
+  lib/supabase/{client,server,middleware,env}.ts
+  db/{index.ts,schema.ts}
+  proxy.ts
 
-  features/
-    auth/
-      components/
-      actions/
-      queries/
-      schemas.ts
-      types.ts
-    households/
-    tasks/
-    calendar/
-    reminders/
-    chores/
-    shopping/
-    finance/
-    search/
-    settings/
-
-  entities/
-    task/
-    household/
-    profile/
-    shopping/
-    finance/
-
-  shared/
-    ui/
-      button.tsx
-      input.tsx
-      card.tsx
-      badge.tsx
-      empty-state.tsx
-      loading-state.tsx
-      error-state.tsx
-    layout/
-      app-shell.tsx
-      bottom-nav.tsx
-      top-bar.tsx
-      quick-add-fab.tsx
-    hooks/
-    utils/
-      date/
-      number/
-      rtl/
-      cn.ts
-    constants/
-
-  lib/
-    supabase/
-      client.ts
-      server.ts
-      middleware.ts
-    auth/
-      session.ts
-
-  services/
-    recurrence/
-    reminders/
-    notifications/
-    search/
-
-  validation/
-    common.ts
-    task.ts
-    household.ts
-
-  db/
-    index.ts
-    schema.ts
-    seed/
-
-public/
-  icons/
-  pwa/
+drizzle/0001 … 0011
+public/{sw.js,icons/}
 ```
+
+صفحهٔ signed URL مدارک: `GET /api/documents/[id]/url` (مسیر جداگانهٔ `storage/sign` وجود ندارد).
+ناوبری پایین: ۵ تب (امروز، تقویم، خونه، لیست‌ها، پروفایل). `/finance` و `/documents` زیر تب Home؛ Search/Settings/Documents از TopBar.
 
 ## 6) الگوی Data Access
 
@@ -185,26 +101,22 @@ public/
 - integration: authorization + household rules
 - e2e: journeyهای حیاتی زوج (signup تا shared task/shopping)
 
-## 10) Milestone 12 architecture (Planned — not implemented)
+## 10) Milestone 12 architecture (implemented)
 
-M12 از Storage ازپیش‌مستند در §6 امنیت و از الگوی Auth/RLS فعلی استفاده می‌کند؛ معماری جدید نیست.
+M12 از Storage مستند در `SECURITY.md` §6 و الگوی Auth/RLS فعلی استفاده می‌کند؛ معماری جدید نیست.
 
-### تصمیم‌ها
+### تصمیم‌های پیاده‌شده
 
-1. **دامنه جدید** `features/documents/` + route `/documents` + API تحت `src/app/api/documents`. جدول/فایل M8 Shopping و M9 Finance دست نمی‌خورند.
-2. **Visibility** همان `PRIVATE` | `HOUSEHOLD_SHARED` است. PRIVATE ⇒ `household_id IS NULL`؛ SHARED ⇒ عضویت خانهٔ فعال الزامی. کاربر بدون خانه فقط PRIVATE می‌تواند بسازد (مثل finance lite).
-3. **Storage**: یک bucket خصوصی (نه public). مسیر: `user/{userId}/...` برای PRIVATE و `household/{householdId}/...` برای SHARED (`SECURITY.md` §6). دانلود/نمایش فقط با signed URL بعد از چک دسترسی metadata.
-4. **Client**: `createSupabaseServerClient` / browser anon + session. **بدون service-role** در UI و route handlerهای کاربر.
-5. **Mutation**: metadata با RLS روی جداول جدید؛ در صورت نیاز به اتمی بودن upload+row، RPC `SECURITY DEFINER` با `search_path = public` مثل chores/finance. Storage policy مسیر را به `auth.uid()` / `is_household_member` محدود می‌کند.
-6. **Attachments**: جدول لینک جدا (`document_id`, `target_type`, `target_id`) بدون FK اجباری به هر دامنه (از تغییر migrationهای 0003–0010 پرهیز). Insert لینک فقط اگر RLS هدف را به کاربر نشان دهد.
-7. **ناوبری**: تب ششم نیست. `/documents` مثل `/finance` زیر تب Home؛ آیکن TopBar مثل Search. `src/proxy.ts` باید `/documents` را protected کند (در پیاده‌سازی، نه در این spec-only).
-8. **Migration آینده**: یک فایل جدید (مثلاً `drizzle/0011_milestone12_documents.sql`) فقط وقتی implementation شروع شود. الان ساخته نمی‌شود.
-9. **SW**: پاسخ `/api/documents` و signed URL نباید cache-first شود؛ قانون فعلی `public/sw.js` که `/api/*` را intercept نمی‌کند کافی است.
-10. **محدودیت فایل (پایه)**: allowlist mime (حداقل `application/pdf` و تصویرهای رایج `image/jpeg|png|webp`) و سقف حجم مشخص در Zod + Storage (پیشنهاد پیاده‌سازی: ۱۰ مگابایت مگر خلاف آن در implementation ثابت شود).
-
-### ناسازگاری معماری
-
-وجود ندارد. Storage در پلن بود ولی API/`storage/sign` هنوز پیاده نشده؛ M12 همان لایه را می‌سازد.
+1. **دامنه** `features/documents/` + صفحه `/documents` + API تحت `src/app/api/documents`. جدول/فایل M8 Shopping و M9 Finance دست نخورده‌اند.
+2. **Visibility** همان `PRIVATE` | `HOUSEHOLD_SHARED`. PRIVATE ⇒ `household_id IS NULL`؛ SHARED ⇒ عضویت خانهٔ فعال الزامی. کاربر بدون خانه فقط PRIVATE می‌سازد.
+3. **Storage**: bucket خصوصی `documents`. مسیر: `user/{userId}/...` برای PRIVATE و `household/{householdId}/...` برای SHARED. دانلود/نمایش فقط با signed URL (۶۰ ثانیه) بعد از `SELECT` موفق metadata.
+4. **Client**: `createSupabaseServerClient` (anon + session). **بدون service-role** در UI و route handlerهای کاربر.
+5. **Mutation**: insert/update/delete metadata با RLS روی جداول جدید. Upload سپس insert؛ اگر insert شکست بخورد فایل Storage حذف می‌شود. Delete: ابتدا Storage سپس ردیف. Storage policy مسیر را به `auth.uid()` / `is_household_member` محدود می‌کند.
+6. **Attachments**: جدول لینک `document_attachments` (`document_id`, `entity_type`, `entity_id`) بدون FK به دامنهٔ هدف. Insert فقط اگر RLS هم مدرک و هم موجودیت مقصد را نشان دهد.
+7. **ناوبری**: تب ششم نیست. `/documents` مثل `/finance` زیر تب Home؛ آیکن TopBar. `src/proxy.ts` مسیر `/documents` را protected می‌کند.
+8. **Migration**: `drizzle/0011_milestone12_documents.sql` (بدون ALTER روی 0003–0010).
+9. **SW**: `public/sw.js` مسیر `/api/*` را intercept نمی‌کند.
+10. **محدودیت فایل**: mime `application/pdf` | `image/jpeg` | `image/png` | `image/webp`؛ سقف ۱۰ مگابایت (Zod + CHECK + bucket).
 
 ## 11) ریسک‌های کلیدی
 

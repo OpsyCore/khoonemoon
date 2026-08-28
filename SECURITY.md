@@ -70,13 +70,20 @@
 11. search (M10 implemented):
    - GET /api/search uses the authenticated user client (no service-role) ✅
    - results are whatever RLS already allows on tasks/chores/shopping/events/finance ✅
+   - document titles are **not** in search (out of M12) ✅
+12. documents (M12 implemented):
+   - PRIVATE document: uploader (`created_by = auth.uid()`) only ✅
+   - HOUSEHOLD_SHARED document: `is_household_member(household_id)` only ✅
+   - `created_by` / `household_id` / `visibility` / `storage_path` / `mime_type` / `file_size` immutable after insert ✅
+   - attachments require access to **both** the document and the target entity ✅
+   - storage bucket `documents` is private; no public object URLs ✅
 
 ## 6) Storage Security (Supabase Storage)
 
-- No public buckets for private docs.
+- No public buckets for private docs. M12 bucket `documents` is created `public = false`.
 - Object path convention: `user/{userId}/...` for private and `household/{householdId}/...` for shared.
-- Access via signed URLs with policy checks.
-- Validate mime type + size before upload.
+- Access via short-lived signed URLs after metadata authorization (`GET /api/documents/[id]/url`, TTL 60s). No `getPublicUrl`.
+- Validate mime type + size before upload (allowlist + 10MB).
 
 ## 7) Input Validation
 
@@ -133,7 +140,7 @@ Reviewed against committed M1–M10 code (no RLS architecture change).
 ### Auth
 
 - Runtime uses `createSupabaseServerClient` with the **anon** key and user cookies. No `SERVICE_ROLE` usage under `src/`.
-- `(app)/layout.tsx` redirects unauthenticated users. `src/proxy.ts` also protects page prefixes including `/finance`.
+- `(app)/layout.tsx` redirects unauthenticated users. `src/proxy.ts` also protects page prefixes including `/finance` and `/documents`.
 - API routes are not in the proxy matcher; each handler calls `getUser()` and returns 401.
 - `/offline` stays public. Guest-only auth paths: login/signup/forgot-password.
 
@@ -170,28 +177,31 @@ Reviewed against committed M1–M10 code (no RLS architecture change).
 - `src/features/hardening/shopping-api.test.ts`
 - `src/proxy.test.ts`
 
-## 13) Milestone 12 Security Requirements (Planned — not implemented)
+## 13) Milestone 12 Security (implemented)
 
-Documents are **Private** or **Household Shared** (same classification as §2). M12 must not weaken M1–M11 RLS.
+Documents are **Private** or **Household Shared** (same classification as §2). M12 does not weaken M1–M11 RLS.
 
-### Required
+### Enforced
 
-1. Metadata tables have RLS enabled. Anonymous: deny. Authenticated PRIVATE: owner/uploader only. HOUSEHOLD_SHARED: `is_household_member(household_id)` only.
-2. Storage bucket is **private**. No public object URLs. Path must match visibility (`user/{auth.uid()}/...` or `household/{householdId}/...` with membership).
-3. View/download uses short-lived **signed URL** issued only after the caller can `SELECT` the metadata row. Guessing a storage path or document UUID is IDOR → 404, not 403 leak.
-4. Create/update/delete: authenticated + visibility pairing + household membership for SHARED. Uploader cannot attach a file to another household’s entity. Link insert requires access to **both** the document and the target (existing task/event/chore/list/finance RLS).
-5. Validate mime allowlist and max size before upload. Reject path traversal and client-supplied storage paths that escape the allowed prefix.
+1. Metadata tables have RLS enabled. Anonymous: deny. Authenticated PRIVATE: uploader only. HOUSEHOLD_SHARED: `is_household_member(household_id)` only.
+2. Storage bucket `documents` is **private**. No public object URLs. Path matches visibility (`user/{auth.uid()}/...` or `household/{householdId}/...` with membership).
+3. View/download uses a short-lived **signed URL** issued only after the caller can `SELECT` the metadata row. Guessing a storage path or document UUID is IDOR → 404, not 403 leak.
+4. Create/update/delete: authenticated + visibility pairing + household membership for SHARED. Link insert requires access to **both** the document and the target (existing task/event/chore/list/finance RLS). Cross-household attach is denied by that pair of checks.
+5. Mime allowlist and max size (10MB) before upload. Filenames are sanitized; the API does not accept client-supplied `storage_path`.
 6. Runtime uses the authenticated Supabase client. **No service-role** in browser or user route handlers.
-7. Do not log file bytes or document note/title content; metadata ids only.
-8. Do not grant `current_user_can_access_*` helpers to `authenticated` if they are SECURITY DEFINER and not already granted (same rule as finance).
-9. Search of document titles is out of M12 unless implemented with the same authenticated+RLS client as M10; default: M12 does not extend `/api/search`.
-10. SW must not cache-first document API or signed URLs (`/api/*` already skipped).
+7. Do not log file bytes; handlers return ids/status only.
+8. `current_user_can_access_finance_record` remains **ungranted** to `authenticated`. `current_user_can_access_document_entity` **is** `GRANT EXECUTE` to `authenticated` because attachment RLS policies invoke it (returns boolean using `auth.uid()`; equivalent to probing the entity tables under RLS).
+9. Search of document titles is out of M12; `/api/search` is unchanged.
+10. SW does not cache-first document API or signed URLs (`/api/*` skipped).
 
-### Verification (when implemented)
+### Verification (automated in-repo; live two-user RLS still required)
 
-- Partner cannot read a PRIVATE document.
-- Other household cannot read a SHARED document.
-- Unauthenticated list/get/upload/delete/sign → 401.
-- Invalid UUID / inaccessible id → 404.
+- Partner cannot read a PRIVATE document (API tests + `canAccessDocument`).
+- Other household cannot read a SHARED document when RLS yields none.
+- Unauthenticated list/get/upload/sign → 401.
+- Inaccessible id → 404.
 - Mime/size rejection → 400.
+- Inaccessible entity attach → 404.
 - Regression: M8–M11 authorization tests still pass.
+
+Live apply of `drizzle/0011` on hosted Supabase is **not verified** in this environment.

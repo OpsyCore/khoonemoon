@@ -7,7 +7,7 @@
 - دسترسی حداقلی در وضعیت آفلاین
 - آماده‌سازی برای اعلان‌های push در فاز مناسب
 
-## 2) وضعیت فعلی (M10)
+## 2) وضعیت فعلی (M10؛ تا M12 بدون تغییر استراتژی)
 
 - `src/app/manifest.ts` → `/manifest.webmanifest`
 - آیکن‌ها در `public/icons`
@@ -18,7 +18,7 @@
 ## 3) Offline Strategy (MVP)
 
 1. app shell / navigate: network-first، سپس cache، سپس `/offline`
-2. `/api/*` intercept نمی‌شود (network-only؛ پاسخ authenticated در SW cache نمی‌شود)
+2. `/api/*` intercept نمی‌شود (network-only؛ شامل `/api/documents` و signed URL؛ پاسخ authenticated در SW cache نمی‌شود)
 3. static GET: cache-first سپس network
 4. نشان دادن وضعیت offline/online به کاربر
 5. جلوگیری از ادعای sync تضمینی در background

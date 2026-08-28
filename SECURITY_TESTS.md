@@ -133,7 +133,27 @@ This layer does **not** replace live Supabase RLS. It locks the API/domain contr
 
 ### Scenario P1: Proxy
 
-- `/finance` is a protected page prefix.
+- `/finance` and `/documents` are protected page prefixes.
 - `/api/*` is not treated as a page-middleware path (handlers auth themselves).
 
-Live two-user execution of F1–F4 and T1 still requires a configured Supabase project.
+## Milestone 12 documents verification
+
+Automated coverage (does **not** replace live Supabase RLS / Storage):
+
+- Unauthenticated list/get/upload/sign → 401
+- RLS-empty list does not leak another household
+- PRIVATE upload path uses `user/{uid}/...`
+- SHARED upload without household → 400
+- Invalid MIME / file > 10MB → 400
+- Inaccessible document id / signed URL → 404
+- Storage removed before metadata on delete; cross-user delete → 404
+- Attach to inaccessible entity → 404; invalid entity type → 400
+
+### Files
+
+- `src/app/api/documents/documents-api.test.ts`
+- `src/features/documents/security.test.ts`
+- `src/features/documents/schemas.test.ts`
+- `src/features/documents/server.test.ts`
+
+Live two-user execution of F1–F4, T1, and documents isolation still requires a configured Supabase project. Apply of `drizzle/0010` and `drizzle/0011` is **not verified** in this environment.

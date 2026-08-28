@@ -3,8 +3,9 @@
 ## Current Phase
 
 - Phase 1 (MVP) ✅ Completed (M1–M11)
-- Phase 2 started
-- Current milestone: **Milestone 12 (Documents & Attachments)** ✅ Completed
+- Phase 2: **Milestone 12 (Documents & Attachments)** ✅ Completed
+- Next milestone: not defined (Health / Vehicles / Meal / Goals / Advanced Finance remain out of scope until specified)
+- Live apply of `drizzle/0010` and `drizzle/0011` on hosted Supabase is **not verified** in this environment
 
 ## Planning Deliverables
 
@@ -90,7 +91,7 @@
 
 Not in M9: income, debt, installments, subscriptions, budget, savings, goals, recurring finance, finance reminders, AI, voice, split ledger, reports/charts.
 
-## Milestone 10 - Search + Settings + Offline Improvements
+## Milestone 10 - Search + Settings + Offline Improvements ✅
 
 - [x] global household-scoped search (`/search`, `GET /api/search`)
 - [x] settings page (account, theme, connection, reminders, PWA/offline help)
@@ -107,7 +108,7 @@ Not in M9: income, debt, installments, subscriptions, budget, savings, goals, re
 
 Not in M11: Playwright runner, live Supabase apply of `0010`, new product features, shopping/finance/search scope changes, M12.
 
-## Milestone 12 - Documents & Attachments
+## Milestone 12 - Documents & Attachments ✅
 
 - [x] document metadata (`title`, optional description, mime/type, size, storage path, uploader, visibility, household)
 - [x] PRIVATE | HOUSEHOLD_SHARED (PRIVATE ⇒ `household_id IS NULL`; SHARED ⇒ household required)

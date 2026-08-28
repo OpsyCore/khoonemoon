@@ -31,18 +31,19 @@
 | Security Review           | RLS verification + auth audit                      | ✅ Completed (M11) |
 | Documents & Attachments   | metadata + private Storage + signed URL + isolation | ✅ Completed (M12) |
 
-## Milestone 12 — Documents & Attachments (Planned)
+## Milestone 12 — Documents & Attachments ✅ Completed
 
-اولین آیتم Phase 2. **پیاده‌سازی نشده.**
+اولین آیتم Phase 2. در کد پیاده‌سازی شده (`drizzle/0011_milestone12_documents.sql`). اعمال زنده روی hosted Supabase در این محیط تأیید نشده است.
 
-### داخل M12
+### داخل M12 (تحویل‌شده)
 
 - مدارک به‌عنوان موجودیت مستقل: عنوان، توضیح اختیاری، نوع/mime، حجم، مسیر Storage، uploader، `visibility` (`PRIVATE` | `HOUSEHOLD_SHARED`)، `household_id`، `created_at` / `updated_at`
-- پیوست اختیاری به موجودیت‌های فعلی از طریق جدول لینک جدید — **بدون ALTER** روی جداول M8 Shopping / M9 Finance / tasks / events / chores
-- هدف‌های مجاز لینک (اگر پیوست فعال شود): `TASK` | `EVENT` | `CHORE` | `SHOPPING_LIST` | `FINANCE_RECORD` — فقط اگر کاربر طبق RLS فعلی به هدف دسترسی داشته باشد
-- Storage خصوصی + signed URL؛ فایل عمومی نیست
+- پیوست اختیاری به موجودیت‌های فعلی از طریق جدول لینک `document_attachments` — **بدون ALTER** روی جداول M8 Shopping / M9 Finance / tasks / events / chores
+- هدف‌های مجاز لینک: `TASK` | `EVENT` | `CHORE` | `SHOPPING_LIST` | `FINANCE_RECORD` — فقط اگر کاربر طبق RLS فعلی به هدف دسترسی داشته باشد
+- Storage خصوصی (bucket `documents`) + signed URL پس از دسترسی metadata؛ فایل عمومی نیست
 - صفحه `/documents` (نه تب ششم): list / upload / view-download / delete + loading/empty/error/retry
 - دسترسی از TopBar (مثل Search/Settings)؛ تب Home روی `/documents` فعال می‌ماند (مثل `/finance`)
+- API: `/api/documents`, `/api/documents/[id]`, `/api/documents/[id]/url`, `/api/documents/[id]/attachments`, `/api/documents/[id]/attachments/[attachmentId]`
 
 ### خارج از M12
 

@@ -1,10 +1,10 @@
 # PERFORMANCE.md
 
-وضعیت: **Milestone 11 performance review** (کد و migrationهای موجود، بدون حدس بار تولیدی)
+وضعیت: **performance review تا Milestone 12** (کد و migrationهای موجود، بدون حدس بار تولیدی)
 
 ## محدوده بررسی
 
-- ایندکس‌های SQL در `drizzle/0001` تا `drizzle/0010`
+- ایندکس‌های SQL در `drizzle/0001` تا `drizzle/0011`
 - الگوی query در Route Handlerها
 - محدودیت جستجو
 - Service Worker / PWA cache
@@ -23,6 +23,7 @@
 | Chores | household/active، default assignee، rotation position، completions by chore/date |
 | Shopping | lists by household/active، items by list/checked |
 | Finance | owner+type+due، household+visibility+due، unpaid bills partial، paid_by |
+| Documents | `(created_by, created_at desc)`، `(household_id, visibility, created_at desc)`، attachments by entity و `document_id` |
 
 این ایندکس‌ها با فیلترهای RLS/لیست Today و جستجوی محدود هم‌خوان هستند.
 
@@ -36,7 +37,7 @@
 
 ## یافته‌ها (بدون تغییر معماری)
 
-1. **لیست‌های دامنه pagination ندارند.** `GET /api/tasks`، `/api/events`، `/api/finance`، `/api/chores` همهٔ ردیف‌های مجاز RLS را برمی‌گردانند. برای MVP زوج‌ها قابل قبول است؛ رشد داده نیاز به صفحه‌بندی دارد.
+1. **لیست‌های دامنه pagination ندارند.** `GET /api/tasks`، `/api/events`، `/api/finance`، `/api/chores`، `/api/documents` همهٔ ردیف‌های مجاز RLS را برمی‌گردانند. برای MVP زوج‌ها قابل قبول است؛ رشد داده نیاز به صفحه‌بندی دارد.
 2. **Chores GET چند query جدا دارد** (chores + recurrences + rotations + members + profiles). N+1 روی هر chore نیست؛ تعداد query ثابت است.
 3. **Shopping GET دو query است** (lists سپس items با `.in(list_id)`). از embed شکننده پرهیز شده.
 4. **Search شش منبع را موازی می‌خواند.** با limit ۱۵ این برای MVP مناسب است. `type=finance` فقط `finance_records` را می‌زند.
@@ -47,6 +48,6 @@
 
 - pagination برای tasks/events/finance وقتی تعداد ردیف از حدود یکی‌دو صد گذشت
 - فیلتر unpaid/due در query Today به‌جای فیلتر کامل در حافظه
-- اندازه‌گیری واقعی بعد از اعمال `0010` روی پروژهٔ Supabase
+- اندازه‌گیری واقعی بعد از اعمال `0010` و `0011` روی پروژهٔ Supabase
 
 M11 این‌ها را به محصول جدید تبدیل نمی‌کند؛ فقط ثبت می‌کند.

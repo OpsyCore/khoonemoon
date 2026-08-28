@@ -1,6 +1,6 @@
 # DEPLOYMENT.md
 
-وضعیت: **Milestone 11 deployment readiness** بر اساس stack واقعی ریپو.
+وضعیت: **Milestone 12 documentation/deployment readiness** بر اساس stack واقعی ریپو. اعمال زندهٔ `0010`/`0011` روی hosted Supabase در این محیط تأیید نشده است.
 
 ## محصول
 
@@ -39,10 +39,13 @@
 8. `drizzle/0008_households_update_grant.sql`
 9. `drizzle/0009_milestone8_shopping_lists.sql`
 10. `drizzle/0010_milestone9_finance.sql`
-
-M11 مهاجرت جدید ندارد.
+11. `drizzle/0011_milestone12_documents.sql`
 
 `0010` باید همان فایل workspace باشد (Finance Lite: `finance_records` با `EXPENSE | BILL`). اشیای ZIP قدیمی مثل `finance_goals` / `INCOME` / `SAVING` بخشی از این ریپو نیستند.
+
+`0011` جداول `documents` / `document_attachments` و bucket خصوصی `documents` را می‌سازد و جداول M1–M11 را ALTER نمی‌کند.
+
+اعمال زندهٔ `0010` و `0011` روی پروژهٔ hosted Supabase در این محیط **تأیید نشده** است.
 
 ## Auth redirect
 
@@ -50,9 +53,9 @@ M11 مهاجرت جدید ندارد.
 
 - Site URL = `NEXT_PUBLIC_APP_URL`
 - Redirect: `/api/auth/callback`
-- مسیرهای اپ: `/today`, `/home`, `/finance`, `/settings`, …
+- مسیرهای اپ: `/today`, `/home`, `/finance`, `/documents`, `/settings`, …
 
-Routeهای صفحهٔ اپ در `src/proxy.ts` برای کاربر واردنشده به `/auth/login` می‌روند (شامل `/finance`). APIها در matcher نیستند و خودشان `getUser()` می‌کنند.
+Routeهای صفحهٔ اپ در `src/proxy.ts` برای کاربر واردنشده به `/auth/login` می‌روند (شامل `/finance` و `/documents`). APIها در matcher نیستند و خودشان `getUser()` می‌کنند.
 
 ## Quality gates قبل از انتشار
 
@@ -69,7 +72,7 @@ Lint فعلی سه خطای ازپیش‌موجود `react-hooks/set-state-in-ef
 - `src/features/shopping/components/shopping-manager.tsx`
 - `src/shared/layout/theme-toggle.tsx`
 
-این‌ها خارج از M11 هستند و برای بستن M11 اصلاح نمی‌شوند.
+این‌ها از M8/M11 باقی مانده‌اند و در M12 اصلاح نشدند.
 
 فونت Vazirmatn به‌صورت local در `src/app/fonts/` است تا `next build` به Google Fonts در زمان کامپایل وابسته نباشد.
 
@@ -86,12 +89,13 @@ Lint فعلی سه خطای ازپیش‌موجود `react-hooks/set-state-in-ef
 - AI / Voice
 - چند household فعال برای یک کاربر
 - صف mutation آفلاین
-- اعمال خودکار `0010` از این sandbox (credentials موجود نیست)
+- اعمال خودکار `0010` / `0011` از این sandbox (credentials موجود نیست)
+- ادعای verification زندهٔ Storage/RLS دوکاربره
 
 ## چک‌لیست انتشار
 
 - [ ] env روی host ست شده
-- [ ] مهاجرت‌های 0001–0010 روی همان پروژهٔ Supabase اعمال شده
+- [ ] مهاجرت‌های 0001–0011 روی همان پروژهٔ Supabase اعمال شده
 - [ ] Auth URLها با دامنهٔ واقعی هم‌خوان است
 - [ ] `npm run build` روی همان commit سبز است
 - [ ] دو کاربر آزمایشی سناریوهای `E2E.md` / `SECURITY_TESTS.md` را روی محیط واقعی رفته‌اند
