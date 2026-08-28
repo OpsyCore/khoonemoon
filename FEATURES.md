@@ -33,7 +33,7 @@
 
 ## Milestone 12 — Documents & Attachments ✅ Completed
 
-اولین آیتم Phase 2. در کد پیاده‌سازی شده (`drizzle/0011_milestone12_documents.sql`). اعمال زنده روی hosted Supabase در این محیط تأیید نشده است.
+اولین آیتم Phase 2. در کد و روی hosted **khoonemoon** پیاده‌سازی شده (`drizzle/0011_milestone12_documents.sql` APPLIED).
 
 ### داخل M12 (تحویل‌شده)
 

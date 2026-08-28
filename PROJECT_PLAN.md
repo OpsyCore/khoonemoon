@@ -12,7 +12,7 @@
 - Phase 1 (M1–M11) و **Milestone 12 (Documents & Attachments)** در کد پیاده‌سازی شده‌اند.
 - زنجیره مهاجرت در ریپو: `drizzle/0001` تا `drizzle/0011`.
 - Runtime صفحات از کلاینت authenticated Supabase (anon + session) استفاده می‌کند؛ **بدون service-role**.
-- اعمال زندهٔ `0010` و `0011` روی پروژهٔ hosted Supabase در این محیط **تأیید نشده** (credentials موجود نیست).
+- Hosted **khoonemoon** (`isfzuxrkzeeeggvfcoah`): `0010` + `repair_m9_finance_lite` + `0011` APPLIED.
 
 ## اهداف MVP (Phase 1)
 

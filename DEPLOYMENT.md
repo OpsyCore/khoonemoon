@@ -1,6 +1,6 @@
 # DEPLOYMENT.md
 
-وضعیت: **Milestone 12 code complete.** Live schema/RLS/Storage/two-user QA در این محیط **اجرا نشده** (بدون `DATABASE_URL` / `NEXT_PUBLIC_SUPABASE_*` / `SUPABASE_ACCESS_TOKEN`).
+وضعیت: **M1–M12 shipped.** پروژهٔ hosted **khoonemoon** (`isfzuxrkzeeeggvfcoah`) ACTIVE_HEALTHY. Two-user interactive QA = NOT EXECUTED.
 
 ## محصول
 
@@ -47,9 +47,7 @@
 
 `0011` جداول `documents` / `document_attachments` و bucket خصوصی `documents` را می‌سازد و جداول M1–M11 را ALTER نمی‌کند.
 
-روی hosted DB ممکن است تاریخچهٔ جداگانه‌ای به نام `repair_m9_finance_lite` وجود داشته باشد؛ آن فایل در `drizzle/` این ریپو نیست و از این محیط inspect نشده. اگر جداول legacy `finance_goals` / `finance_transactions` موجودند **حذف نکنید** — محصول از آن‌ها استفاده نمی‌کند.
-
-اعمال/RLS/bucket زنده و QA دوکاربره در این محیط **تأیید نشده** است.
+تاریخچهٔ hosted (اعمال‌شده): `0010_milestone9_finance`، `repair_m9_finance_lite` (فایل در `drizzle/` نیست)، `0011_milestone12_documents`. جداول `finance_records` / `documents` / `document_attachments` با RLS؛ bucket `documents` خصوصی، ۱۰MB، PDF/JPEG/PNG/WebP. جداول legacy `finance_goals` / `finance_transactions` را **حذف نکنید**.
 
 ## Auth redirect
 
@@ -87,13 +85,14 @@ npm run lint
 - AI / Voice
 - چند household فعال برای یک کاربر
 - صف mutation آفلاین
-- اعمال خودکار `0010` / `0011` از این sandbox (credentials موجود نیست)
-- ادعای verification زندهٔ Storage/RLS دوکاربره
+- Two-user interactive browser QA (هنوز اجرا نشده)
 
 ## چک‌لیست انتشار
 
-- [ ] env روی host ست شده
-- [ ] مهاجرت‌های 0001–0011 روی همان پروژهٔ Supabase اعمال شده
-- [ ] Auth URLها با دامنهٔ واقعی هم‌خوان است
-- [ ] `npm run build` روی همان commit سبز است
-- [ ] دو کاربر آزمایشی سناریوهای `E2E.md` / `SECURITY_TESTS.md` را روی محیط واقعی رفته‌اند
+- [x] مهاجرت‌های 0001–0011 + `repair_m9_finance_lite` روی پروژهٔ khoonemoon اعمال شده
+- [x] `finance_records` / `documents` / `document_attachments` + RLS + bucket خصوصی `documents`
+- [x] `npm run build` روی همین commit سبز است
+- [ ] `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `NEXT_PUBLIC_APP_URL` روی host
+- [ ] Auth Site URL + redirect `/api/auth/callback` با دامنهٔ واقعی
+- [ ] Deploy اپ (Vercel/Netlify یا `npm run build && npm start`) — در این محیط host/token نیست
+- [ ] اختیاری: Two-user interactive QA (`E2E.md`)

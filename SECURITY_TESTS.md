@@ -156,4 +156,4 @@ Automated coverage (does **not** replace live Supabase RLS / Storage):
 - `src/features/documents/schemas.test.ts`
 - `src/features/documents/server.test.ts`
 
-Live two-user execution of F1–F4, T1, and documents isolation still requires a configured Supabase project. Apply of `drizzle/0010` and `drizzle/0011` is **not verified** in this environment.
+Authorization regression tests (Vitest) PASS. Two-user interactive QA = NOT EXECUTED. Hosted apply of `0010` + `repair_m9_finance_lite` + `0011` is APPLIED.

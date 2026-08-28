@@ -204,4 +204,4 @@ Documents are **Private** or **Household Shared** (same classification as §2). 
 - Inaccessible entity attach → 404.
 - Regression: M8–M11 authorization tests still pass.
 
-Live apply of `drizzle/0011` on hosted Supabase is **not verified** in this environment.
+Hosted **khoonemoon**: `0011` APPLIED; `documents` / `document_attachments` RLS enabled; bucket `documents` private. Two-user interactive QA = NOT EXECUTED.
