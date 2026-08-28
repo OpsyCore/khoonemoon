@@ -27,8 +27,8 @@
 | Search                    | cross-domain search with permission filters        | ✅ Completed (M10) |
 | Settings                  | account/theme/connection/reminders on `/settings`  | ✅ Completed (M10) |
 | Offline Improvements      | SW fallback + connection status + retry UX         | ✅ Completed (M10) |
-| Test Hardening            | unit/integration/e2e critical flows                | Planned (M11)     |
-| Security Review           | RLS verification + auth audit                      | Planned (M11)     |
+| Test Hardening            | unit/integration/e2e critical flows                | ✅ Completed (M11) |
+| Security Review           | RLS verification + auth audit                      | ✅ Completed (M11) |
 
 ## خارج از MVP (Phase 2+)
 

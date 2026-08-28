@@ -41,7 +41,7 @@
 3. **Shopping GET دو query است** (lists سپس items با `.in(list_id)`). از embed شکننده پرهیز شده.
 4. **Search شش منبع را موازی می‌خواند.** با limit ۱۵ این برای MVP مناسب است. `type=finance` فقط `finance_records` را می‌زند.
 5. **Today bills در حافظه فیلتر می‌شوند** (`buildTodayBillItems`) بعد از خواندن finance_records. ایندکس unpaid bills در SQL برای query مستقیم Today وجود دارد ولی page Today از همان GET دامنه استفاده می‌کند.
-6. **Service Worker `khunemun-shell-v2`:** navigate = network-first سپس cache سپس `/offline`؛ GET استاتیک = cache-first. mutation در SW صف نمی‌شود.
+6. **Service Worker `khunemun-shell-v3`:** navigate = network-first سپس cache سپس `/offline`؛ `/api/*` intercept نمی‌شود؛ GET استاتیک = cache-first. mutation در SW صف نمی‌شود.
 
 ## توصیه‌های غیرمسدودکننده (خارج از پیاده‌سازی M11)
 

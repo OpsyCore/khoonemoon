@@ -76,7 +76,7 @@ Lint فعلی سه خطای ازپیش‌موجود `react-hooks/set-state-in-ef
 ## PWA
 
 - Manifest: `src/app/manifest.ts`
-- SW: `public/sw.js` (`khunemun-shell-v2`)
+- SW: `public/sw.js` (`khunemun-shell-v3`؛ `/api/*` cache نمی‌شود)
 - Offline: `/offline` — retry فقط وقتی آنلاین است به `/today`
 
 ادعای sync آفلاین یا صف mutation نکنید.
