@@ -1,6 +1,6 @@
 # FEATURES.md
 
-وضعیت فعلی: **Milestone 9 completed (Finance Lite)**
+وضعیت فعلی: **Milestone 10 Search completed**
 
 ## Phase 1 (MVP) Feature Matrix
 

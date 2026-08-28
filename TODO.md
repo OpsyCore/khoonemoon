@@ -3,7 +3,7 @@
 ## Current Phase
 
 - Phase 1 (MVP)
-- Current milestone: **Milestone 9 (Finance Lite)** ✅ Completed
+- Current milestone: **Milestone 10 (Search)** ✅ Search completed
 
 ## Planning Deliverables
 
@@ -91,7 +91,7 @@ Not in M9: income, debt, installments, subscriptions, budget, savings, goals, re
 
 ## Milestone 10 - Search + Settings + Offline Improvements
 
-- [ ] global search baseline
+- [x] global household-scoped search (`/search`, `GET /api/search`)
 - [ ] settings pages
 - [ ] improved offline UX
 

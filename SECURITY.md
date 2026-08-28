@@ -67,6 +67,9 @@
    - `paid_by` must be owner (private) or active household member (shared) ✅
    - no stored bill status; paid state is `paid_at` + `paid_by` pair ✅
    - no finance reminder target types; reminder enum remains TASK | EVENT ✅
+11. search (M10 implemented):
+   - GET /api/search uses the authenticated user client (no service-role) ✅
+   - results are whatever RLS already allows on tasks/chores/shopping/events/finance ✅
 
 ## 6) Storage Security (Supabase Storage)
 
