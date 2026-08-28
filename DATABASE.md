@@ -250,7 +250,7 @@ Implemented in `drizzle/0011_milestone12_documents.sql`. Does not ALTER previous
 
 Storage bucket `documents` is private (`public = false`, 10MB, mime allowlist). Signed URLs are issued only after metadata SELECT succeeds (`GET /api/documents/[id]/url`).
 
-Hosted: `0011` APPLIED؛ bucket `documents` خصوصی (۱۰MB، PDF/JPEG/PNG/WebP).
+Hosted: `0011` + `0012` APPLIED؛ bucket `documents` خصوصی (۱۰MB، PDF/JPEG/PNG/WebP).
 
 ## 9) Shared Support Tables
 
@@ -313,7 +313,8 @@ Hosted: `0011` APPLIED؛ bucket `documents` خصوصی (۱۰MB، PDF/JPEG/PNG/We
 
 ## 14) Migration Strategy
 
-- schema از طریق فایل‌های SQL شماره‌دار در `drizzle/` versioned می‌شود (`0001` … `0011`).
+- schema از طریق فایل‌های SQL شماره‌دار در `drizzle/` versioned می‌شود (`0001` … `0012`).
 - migrationها idempotent و non-destructive طراحی شده‌اند.
-- اعمال روی hosted **khoonemoon**: `0010` + `repair_m9_finance_lite` + `0011` APPLIED.
-- `repair_m9_finance_lite` در `drizzle/` نیست. جداول legacy `finance_goals` / `finance_transactions` را حذف نکنید. مدل محصول فقط `finance_records` است.
+- اعمال روی hosted **khoonemoon**: `0010` + `repair_m9_finance_lite` + `0011` + `0012` APPLIED.
+- `repair_m9_finance_lite` در `drizzle/` نیست.
+- جداول legacy زنده `finance_goals` / `finance_transactions` در کد اپ ارجاع ندارند؛ **حذف نکنید**. مدل محصول فقط `finance_records` (`EXPENSE | BILL`).

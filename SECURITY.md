@@ -204,11 +204,11 @@ Documents are **Private** or **Household Shared** (same classification as §2). 
 - Inaccessible entity attach → 404.
 - Regression: M8–M11 authorization tests still pass.
 
-Hosted **khoonemoon**: `0011` APPLIED; `documents` / `document_attachments` RLS enabled; bucket `documents` private. Two-user interactive QA = NOT EXECUTED.
+Hosted **khoonemoon**: `0011` + `0012` APPLIED; `documents` / `document_attachments` RLS enabled; bucket `documents` private. Two-user interactive QA = NOT EXECUTED.
 
 ## 14) Security Advisor hardening (`drizzle/0012_security_hardening.sql`)
 
-Repo SQL (not applied from this environment — no `DATABASE_URL`):
+**APPLIED** on hosted khoonemoon. Contents:
 
 - `set_current_timestamp_updated_at`: `SET search_path = public, pg_temp`; execute revoked from PUBLIC/anon/authenticated (trigger-only).
 - Trigger helpers (`handle_new_user_profile`, `protect_*`, shopping updated_at): execute revoked from client roles.

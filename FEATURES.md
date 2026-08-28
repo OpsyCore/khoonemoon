@@ -1,6 +1,6 @@
 # FEATURES.md
 
-وضعیت فعلی: **Milestone 12 (Documents & Attachments) implemented**
+وضعیت فعلی: **M1–M12 COMPLETE** — Finance Lite (`finance_records`) + Documents + `0012` security hardening APPLIED on hosted khoonemoon.
 
 ## Phase 1 (MVP) Feature Matrix
 

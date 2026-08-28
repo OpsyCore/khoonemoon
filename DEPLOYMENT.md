@@ -40,7 +40,7 @@
 9. `drizzle/0009_milestone8_shopping_lists.sql`
 10. `drizzle/0010_milestone9_finance.sql`
 11. `drizzle/0011_milestone12_documents.sql`
-12. `drizzle/0012_security_hardening.sql` (grants + `search_path` only; **not applied live from this environment**)
+12. `drizzle/0012_security_hardening.sql` (grants + `search_path` only; **APPLIED** on hosted khoonemoon)
 
 زنجیرهٔ فایل‌های ریپو: `0001` → `0012`.
 
@@ -48,7 +48,9 @@
 
 `0011` جداول `documents` / `document_attachments` و bucket خصوصی `documents` را می‌سازد و جداول M1–M11 را ALTER نمی‌کند.
 
-تاریخچهٔ hosted (اعمال‌شده): `0010_milestone9_finance`، `repair_m9_finance_lite` (فایل در `drizzle/` نیست)، `0011_milestone12_documents`. جداول `finance_records` / `documents` / `document_attachments` با RLS؛ bucket `documents` خصوصی، ۱۰MB، PDF/JPEG/PNG/WebP. جداول legacy `finance_goals` / `finance_transactions` را **حذف نکنید**.
+تاریخچهٔ hosted (اعمال‌شده): `0010_milestone9_finance`، `repair_m9_finance_lite` (فایل در `drizzle/` نیست)، `0011_milestone12_documents`، `0012_security_hardening`. جداول محصول: `finance_records` / `documents` / `document_attachments` با RLS؛ bucket `documents` خصوصی، ۱۰MB، PDF/JPEG/PNG/WebP.
+
+جداول legacy زندهٔ `finance_goals` / `finance_transactions` در اپ استفاده نمی‌شوند (**حذف نکنید**). مدل Finance Lite فقط `finance_records` با `EXPENSE | BILL` است.
 
 ## Auth redirect
 
@@ -90,9 +92,8 @@ npm run lint
 
 ## چک‌لیست انتشار
 
-- [x] مهاجرت‌های 0001–0011 + `repair_m9_finance_lite` روی پروژهٔ khoonemoon اعمال شده
-- [ ] `drizzle/0012_security_hardening.sql` روی hosted (REVOKE PUBLIC execute + search_path)
-- [ ] Leaked Password Protection در Auth Dashboard
+- [x] مهاجرت‌های 0001–0012 + `repair_m9_finance_lite` روی پروژهٔ khoonemoon اعمال شده
+- [ ] Leaked Password Protection در Auth Dashboard (Authentication → Attack Protection)
 - [x] `finance_records` / `documents` / `document_attachments` + RLS + bucket خصوصی `documents`
 - [x] `npm run build` روی همین commit سبز است
 - [ ] `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `NEXT_PUBLIC_APP_URL` روی host

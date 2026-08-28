@@ -68,7 +68,7 @@ src/
   db/{index.ts,schema.ts}
   proxy.ts
 
-drizzle/0001 … 0011
+drizzle/0001 … 0012
 public/{sw.js,icons/}
 ```
 

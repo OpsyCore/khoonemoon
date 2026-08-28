@@ -5,7 +5,9 @@
 - Phase 1 (MVP) ✅ Completed (M1–M11)
 - Phase 2: **Milestone 12 (Documents & Attachments)** ✅ Completed
 - Next milestone: not defined (Health / Vehicles / Meal / Goals / Advanced Finance remain out of scope until specified)
-- Live schema on **khoonemoon** (`isfzuxrkzeeeggvfcoah`): `0010` + `repair_m9_finance_lite` + `0011` APPLIED; finance/documents RLS + private `documents` bucket
+- Live schema on **khoonemoon** (`isfzuxrkzeeeggvfcoah`): `0010` + `repair_m9_finance_lite` + `0011` + `0012` APPLIED; finance/documents RLS + private `documents` bucket
+- Security hardening (`0012`) ✅ COMPLETE
+- Legacy live tables `finance_goals` / `finance_transactions`: unused by app; do not drop
 - Two-user interactive QA = NOT EXECUTED
 
 ## Planning Deliverables

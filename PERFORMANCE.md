@@ -4,7 +4,7 @@
 
 ## محدوده بررسی
 
-- ایندکس‌های SQL در `drizzle/0001` تا `drizzle/0011`
+- ایندکس‌های SQL در `drizzle/0001` تا `drizzle/0011` (`0012` فقط grants/`search_path` است)
 - الگوی query در Route Handlerها
 - محدودیت جستجو
 - Service Worker / PWA cache

@@ -156,4 +156,4 @@ Automated coverage (does **not** replace live Supabase RLS / Storage):
 - `src/features/documents/schemas.test.ts`
 - `src/features/documents/server.test.ts`
 
-Authorization regression tests (Vitest) PASS. Two-user interactive QA = NOT EXECUTED. Hosted apply of `0010` + `repair_m9_finance_lite` + `0011` is APPLIED.
+Authorization regression tests (Vitest) PASS. Two-user interactive QA = NOT EXECUTED. Hosted apply of `0010` + `repair_m9_finance_lite` + `0011` + `0012` is APPLIED.
