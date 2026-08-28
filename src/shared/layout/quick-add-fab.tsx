@@ -63,8 +63,8 @@ const quickActions: QuickAction[] = [
     key: "bill",
     label: "هزینه / قبض",
     icon: Wallet,
-    enabled: false,
-    soon: true,
+    href: "/finance#quick-add-finance",
+    enabled: true,
   },
   {
     key: "note",

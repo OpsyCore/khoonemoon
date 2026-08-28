@@ -1,4 +1,5 @@
 import { ChoreManager } from "@/features/chores/components/chore-manager";
+import { FinanceManager } from "@/features/finance/components/finance-manager";
 import { HouseholdManager } from "@/features/households/components/household-manager";
 import type {
   HouseholdInvitation,
@@ -60,6 +61,12 @@ export default async function HomePage({
             برای شروع، یک خانه بسازید یا با دعوت شریک‌تان وارد شوید.
           </p>
         </section>
+
+        <FinanceManager
+          householdId={null}
+          userId={user.id}
+          initialMembers={[{ userId: user.id, fullName: "من" }]}
+        />
 
         <HouseholdManager
           household={null}
@@ -180,6 +187,12 @@ export default async function HomePage({
           می‌شود.
         </p>
       </section>
+
+      <FinanceManager
+        householdId={householdId}
+        userId={user.id}
+        initialMembers={choreMembers}
+      />
 
       <ChoreManager
         householdId={householdId}

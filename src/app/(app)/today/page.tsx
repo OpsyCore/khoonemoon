@@ -1,5 +1,7 @@
 import type { EventRecord } from "@/features/calendar/types";
 import { TodayChores } from "@/features/chores/components/today-chores";
+import { TodayBills } from "@/features/finance/components/today-bills";
+import { buildTodayBillItems } from "@/features/finance/today";
 import {
   buildTodayChoreItems,
   toDateOnlyLocal,
@@ -208,6 +210,17 @@ export default async function TodayPage() {
     }
   }
 
+  let todayBillItems: ReturnType<typeof buildTodayBillItems> = [];
+  const billsResult = await supabase
+    .from("finance_records")
+    .select("id, record_type, title, amount, currency, due_at, paid_at")
+    .eq("record_type", "BILL")
+    .is("paid_at", null);
+
+  if (!billsResult.error) {
+    todayBillItems = buildTodayBillItems(billsResult.data ?? [], new Date());
+  }
+
   const tasks = (tasksResult.data ?? []) as TaskRecord[];
   const events = (eventsResult.data ?? []) as EventRecord[];
   const upcomingReminders = calculateUpcomingReminders({
@@ -227,6 +240,8 @@ export default async function TodayPage() {
       </section>
 
       <TodayDashboard tasks={tasks} events={events} />
+
+      <TodayBills items={todayBillItems} />
 
       <TodayChores items={todayChoreItems} members={choreMembers} />
 
