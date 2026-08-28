@@ -16,7 +16,7 @@ export function AppearanceSettingsCard() {
       </CardDescription>
       <div className="flex flex-wrap gap-2">
         {THEME_OPTIONS.map((option) => {
-          const selected = theme === option.id;
+          const selected = (theme ?? "system") === option.id;
           return (
             <button
               key={option.id}

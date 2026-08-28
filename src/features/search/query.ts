@@ -54,3 +54,32 @@ export function parseSearchQuery({
 export function toOrIlikeFilter(columns: readonly string[], term: string) {
   return columns.map((column) => `${column}.ilike.%${term}%`).join(",");
 }
+
+export function readSearchQueryParam(
+  value: string | string[] | undefined | null,
+) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return normalizeSearchQuery(raw);
+}
+
+export function applySearchQueryToPath({
+  pathname,
+  search,
+  query,
+}: {
+  pathname: string;
+  search: string;
+  query: string;
+}) {
+  const params = new URLSearchParams(
+    search.startsWith("?") ? search.slice(1) : search,
+  );
+  const normalized = normalizeSearchQuery(query);
+  if (normalized) {
+    params.set("q", normalized);
+  } else {
+    params.delete("q");
+  }
+  const qs = params.toString();
+  return qs ? `${pathname}?${qs}` : pathname;
+}

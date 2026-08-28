@@ -261,7 +261,9 @@ describe("search API results", () => {
       },
     });
     const { GET } = await import("./route");
-    const result = await read(await GET(searchRequest("q=%D9%82%D8%A8%D8%B6&type=finance")));
+    const result = await read(
+      await GET(searchRequest("q=%D9%82%D8%A8%D8%B6&type=finance")),
+    );
     expect(result.status).toBe(200);
     expect(queried).toEqual(["finance_records"]);
     const results = result.body.results as Array<{ type: string; href: string }>;

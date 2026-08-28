@@ -1,4 +1,4 @@
-const CACHE_NAME = "khunemun-shell-v2";
+const CACHE_NAME = "khunemun-shell-v3";
 const OFFLINE_URL = "/offline";
 const PRECACHE_URLS = [
   "/offline",
@@ -36,6 +36,11 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
 
   if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  if (url.origin === self.location.origin && url.pathname.startsWith("/api/")) {
+    return;
+  }
 
   if (request.mode === "navigate") {
     event.respondWith(

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { applySearchQueryToPath } from "@/features/search/query";
 import {
   SEARCH_TYPE_LABELS,
   type SearchEntityType,
@@ -47,9 +48,13 @@ function groupResults(results: SearchResult[]) {
   return groups;
 }
 
-export function SearchManager() {
-  const [draft, setDraft] = useState("");
-  const [query, setQuery] = useState("");
+export function SearchManager({
+  initialQuery = "",
+}: {
+  initialQuery?: string;
+}) {
+  const [draft, setDraft] = useState(initialQuery);
+  const [query, setQuery] = useState(initialQuery);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [response, setResponse] = useState<SearchResponse | null>(null);
@@ -67,6 +72,15 @@ export function SearchManager() {
 
     if (!query) {
       const resetTimer = window.setTimeout(() => {
+        const nextPath = applySearchQueryToPath({
+          pathname: window.location.pathname,
+          search: window.location.search,
+          query: "",
+        });
+        const currentPath = `${window.location.pathname}${window.location.search}`;
+        if (currentPath !== nextPath) {
+          window.history.replaceState(null, "", nextPath);
+        }
         setLoading(false);
         setErrorMessage(null);
         setResponse(null);
@@ -78,9 +92,18 @@ export function SearchManager() {
     abortRef.current = controller;
 
     const timer = window.setTimeout(() => {
+      const nextPath = applySearchQueryToPath({
+        pathname: window.location.pathname,
+        search: window.location.search,
+        query,
+      });
+      const currentPath = `${window.location.pathname}${window.location.search}`;
+      if (currentPath !== nextPath) {
+        window.history.replaceState(null, "", nextPath);
+      }
+
       if (typeof navigator !== "undefined" && navigator.onLine === false) {
         setLoading(false);
-        setResponse(null);
         setErrorMessage(offlineUserMessage());
         return;
       }
@@ -109,7 +132,6 @@ export function SearchManager() {
           });
         } catch (error) {
           if (controller.signal.aborted) return;
-          setResponse(null);
           setErrorMessage(
             error instanceof Error ? error.message : "جستجو ناموفق بود.",
           );

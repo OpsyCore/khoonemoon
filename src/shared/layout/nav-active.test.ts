@@ -15,5 +15,9 @@ describe("isBottomNavActive", () => {
     expect(isBottomNavActive("/settings", "/profile")).toBe(true);
     expect(isBottomNavActive("/settings", "/home")).toBe(false);
     expect(isBottomNavActive("/search", "/profile")).toBe(false);
+    expect(isBottomNavActive("/search", "/home")).toBe(false);
+    expect(isBottomNavActive("/search", "/today")).toBe(false);
+    expect(isBottomNavActive("/search", "/lists")).toBe(false);
+    expect(isBottomNavActive("/search", "/calendar")).toBe(false);
   });
 });

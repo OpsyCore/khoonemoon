@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  applySearchQueryToPath,
   normalizeSearchQuery,
   parseSearchQuery,
+  readSearchQueryParam,
   sanitizeSearchTerm,
   toOrIlikeFilter,
 } from "./query";
@@ -42,5 +44,31 @@ describe("toOrIlikeFilter", () => {
     expect(toOrIlikeFilter(["title", "description"], "نان")).toBe(
       "title.ilike.%نان%,description.ilike.%نان%",
     );
+  });
+});
+
+describe("search page query string", () => {
+  it("reads the first q param and trims it", () => {
+    expect(readSearchQueryParam("  قبض برق  ")).toBe("قبض برق");
+    expect(readSearchQueryParam(["نان", "ignored"])).toBe("نان");
+    expect(readSearchQueryParam(undefined)).toBe("");
+  });
+
+  it("writes q for deep-link and back navigation without dropping other params", () => {
+    expect(
+      applySearchQueryToPath({
+        pathname: "/search",
+        search: "",
+        query: " نان ",
+      }),
+    ).toBe("/search?q=%D9%86%D8%A7%D9%86");
+
+    expect(
+      applySearchQueryToPath({
+        pathname: "/search",
+        search: "?type=finance",
+        query: "",
+      }),
+    ).toBe("/search?type=finance");
   });
 });
