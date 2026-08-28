@@ -2,8 +2,9 @@
 
 ## Current Phase
 
-- Phase 1 (MVP)
-- Current milestone: **Milestone 11 (Hardening)** ✅ Completed
+- Phase 1 (MVP) ✅ Completed (M1–M11)
+- Phase 2 started
+- Current milestone: **Milestone 12 (Documents & Attachments)** ✅ Completed
 
 ## Planning Deliverables
 
@@ -105,6 +106,20 @@ Not in M9: income, debt, installments, subscriptions, budget, savings, goals, re
 - [x] deployment readiness docs (`DEPLOYMENT.md`)
 
 Not in M11: Playwright runner, live Supabase apply of `0010`, new product features, shopping/finance/search scope changes, M12.
+
+## Milestone 12 - Documents & Attachments
+
+- [x] document metadata (`title`, optional description, mime/type, size, storage path, uploader, visibility, household)
+- [x] PRIVATE | HOUSEHOLD_SHARED (PRIVATE ⇒ `household_id IS NULL`; SHARED ⇒ household required)
+- [x] optional attach-to-existing-entity via `document_attachments` (no ALTER on M8/M9/tasks/events/chores)
+- [x] private Supabase Storage bucket `documents`; no public object URLs
+- [x] signed URL for view/download after metadata access check
+- [x] RLS + authenticated client (no service-role in browser/runtime pages)
+- [x] API: list / create+upload / get / update metadata / delete / signed URL / attachments
+- [x] UI `/documents`: list, upload, view/download, delete, loading/empty/error/retry; RTL; no 6th bottom-nav tab
+- [x] tests: authz, household isolation, CRUD, validation, unauthorized/invalid id
+
+Not in M12: Health, Vehicles, Meal, Goals, Advanced Finance/Reports, OCR, AI, extra-household sharing, public file URLs, offline upload queue, UI redesign, Auth/Supabase architecture change, Playwright, expanding reminder target types.
 
 ## Quality Gate Checklist (Run each milestone)
 

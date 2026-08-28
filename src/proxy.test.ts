@@ -15,6 +15,8 @@ describe("app path protection", () => {
     expect(isProtectedPath("/search")).toBe(true);
     expect(isProtectedPath("/finance")).toBe(true);
     expect(isProtectedPath("/finance/extra")).toBe(true);
+    expect(isProtectedPath("/documents")).toBe(true);
+    expect(isProtectedPath("/documents/extra")).toBe(true);
   });
 
   it("does not treat public or API routes as page-middleware protected", () => {

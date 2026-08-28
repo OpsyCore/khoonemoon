@@ -3,6 +3,7 @@ import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 
 const shortcuts = [
   { href: "/home", label: "خانه و اعضا" },
+  { href: "/documents", label: "مدارک" },
   { href: "/search", label: "جستجو" },
   { href: "/profile", label: "پروفایل" },
   { href: "/offline", label: "صفحه آفلاین" },

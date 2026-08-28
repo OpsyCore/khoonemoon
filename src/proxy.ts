@@ -10,6 +10,7 @@ export const PROTECTED_PREFIXES = [
   "/settings",
   "/search",
   "/finance",
+  "/documents",
 ] as const;
 
 export const GUEST_ONLY_AUTH_PREFIXES = [
@@ -60,6 +61,7 @@ export const config = {
     "/settings/:path*",
     "/search/:path*",
     "/finance/:path*",
+    "/documents/:path*",
     "/auth/:path*",
   ],
 };

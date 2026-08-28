@@ -37,6 +37,8 @@ MVP باید حداقل این قابلیت‌ها را end-to-end داشته ب
 - **Phase 2**: attachments/documents + health + vehicles + meal + goals + advanced finance/reporting
 - **Phase 3**: AI/voice + intelligent parsing + smart planning + external integrations
 
+اولین milestone اجرایی Phase 2: **Milestone 12 — Documents & Attachments** (بقیهٔ آیتم‌های Phase 2 خارج از M12 هستند).
+
 ## معماری اجرایی فاز 1
 
 - **Frontend**: Next.js App Router + TypeScript + Tailwind
@@ -59,6 +61,10 @@ MVP باید حداقل این قابلیت‌ها را end-to-end داشته ب
 9. **Milestone 9**: finance/bills lite
 10. **Milestone 10**: search + settings + offline improvements
 11. **Milestone 11**: testing hardening + security review + perf + release readiness
+
+## Milestones اجرایی (Phase 2)
+
+12. **Milestone 12**: Documents & Attachments — metadata + private Storage + signed URL + household isolation (بدون Health/Vehicles/Meal/Goals/Advanced Finance)
 
 ## کیفیت و Definition of Done
 

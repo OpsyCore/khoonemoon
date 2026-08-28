@@ -1,6 +1,6 @@
 # FEATURES.md
 
-وضعیت فعلی: **Milestone 11 completed (Hardening)**
+وضعیت فعلی: **Milestone 12 (Documents & Attachments) implemented**
 
 ## Phase 1 (MVP) Feature Matrix
 
@@ -29,10 +29,33 @@
 | Offline Improvements      | SW fallback + connection status + retry UX         | ✅ Completed (M10) |
 | Test Hardening            | unit/integration/e2e critical flows                | ✅ Completed (M11) |
 | Security Review           | RLS verification + auth audit                      | ✅ Completed (M11) |
+| Documents & Attachments   | metadata + private Storage + signed URL + isolation | ✅ Completed (M12) |
 
-## خارج از MVP (Phase 2+)
+## Milestone 12 — Documents & Attachments (Planned)
 
-- Documents/attachments کامل
+اولین آیتم Phase 2. **پیاده‌سازی نشده.**
+
+### داخل M12
+
+- مدارک به‌عنوان موجودیت مستقل: عنوان، توضیح اختیاری، نوع/mime، حجم، مسیر Storage، uploader، `visibility` (`PRIVATE` | `HOUSEHOLD_SHARED`)، `household_id`، `created_at` / `updated_at`
+- پیوست اختیاری به موجودیت‌های فعلی از طریق جدول لینک جدید — **بدون ALTER** روی جداول M8 Shopping / M9 Finance / tasks / events / chores
+- هدف‌های مجاز لینک (اگر پیوست فعال شود): `TASK` | `EVENT` | `CHORE` | `SHOPPING_LIST` | `FINANCE_RECORD` — فقط اگر کاربر طبق RLS فعلی به هدف دسترسی داشته باشد
+- Storage خصوصی + signed URL؛ فایل عمومی نیست
+- صفحه `/documents` (نه تب ششم): list / upload / view-download / delete + loading/empty/error/retry
+- دسترسی از TopBar (مثل Search/Settings)؛ تب Home روی `/documents` فعال می‌ماند (مثل `/finance`)
+
+### خارج از M12
+
+- Health / Vehicles / Meal / Goals / Advanced Finance / Reports
+- OCR / AI
+- اشتراک خارج از household
+- URL عمومی فایل
+- صف upload آفلاین
+- Playwright
+- گسترش enum یادآور (همچنان `TASK` | `EVENT`)
+
+## خارج از MVP (Phase 2+، بعد از M12)
+
 - Health module کامل
 - Vehicles module کامل
 - Meal planning کامل

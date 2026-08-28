@@ -88,6 +88,17 @@ export const financeVisibilityEnum = pgEnum("finance_visibility", [
   "PRIVATE",
   "HOUSEHOLD_SHARED",
 ]);
+export const documentVisibilityEnum = pgEnum("document_visibility", [
+  "PRIVATE",
+  "HOUSEHOLD_SHARED",
+]);
+export const documentEntityTypeEnum = pgEnum("document_entity_type", [
+  "TASK",
+  "EVENT",
+  "CHORE",
+  "SHOPPING_LIST",
+  "FINANCE_RECORD",
+]);
 
 export const profiles = pgTable(
   "profiles",
@@ -712,6 +723,86 @@ export const financeRecords = pgTable(
     index("finance_records_paid_by_idx")
       .on(table.paidBy)
       .where(sql`${table.paidBy} is not null`),
+  ],
+);
+
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    householdId: uuid("household_id"),
+    createdBy: uuid("created_by").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    mimeType: text("mime_type").notNull(),
+    fileSize: integer("file_size").notNull(),
+    storagePath: text("storage_path").notNull(),
+    visibility: documentVisibilityEnum("visibility")
+      .notNull()
+      .default("PRIVATE"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.householdId],
+      foreignColumns: [households.id],
+      name: "documents_household_id_households_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [authUsers.id],
+      name: "documents_created_by_auth_users_fk",
+    }).onDelete("restrict"),
+    uniqueIndex("documents_storage_path_unique").on(table.storagePath),
+    index("documents_created_by_created_idx").on(
+      table.createdBy,
+      table.createdAt,
+    ),
+    index("documents_household_visibility_idx").on(
+      table.householdId,
+      table.visibility,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const documentAttachments = pgTable(
+  "document_attachments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    documentId: uuid("document_id").notNull(),
+    entityType: documentEntityTypeEnum("entity_type").notNull(),
+    entityId: uuid("entity_id").notNull(),
+    createdBy: uuid("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.documentId],
+      foreignColumns: [documents.id],
+      name: "document_attachments_document_id_documents_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [authUsers.id],
+      name: "document_attachments_created_by_auth_users_fk",
+    }).onDelete("restrict"),
+    uniqueIndex("document_attachments_unique_link").on(
+      table.documentId,
+      table.entityType,
+      table.entityId,
+    ),
+    index("document_attachments_entity_idx").on(
+      table.entityType,
+      table.entityId,
+    ),
   ],
 );
 

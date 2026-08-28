@@ -185,7 +185,28 @@ public/
 - integration: authorization + household rules
 - e2e: journeyهای حیاتی زوج (signup تا shared task/shopping)
 
-## 10) ریسک‌های کلیدی
+## 10) Milestone 12 architecture (Planned — not implemented)
+
+M12 از Storage ازپیش‌مستند در §6 امنیت و از الگوی Auth/RLS فعلی استفاده می‌کند؛ معماری جدید نیست.
+
+### تصمیم‌ها
+
+1. **دامنه جدید** `features/documents/` + route `/documents` + API تحت `src/app/api/documents`. جدول/فایل M8 Shopping و M9 Finance دست نمی‌خورند.
+2. **Visibility** همان `PRIVATE` | `HOUSEHOLD_SHARED` است. PRIVATE ⇒ `household_id IS NULL`؛ SHARED ⇒ عضویت خانهٔ فعال الزامی. کاربر بدون خانه فقط PRIVATE می‌تواند بسازد (مثل finance lite).
+3. **Storage**: یک bucket خصوصی (نه public). مسیر: `user/{userId}/...` برای PRIVATE و `household/{householdId}/...` برای SHARED (`SECURITY.md` §6). دانلود/نمایش فقط با signed URL بعد از چک دسترسی metadata.
+4. **Client**: `createSupabaseServerClient` / browser anon + session. **بدون service-role** در UI و route handlerهای کاربر.
+5. **Mutation**: metadata با RLS روی جداول جدید؛ در صورت نیاز به اتمی بودن upload+row، RPC `SECURITY DEFINER` با `search_path = public` مثل chores/finance. Storage policy مسیر را به `auth.uid()` / `is_household_member` محدود می‌کند.
+6. **Attachments**: جدول لینک جدا (`document_id`, `target_type`, `target_id`) بدون FK اجباری به هر دامنه (از تغییر migrationهای 0003–0010 پرهیز). Insert لینک فقط اگر RLS هدف را به کاربر نشان دهد.
+7. **ناوبری**: تب ششم نیست. `/documents` مثل `/finance` زیر تب Home؛ آیکن TopBar مثل Search. `src/proxy.ts` باید `/documents` را protected کند (در پیاده‌سازی، نه در این spec-only).
+8. **Migration آینده**: یک فایل جدید (مثلاً `drizzle/0011_milestone12_documents.sql`) فقط وقتی implementation شروع شود. الان ساخته نمی‌شود.
+9. **SW**: پاسخ `/api/documents` و signed URL نباید cache-first شود؛ قانون فعلی `public/sw.js` که `/api/*` را intercept نمی‌کند کافی است.
+10. **محدودیت فایل (پایه)**: allowlist mime (حداقل `application/pdf` و تصویرهای رایج `image/jpeg|png|webp`) و سقف حجم مشخص در Zod + Storage (پیشنهاد پیاده‌سازی: ۱۰ مگابایت مگر خلاف آن در implementation ثابت شود).
+
+### ناسازگاری معماری
+
+وجود ندارد. Storage در پلن بود ولی API/`storage/sign` هنوز پیاده نشده؛ M12 همان لایه را می‌سازد.
+
+## 11) ریسک‌های کلیدی
 
 1. پیچیدگی هم‌زمانی timezone + Jalali + recurrence
 2. دقت RLS برای private/shared

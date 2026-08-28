@@ -10,7 +10,7 @@
 
 ## 2) Enumهای اصلی
 
-- `task_visibility` / `event_visibility` / `finance_visibility`: PRIVATE | HOUSEHOLD_SHARED
+- `task_visibility` / `event_visibility` / `finance_visibility` / `document_visibility`: PRIVATE | HOUSEHOLD_SHARED
 - `task_status`: PENDING | IN_PROGRESS | COMPLETED | SKIPPED | ARCHIVED
 - `task_priority`: LOW | NORMAL | HIGH | CRITICAL
 - `member_role`: OWNER | MEMBER
@@ -219,6 +219,33 @@ RLS: PRIVATE = owner only; HOUSEHOLD_SHARED = `is_household_member(household_id)
 UI: `/finance` page, Home summary + links, Today unpaid overdue/due bills, FAB `/finance#quick-add-finance`.
 
 Not in M9: income, debt, installments, subscription product, budget, savings, goals, recurring finance engine, finance reminders, AI, voice, split ledger, reports/charts.
+
+## 8b) Documents Domain (M12 implemented)
+
+Implemented in `drizzle/0011_milestone12_documents.sql`. Does not ALTER previous tables.
+
+### documents
+
+- `id` (uuid)
+- `household_id` (nullable fk households.id)
+- `created_by` (fk auth.users.id)
+- `title`, `description` (nullable)
+- `mime_type` (pdf/jpeg/png/webp)
+- `file_size` (bytes, max 10MB)
+- `storage_path` (unique; `user/{uid}/...` or `household/{hid}/...`)
+- `visibility` (`document_visibility`: PRIVATE | HOUSEHOLD_SHARED)
+- `created_at`, `updated_at`
+- PRIVATE ⇒ `household_id IS NULL`; SHARED ⇒ household required
+
+### document_attachments
+
+- `id` (uuid)
+- `document_id` (fk documents.id cascade)
+- `entity_type` TASK | EVENT | CHORE | SHOPPING_LIST | FINANCE_RECORD
+- `entity_id` (uuid, no FK to domain tables)
+- `created_by`, `created_at`
+
+Storage bucket `documents` is private. Signed URLs are issued only after metadata SELECT succeeds.
 
 ## 9) Shared Support Tables
 

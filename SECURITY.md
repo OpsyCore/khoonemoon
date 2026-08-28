@@ -169,3 +169,29 @@ Reviewed against committed M1–M10 code (no RLS architecture change).
 - `src/app/api/profile/profile-api.test.ts`
 - `src/features/hardening/shopping-api.test.ts`
 - `src/proxy.test.ts`
+
+## 13) Milestone 12 Security Requirements (Planned — not implemented)
+
+Documents are **Private** or **Household Shared** (same classification as §2). M12 must not weaken M1–M11 RLS.
+
+### Required
+
+1. Metadata tables have RLS enabled. Anonymous: deny. Authenticated PRIVATE: owner/uploader only. HOUSEHOLD_SHARED: `is_household_member(household_id)` only.
+2. Storage bucket is **private**. No public object URLs. Path must match visibility (`user/{auth.uid()}/...` or `household/{householdId}/...` with membership).
+3. View/download uses short-lived **signed URL** issued only after the caller can `SELECT` the metadata row. Guessing a storage path or document UUID is IDOR → 404, not 403 leak.
+4. Create/update/delete: authenticated + visibility pairing + household membership for SHARED. Uploader cannot attach a file to another household’s entity. Link insert requires access to **both** the document and the target (existing task/event/chore/list/finance RLS).
+5. Validate mime allowlist and max size before upload. Reject path traversal and client-supplied storage paths that escape the allowed prefix.
+6. Runtime uses the authenticated Supabase client. **No service-role** in browser or user route handlers.
+7. Do not log file bytes or document note/title content; metadata ids only.
+8. Do not grant `current_user_can_access_*` helpers to `authenticated` if they are SECURITY DEFINER and not already granted (same rule as finance).
+9. Search of document titles is out of M12 unless implemented with the same authenticated+RLS client as M10; default: M12 does not extend `/api/search`.
+10. SW must not cache-first document API or signed URLs (`/api/*` already skipped).
+
+### Verification (when implemented)
+
+- Partner cannot read a PRIVATE document.
+- Other household cannot read a SHARED document.
+- Unauthenticated list/get/upload/delete/sign → 401.
+- Invalid UUID / inaccessible id → 404.
+- Mime/size rejection → 400.
+- Regression: M8–M11 authorization tests still pass.

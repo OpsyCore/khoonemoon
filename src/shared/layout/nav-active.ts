@@ -4,7 +4,9 @@ export function isBottomNavActive(pathname: string, href: string) {
       pathname === "/home" ||
       pathname.startsWith("/home/") ||
       pathname === "/finance" ||
-      pathname.startsWith("/finance/")
+      pathname.startsWith("/finance/") ||
+      pathname === "/documents" ||
+      pathname.startsWith("/documents/")
     );
   }
 
