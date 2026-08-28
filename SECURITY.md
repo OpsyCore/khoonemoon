@@ -58,6 +58,15 @@
    - join_household_with_invitation
    - cancel_household_invitation
    - leave_current_household
+   - create_chore / update_chore / complete_chore
+   - create_finance_record / update_finance_record / set_finance_record_paid
+10. finance (M9 implemented):
+   - PRIVATE record: only owner ✅
+   - HOUSEHOLD_SHARED record: active household members ✅
+   - `owner_id` / `created_by` / `household_id` / `visibility` / `record_type` immutable after insert ✅
+   - `paid_by` must be owner (private) or active household member (shared) ✅
+   - no stored bill status; paid state is `paid_at` + `paid_by` pair ✅
+   - no finance reminder target types; reminder enum remains TASK | EVENT ✅
 
 ## 6) Storage Security (Supabase Storage)
 
@@ -106,3 +115,10 @@
   - `src/features/tasks/recurrence.test.ts`
 - Milestone 6 reminder/timezone/snooze tests in:
   - `src/features/reminders/calculations.test.ts`
+- Milestone 9 finance tests in:
+  - `src/app/api/finance/finance-api.test.ts`
+  - `src/features/finance/security.test.ts`
+  - `src/features/finance/schemas.test.ts`
+  - `src/features/finance/status.test.ts`
+  - `src/features/finance/today.test.ts`
+  - `src/features/finance/server.test.ts`

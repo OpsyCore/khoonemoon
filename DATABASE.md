@@ -10,12 +10,12 @@
 
 ## 2) Enumهای اصلی
 
-- `visibility_type`: PRIVATE | HOUSEHOLD_SHARED
+- `task_visibility` / `event_visibility` / `finance_visibility`: PRIVATE | HOUSEHOLD_SHARED
 - `task_status`: PENDING | IN_PROGRESS | COMPLETED | SKIPPED | ARCHIVED
 - `task_priority`: LOW | NORMAL | HIGH | CRITICAL
 - `member_role`: OWNER | MEMBER
 - `invitation_status`: PENDING | ACCEPTED | CANCELED | EXPIRED
-- `bill_status`: UPCOMING | DUE | PAID | OVERDUE
+- `finance_record_type`: EXPENSE | BILL
 
 ## 3) موجودیت‌های هسته
 
@@ -178,28 +178,47 @@
 - `assignee_id` (fk profiles.id)
 - unique(`chore_id`,`sequence_order`)
 
-## 8) Finance Domain
+## 8) Finance Domain (M9 implemented)
 
-### financial_records
+Implemented in `drizzle/0010_milestone9_finance.sql`.
+
+### finance_records
 
 - `id` (uuid)
-- `household_id` (nullable fk)
-- `owner_id` (fk profiles.id)
-- `created_by` (fk profiles.id)
-- `visibility` (visibility_type)
-- `record_type` (EXPENSE | INCOME | BILL | SUBSCRIPTION | INSTALLMENT | DEBT)
+- `record_type` (`finance_record_type`: EXPENSE | BILL)
 - `title`
-- `amount` (numeric(14,2))
+- `amount` (numeric(14,2), `> 0`)
 - `currency` (text default IRR)
-- `category` (text)
-- `occurred_at` (timestamptz)
-- `due_at` (nullable)
-- `bill_status` (nullable)
-- `is_recurring` (bool)
-- `recurrence_rule` (nullable text)
-- `note` (nullable)
-- `paid_by` (nullable fk profiles.id)
+- `owner_id` (fk auth.users.id, immutable)
+- `created_by` (fk auth.users.id, immutable)
+- `household_id` (nullable fk households.id, immutable in M9)
+- `visibility` (`finance_visibility`: PRIVATE | HOUSEHOLD_SHARED, immutable in M9)
+- `due_at` (timestamptz, required for BILL, null for EXPENSE)
+- `occurred_at` (timestamptz, required for EXPENSE, null for BILL)
+- `paid_at` (timestamptz, BILL only; paired with paid_by)
+- `paid_by` (nullable fk auth.users.id, BILL only)
+- `category` (nullable text)
+- `note` (nullable text)
 - `created_at`, `updated_at`
+
+Bill status is **not stored**. Derive from `due_at` + `paid_at`:
+
+- PAID: `paid_at IS NOT NULL`
+- OVERDUE: unpaid and `due_at < startOfToday`
+- DUE: unpaid and `due_at < endOfToday`
+- UPCOMING: unpaid and `due_at >= endOfToday`
+
+Write RPCs:
+
+- `create_finance_record`
+- `update_finance_record`
+- `set_finance_record_paid`
+
+RLS: PRIVATE = owner only; HOUSEHOLD_SHARED = `is_household_member(household_id)`. INSERT household is the caller’s active household. `paid_by` via `valid_finance_paid_by`.
+
+UI: `/finance` page, Home summary + links, Today unpaid overdue/due bills, FAB `/finance#quick-add-finance`.
+
+Not in M9: income, debt, installments, subscription product, budget, savings, goals, recurring finance engine, finance reminders, AI, voice, split ledger, reports/charts.
 
 ## 9) Shared Support Tables
 
@@ -227,7 +246,9 @@
 - `task_assignees(assignee_id)`
 - `events(household_id, start_at)`
 - `shopping_items(list_id, purchased)`
-- `financial_records(household_id, due_at, bill_status)`
+- `finance_records(owner_id, record_type, due_at)`
+- `finance_records(household_id, visibility, due_at)`
+- unpaid bills partial index: `finance_records(due_at) WHERE record_type = 'BILL' AND paid_at IS NULL`
 - `household_invitations(household_id, status, expires_at)`
 
 ## 11) RLS Policy Model (خلاصه)

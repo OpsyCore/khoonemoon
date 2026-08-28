@@ -1,6 +1,6 @@
 # FEATURES.md
 
-وضعیت فعلی: **Milestone 6 completed / Milestone 7 not started**
+وضعیت فعلی: **Milestone 9 completed (Finance Lite)**
 
 ## Phase 1 (MVP) Feature Matrix
 
@@ -20,10 +20,10 @@
 | Calendar                  | month/week/agenda + tasks/events aggregation       | ✅ Completed (M5) |
 | Reminder Foundation       | data model + schedule calculations                 | ✅ Completed (M6) |
 | Notification Prefs        | in-app/web push settings                           | ✅ Completed (M6) |
-| Chores                    | recurring chores + assignment/rotation پایه        | Planned (M7)      |
-| Shopping                  | shared list + quick check/uncheck                  | Planned (M8)      |
-| Realtime                  | scoped sync for shopping + shared task updates     | Planned (M8)      |
-| Finance Lite              | bills/expense records + due states                 | Planned (M9)      |
+| Chores                    | recurring chores + assignment/rotation پایه        | ✅ Completed (M7) |
+| Shopping                  | shared list + quick check/uncheck                  | ✅ Completed (M8) |
+| Realtime                  | scoped sync for shopping + shared task updates     | Partial (M8)      |
+| Finance Lite              | bills + one-off expenses; PRIVATE/SHARED; `/finance` + Today + Home + FAB | ✅ Completed (M9) |
 | Search                    | cross-domain search with permission filters        | Planned (M10)     |
 | Settings                  | profile/household/privacy/theme/pwa help           | Planned (M10)     |
 | Offline Improvements      | app shell cache + offline page + retry UX          | Planned (M10)     |
@@ -40,6 +40,24 @@
 - Advanced routines/templates
 - AI/Voice
 
+## خارج از Milestone 9 (Finance Lite)
+
+M9 شامل این‌ها **نیست**:
+
+- Income
+- Debt
+- Installments
+- Subscription product
+- Budget
+- Savings
+- Goals
+- Recurring finance engine
+- Finance reminders
+- AI
+- Voice
+- Split ledger
+- Reports/charts
+
 ## تعریف کامل شدن فیچر
 
 هر آیتم تنها وقتی Complete می‌شود که:
@@ -53,4 +71,4 @@
 3. کاربر A تسک shared می‌سازد؛؛ کاربر B می‌بیند.
 4. کاربر A تسک private می‌سازد؛ کاربر B نمی‌بیند.
 5. shopping item در لحظه sync می‌شود.
-6. bill ثبت و در today dashboard نمایش داده می‌شود.
+6. bill ثبت می‌شود و قبض‌های معوق/سررسید امروز در صفحهٔ Today دیده می‌شوند.

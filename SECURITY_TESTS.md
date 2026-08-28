@@ -52,3 +52,40 @@ Expected:
   - partner cannot access private records
   - invitation reuse rejected
   - unauthorized membership modification rejected
+
+## Milestone 9 Finance verification
+
+These scenarios should be run in Supabase with two users.
+
+### Scenario F1: Partner cannot read a private bill
+
+1. User A creates a PRIVATE bill.
+2. User B (same household) lists `/api/finance`.
+
+Expected: User B does not see User A's private bill.
+
+### Scenario F2: Shared bill is visible to household members only
+
+1. User A creates a HOUSEHOLD_SHARED bill.
+2. User B (same household) can read and mark it paid.
+3. User C in another household cannot read it.
+
+### Scenario F3: Shared finance requires household membership
+
+1. User with no household posts `visibility=HOUSEHOLD_SHARED`.
+
+Expected: `NO_HOUSEHOLD_FOR_SHARED_FINANCE`.
+
+### Scenario F4: paid_by must be a valid payer
+
+1. On a PRIVATE bill, `paid_by` other than owner is rejected.
+2. On a SHARED bill, `paid_by` outside the household is rejected.
+
+### Automated coverage
+
+- `src/app/api/finance/finance-api.test.ts`
+- `src/features/finance/security.test.ts`
+- `src/features/finance/schemas.test.ts`
+- `src/features/finance/status.test.ts`
+- `src/features/finance/today.test.ts`
+- `src/features/finance/server.test.ts`

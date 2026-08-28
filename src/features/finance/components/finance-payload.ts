@@ -14,13 +14,30 @@ export function validateFinanceFormClient(
   form: FinanceFormState,
   recordType: FinanceRecordType,
 ) {
-  if (!form.title.trim()) {
+  const title = form.title.trim();
+  if (!title) {
     return "عنوان را وارد کنید.";
+  }
+  if (title.length > 180) {
+    return "عنوان نمی‌تواند بیشتر از ۱۸۰ کاراکتر باشد.";
   }
 
   const amount = Number(form.amount);
   if (!Number.isFinite(amount) || amount <= 0) {
     return "مبلغ باید یک عدد مثبت باشد.";
+  }
+
+  const currency = form.currency.trim() || "IRR";
+  if (currency.length < 3 || currency.length > 8) {
+    return "واحد پول معتبر نیست.";
+  }
+
+  if (form.category.trim().length > 80) {
+    return "دسته‌بندی نمی‌تواند بیشتر از ۸۰ کاراکتر باشد.";
+  }
+
+  if (form.note.trim().length > 1000) {
+    return "یادداشت نمی‌تواند بیشتر از ۱۰۰۰ کاراکتر باشد.";
   }
 
   if (recordType === "BILL" && !form.dueAt) {

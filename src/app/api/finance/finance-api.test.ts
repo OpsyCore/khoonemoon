@@ -339,6 +339,40 @@ describe("finance API POST", () => {
     expect(result.status).toBe(400);
   });
 
+  it("rejects a negative amount", async () => {
+    mockCreateClient.mockResolvedValue(createMockSupabase({ user: userA }));
+    const { POST } = await import("./route");
+    const result = await read(
+      await POST(
+        jsonRequest("http://localhost/api/finance", "POST", {
+          recordType: "EXPENSE",
+          title: "نان",
+          amount: -5,
+          visibility: "PRIVATE",
+          occurredAt,
+        }),
+      ),
+    );
+    expect(result.status).toBe(400);
+  });
+
+  it("rejects a title longer than 180 characters", async () => {
+    mockCreateClient.mockResolvedValue(createMockSupabase({ user: userA }));
+    const { POST } = await import("./route");
+    const result = await read(
+      await POST(
+        jsonRequest("http://localhost/api/finance", "POST", {
+          recordType: "EXPENSE",
+          title: "آ".repeat(181),
+          amount: 10,
+          visibility: "PRIVATE",
+          occurredAt,
+        }),
+      ),
+    );
+    expect(result.status).toBe(400);
+  });
+
   it("rejects amount <= 0", async () => {
     mockCreateClient.mockResolvedValue(createMockSupabase({ user: userA }));
     const { POST } = await import("./route");
@@ -811,6 +845,82 @@ describe("finance API PATCH", () => {
       ),
     );
     expect(result.status).toBe(400);
+  });
+
+  it("pays an already-paid bill", async () => {
+    const client = createMockSupabase({
+      user: userA,
+      record: bill({ paid_at: dueAt, paid_by: userA.id }),
+      rpcData: true,
+    });
+    mockCreateClient.mockResolvedValue(client);
+    const { PATCH } = await import("./[id]/route");
+    const result = await read(
+      await PATCH(
+        jsonRequest("http://localhost/api/finance/rec-1", "PATCH", {
+          action: "pay",
+        }),
+        { params: Promise.resolve({ id: "rec-1" }) },
+      ),
+    );
+    expect(result.status).toBe(200);
+    expect(client.rpcCalls[0]?.args.p_paid).toBe(true);
+  });
+
+  it("unpays an unpaid bill", async () => {
+    const client = createMockSupabase({
+      user: userA,
+      record: bill(),
+      rpcData: true,
+    });
+    mockCreateClient.mockResolvedValue(client);
+    const { PATCH } = await import("./[id]/route");
+    const result = await read(
+      await PATCH(
+        jsonRequest("http://localhost/api/finance/rec-1", "PATCH", {
+          action: "unpay",
+        }),
+        { params: Promise.resolve({ id: "rec-1" }) },
+      ),
+    );
+    expect(result.status).toBe(200);
+    expect(client.rpcCalls[0]?.args.p_paid).toBe(false);
+  });
+
+  it("returns 404 when paying a missing record", async () => {
+    mockCreateClient.mockResolvedValue(
+      createMockSupabase({ user: userA, record: null }),
+    );
+    const { PATCH } = await import("./[id]/route");
+    const result = await read(
+      await PATCH(
+        jsonRequest("http://localhost/api/finance/rec-missing", "PATCH", {
+          action: "pay",
+        }),
+        { params: Promise.resolve({ id: "rec-missing" }) },
+      ),
+    );
+    expect(result.status).toBe(404);
+  });
+
+  it("maps FINANCE_ACCESS_DENIED from pay RPC", async () => {
+    mockCreateClient.mockResolvedValue(
+      createMockSupabase({
+        user: userA,
+        record: bill(),
+        rpcError: { message: "FINANCE_ACCESS_DENIED" },
+      }),
+    );
+    const { PATCH } = await import("./[id]/route");
+    const result = await read(
+      await PATCH(
+        jsonRequest("http://localhost/api/finance/rec-1", "PATCH", {
+          action: "pay",
+        }),
+        { params: Promise.resolve({ id: "rec-1" }) },
+      ),
+    );
+    expect(result.status).toBe(403);
   });
 
   it("rejects invalid paidBy", async () => {

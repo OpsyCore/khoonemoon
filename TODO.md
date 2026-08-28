@@ -3,7 +3,7 @@
 ## Current Phase
 
 - Phase 1 (MVP)
-- Current milestone: **Milestone 6 (Reminder Engine Foundation)** ✅ Completed
+- Current milestone: **Milestone 9 (Finance Lite)** ✅ Completed
 
 ## Planning Deliverables
 
@@ -64,23 +64,30 @@
 - [x] notification preferences
 - [x] push/web capability detection + permission UX + fallback
 
-## Milestone 7 - Chores
+## Milestone 7 - Chores ✅
 
-- [ ] chore CRUD
-- [ ] recurring chores
-- [ ] rotation baseline
+- [x] chore CRUD
+- [x] recurring chores
+- [x] rotation baseline
 
-## Milestone 8 - Shopping + Realtime
+## Milestone 8 - Shopping + Realtime ✅
 
-- [ ] shopping lists/items CRUD
-- [ ] realtime sync scoped channels
-- [ ] optimistic toggle purchased
+- [x] shopping lists/items CRUD
+- [x] household-scoped lists with RLS
+- [x] check/uncheck purchased items
 
-## Milestone 9 - Finance Lite
+## Milestone 9 - Finance Lite ✅
 
-- [ ] bills/expense records
-- [ ] due/overdue states
-- [ ] today integration
+- [x] bills + one-off expenses (`public.finance_records`)
+- [x] PRIVATE | HOUSEHOLD_SHARED
+- [x] derived due/overdue (no stored bill status)
+- [x] RLS + RPCs (`create_finance_record`, `update_finance_record`, `set_finance_record_paid`)
+- [x] Today: unpaid overdue + due-today bills + pay + link to `/finance`
+- [x] `/finance` page (CRUD, pay/unpay, filters, totals)
+- [x] Home finance summary + links to `/finance`
+- [x] FAB «هزینه / قبض» → `/finance#quick-add-finance`
+
+Not in M9: income, debt, installments, subscriptions, budget, savings, goals, recurring finance, finance reminders, AI, voice, split ledger, reports/charts.
 
 ## Milestone 10 - Search + Settings + Offline Improvements
 

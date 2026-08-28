@@ -99,6 +99,12 @@ describe("finance update/pay/delete mapping", () => {
     expect(validateFinanceFormClient({ ...billForm, title: "   " }, "BILL")).toBe(
       "عنوان را وارد کنید.",
     );
+    expect(
+      validateFinanceFormClient({ ...billForm, title: "آ".repeat(181) }, "BILL"),
+    ).toBe("عنوان نمی‌تواند بیشتر از ۱۸۰ کاراکتر باشد.");
+    expect(
+      validateFinanceFormClient({ ...billForm, amount: "-5" }, "BILL"),
+    ).toBe("مبلغ باید یک عدد مثبت باشد.");
   });
 
   it("prevents a second mutation while one is pending", () => {
