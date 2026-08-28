@@ -226,6 +226,50 @@ describe("search API results", () => {
     expect(results.map((item) => item.id)).toEqual(["own"]);
   });
 
+  it("queries only finance_records when type=finance", async () => {
+    const queried: string[] = [];
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: async () => ({ data: { user: { id: "user-a" } } }),
+      },
+      from(table: string) {
+        queried.push(table);
+        const query = {
+          select() {
+            return query;
+          },
+          is() {
+            return query;
+          },
+          eq() {
+            return query;
+          },
+          or() {
+            return query;
+          },
+          limit() {
+            return Promise.resolve({
+              data:
+                table === "finance_records"
+                  ? [{ id: "f1", title: "قبض برق", category: null, note: null }]
+                  : [],
+              error: null,
+            });
+          },
+        };
+        return query;
+      },
+    });
+    const { GET } = await import("./route");
+    const result = await read(await GET(searchRequest("q=%D9%82%D8%A8%D8%B6&type=finance")));
+    expect(result.status).toBe(200);
+    expect(queried).toEqual(["finance_records"]);
+    const results = result.body.results as Array<{ type: string; href: string }>;
+    expect(results).toHaveLength(1);
+    expect(results[0]?.type).toBe("finance");
+    expect(results[0]?.href).toBe("/finance");
+  });
+
   it("returns 500 when every source query fails", async () => {
     mockCreateClient.mockResolvedValue(
       createMockSupabase({

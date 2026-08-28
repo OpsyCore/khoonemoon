@@ -125,3 +125,47 @@
   - `src/features/finance/status.test.ts`
   - `src/features/finance/today.test.ts`
   - `src/features/finance/server.test.ts`
+
+## 12) Milestone 11 Security Review
+
+Reviewed against committed M1–M10 code (no RLS architecture change).
+
+### Auth
+
+- Runtime uses `createSupabaseServerClient` with the **anon** key and user cookies. No `SERVICE_ROLE` usage under `src/`.
+- `(app)/layout.tsx` redirects unauthenticated users. `src/proxy.ts` also protects page prefixes including `/finance`.
+- API routes are not in the proxy matcher; each handler calls `getUser()` and returns 401.
+- `/offline` stays public. Guest-only auth paths: login/signup/forgot-password.
+
+### Isolation
+
+- Visibility is only `PRIVATE` | `HOUSEHOLD_SHARED`. Assignment/`paid_by` is not a visibility grant.
+- PRIVATE ⇒ `household_id IS NULL`; SHARED ⇒ household required. Enforced in SQL checks + server validate helpers.
+- Search uses the authenticated client; results are whatever RLS already allows.
+- Profiles: select/update own row only. Partner display names often fall back to `"کاربر"`.
+
+### Mutation control
+
+- Household join/leave/invite: security-definer RPCs; no direct insert/update/delete policies on members/invitations.
+- Chores writes: `create_chore` / `update_chore` / `complete_chore`.
+- Finance writes: `create_finance_record` / `update_finance_record` / `set_finance_record_paid`.
+- Shopping lists are household-scoped; item insert first selects the list (RLS) then inserts.
+
+### Findings (documented, not silent product changes)
+
+1. Some PATCH/DELETE handlers (events, tasks delete, reminder cancel) return `{ ok: true }` if PostgREST reports no error even when RLS updated 0 rows. Shopping/finance/household-name update use `select`/`maybeSingle` after write and treat missing rows as failure. Enforcement remains RLS.
+2. `GET /api/health` uses the user-scoped client; it does not bypass RLS.
+3. Live two-user RLS on hosted Supabase is still required (`SECURITY_TESTS.md`, `E2E.md`). This environment has no `DATABASE_URL` / user credentials.
+
+### Automated M11 coverage
+
+- `src/features/hardening/authorization.test.ts`
+- `src/features/hardening/critical-journeys.test.ts`
+- `src/app/api/tasks/tasks-api.test.ts`
+- `src/app/api/events/events-api.test.ts`
+- `src/app/api/household/household-api.test.ts`
+- `src/app/api/chores/chores-api.test.ts`
+- `src/app/api/reminders/reminders-api.test.ts`
+- `src/app/api/profile/profile-api.test.ts`
+- `src/features/hardening/shopping-api.test.ts`
+- `src/proxy.test.ts`

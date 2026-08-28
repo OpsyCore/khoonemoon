@@ -89,3 +89,51 @@ Expected: `NO_HOUSEHOLD_FOR_SHARED_FINANCE`.
 - `src/features/finance/status.test.ts`
 - `src/features/finance/today.test.ts`
 - `src/features/finance/server.test.ts`
+
+## Milestone 11 authorization (automated)
+
+This layer does **not** replace live Supabase RLS. It locks the API/domain contracts that sit on top of RLS.
+
+### Scenario T1: Private vs shared tasks
+
+- Partner cannot access PRIVATE task (`canAccessTask` + `GET /api/tasks` empty when RLS yields none).
+- Shared task without household is rejected (`NO_HOUSEHOLD_FOR_SHARED_TASK`).
+- PATCH on an inaccessible task id → 404.
+
+### Scenario E1: Events
+
+- Unauthenticated GET/POST/PATCH/DELETE → 401.
+- Shared event without household → 400.
+- Other household's events are not returned when RLS yields none.
+
+### Scenario S1: Shopping (tests live outside frozen shopping paths)
+
+- Unauthenticated list/item routes → 401.
+- Create list without household → 400.
+- Item insert against a list RLS does not expose → 404.
+- Client-supplied `household_id` is ignored; membership household is used.
+
+### Scenario C1: Chores
+
+- No household → empty list, create rejected.
+- GET by id for an invisible chore → 404.
+
+### Scenario R1: Reminders
+
+- Reminder for an inaccessible TASK → 403.
+- Snooze of another user's reminder → 404.
+- Target types remain TASK | EVENT only.
+
+### Scenario H1: Household API
+
+- Unauthenticated household/join/leave/invite → 401.
+- Member cannot rename household → 403.
+- Reused invite maps `INVITATION_NOT_PENDING`.
+- Owner leave with members maps `OWNER_CANNOT_LEAVE_WITH_ACTIVE_MEMBERS`.
+
+### Scenario P1: Proxy
+
+- `/finance` is a protected page prefix.
+- `/api/*` is not treated as a page-middleware path (handlers auth themselves).
+
+Live two-user execution of F1–F4 and T1 still requires a configured Supabase project.

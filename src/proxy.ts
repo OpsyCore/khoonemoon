@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSupabaseSession } from "@/lib/supabase/middleware";
 
-const PROTECTED_PREFIXES = [
+export const PROTECTED_PREFIXES = [
   "/today",
   "/calendar",
   "/home",
@@ -9,21 +9,22 @@ const PROTECTED_PREFIXES = [
   "/profile",
   "/settings",
   "/search",
-];
+  "/finance",
+] as const;
 
-const GUEST_ONLY_AUTH_PREFIXES = [
+export const GUEST_ONLY_AUTH_PREFIXES = [
   "/auth/login",
   "/auth/signup",
   "/auth/forgot-password",
-];
+] as const;
 
-function isProtectedPath(pathname: string) {
+export function isProtectedPath(pathname: string) {
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 }
 
-function isGuestOnlyAuthPath(pathname: string) {
+export function isGuestOnlyAuthPath(pathname: string) {
   return GUEST_ONLY_AUTH_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
@@ -58,6 +59,7 @@ export const config = {
     "/profile/:path*",
     "/settings/:path*",
     "/search/:path*",
+    "/finance/:path*",
     "/auth/:path*",
   ],
 };

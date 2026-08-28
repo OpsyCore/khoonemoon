@@ -3,7 +3,7 @@
 ## Current Phase
 
 - Phase 1 (MVP)
-- Current milestone: **Milestone 10 (Search + Settings + Offline UX)** ✅ Completed
+- Current milestone: **Milestone 11 (Hardening)** ✅ Completed
 
 ## Planning Deliverables
 
@@ -95,14 +95,16 @@ Not in M9: income, debt, installments, subscriptions, budget, savings, goals, re
 - [x] settings page (account, theme, connection, reminders, PWA/offline help)
 - [x] resilient offline UX (status, retry, SW fallback; no offline mutation queue)
 
-## Milestone 11 - Hardening
+## Milestone 11 - Hardening ✅
 
-- [ ] unit tests (recurrence/date/permissions)
-- [ ] integration tests (authorization)
-- [ ] e2e critical journeys
-- [ ] security review
-- [ ] performance review
-- [ ] deployment readiness docs
+- [x] unit tests (recurrence/date/permissions)
+- [x] integration tests (authorization)
+- [x] e2e critical journeys (Vitest against domain/API contracts; live two-user browser script in `E2E.md`)
+- [x] security review (`SECURITY.md` §12, `SECURITY_TESTS.md`)
+- [x] performance review (`PERFORMANCE.md`)
+- [x] deployment readiness docs (`DEPLOYMENT.md`)
+
+Not in M11: Playwright runner, live Supabase apply of `0010`, new product features, shopping/finance/search scope changes, M12.
 
 ## Quality Gate Checklist (Run each milestone)
 

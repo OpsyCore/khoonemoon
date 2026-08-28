@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Vazirmatn } from "next/font/google";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import { Providers } from "@/app/providers";
 import "./globals.css";
 
-const vazirmatn = Vazirmatn({
-  subsets: ["arabic", "latin"],
+const vazirmatn = localFont({
+  src: "./fonts/Vazirmatn-Variable.woff2",
   display: "swap",
   variable: "--font-vazirmatn",
+  weight: "100 900",
 });
 
 export const metadata: Metadata = {

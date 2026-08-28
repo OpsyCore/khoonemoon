@@ -1,6 +1,6 @@
 # FEATURES.md
 
-وضعیت فعلی: **Milestone 10 completed (Search + Settings + Offline UX)**
+وضعیت فعلی: **Milestone 11 completed (Hardening)**
 
 ## Phase 1 (MVP) Feature Matrix
 
@@ -14,8 +14,8 @@
 | Household                 | create/join/leave + owner/member roles             | ✅ Completed (M3) |
 | Invitations               | invite link/code + expiration + cancel             | ✅ Completed (M3) |
 | RLS Core                  | private/shared isolation + membership checks       | ✅ Completed (M3) |
-| Tasks                     | CRUD + status + priority + visibility + assignment | Planned (M4)      |
-| Recurrence                | daily/weekly/custom with rrule model               | Planned (M4)      |
+| Tasks                     | CRUD + status + priority + visibility + assignment | ✅ Completed (M4) |
+| Recurrence                | daily/weekly/custom with rrule model               | ✅ Completed (M4) |
 | Today Dashboard           | اولویت‌بندی کارهای امروز و overdue                 | ✅ Completed (M5) |
 | Calendar                  | month/week/agenda + tasks/events aggregation       | ✅ Completed (M5) |
 | Reminder Foundation       | data model + schedule calculations                 | ✅ Completed (M6) |
@@ -24,7 +24,7 @@
 | Shopping                  | shared list + quick check/uncheck                  | ✅ Completed (M8) |
 | Realtime                  | scoped sync for shopping + shared task updates     | Partial (M8)      |
 | Finance Lite              | bills + one-off expenses; PRIVATE/SHARED; `/finance` + Today + Home + FAB | ✅ Completed (M9) |
-| Search                    | cross-domain search with permission filters        | Planned (M10)     |
+| Search                    | cross-domain search with permission filters        | ✅ Completed (M10) |
 | Settings                  | account/theme/connection/reminders on `/settings`  | ✅ Completed (M10) |
 | Offline Improvements      | SW fallback + connection status + retry UX         | ✅ Completed (M10) |
 | Test Hardening            | unit/integration/e2e critical flows                | Planned (M11)     |

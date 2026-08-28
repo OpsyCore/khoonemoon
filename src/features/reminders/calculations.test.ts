@@ -98,4 +98,39 @@ describe("reminder calculations", () => {
       }),
     ).toBe(false);
   });
+
+  it("treats missing quiet hours as inactive", () => {
+    expect(
+      isInQuietHours({
+        now: new Date("2026-05-20T22:30:00"),
+        quietHoursStart: null,
+        quietHoursEnd: "07:00",
+      }),
+    ).toBe(false);
+  });
+
+  it("excludes sent and canceled reminders from the upcoming window", () => {
+    const upcoming = calculateUpcomingReminders({
+      reminders: [
+        {
+          id: "sent",
+          target_type: "TASK",
+          target_id: "t1",
+          user_id: "u1",
+          household_id: null,
+          remind_at: "2026-05-20T12:00:00.000Z",
+          status: "SENT",
+          snoozed_until: null,
+          snooze_count: 0,
+          delivered_at: "2026-05-20T12:00:00.000Z",
+          created_at: "2026-05-20T10:00:00.000Z",
+          updated_at: "2026-05-20T10:00:00.000Z",
+        },
+      ] as never,
+      now: new Date("2026-05-20T11:30:00.000Z"),
+      horizonHours: 3,
+    });
+
+    expect(upcoming).toEqual([]);
+  });
 });

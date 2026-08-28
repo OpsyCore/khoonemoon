@@ -109,6 +109,39 @@ describe("chore recurrence", () => {
       }),
     ).toBe(2);
   });
+
+  it("returns only the start date for NONE frequency", () => {
+    expect(
+      getChoreOccurrenceDates({
+        startDate: "2026-08-20",
+        fromDate: "2026-08-19",
+        toDate: "2026-08-23",
+        recurrence: { frequency: "NONE" },
+      }),
+    ).toEqual(["2026-08-20"]);
+  });
+
+  it("returns an empty list when the range is inverted", () => {
+    expect(
+      getChoreOccurrenceDates({
+        startDate: "2026-08-20",
+        fromDate: "2026-08-23",
+        toDate: "2026-08-20",
+        recurrence: { frequency: "DAILY" },
+      }),
+    ).toEqual([]);
+  });
+
+  it("rejects an invalid date", () => {
+    expect(() =>
+      getChoreOccurrenceDates({
+        startDate: "2026-13-40",
+        fromDate: "2026-08-20",
+        toDate: "2026-08-21",
+        recurrence: { frequency: "DAILY" },
+      }),
+    ).toThrow("INVALID_DATE");
+  });
 });
 
 describe("chore rotation", () => {

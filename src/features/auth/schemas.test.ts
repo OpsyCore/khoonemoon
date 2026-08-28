@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { loginSchema, signupSchema } from "@/features/auth/schemas";
+import {
+  loginSchema,
+  signupSchema,
+  updatePasswordSchema,
+} from "@/features/auth/schemas";
 
 describe("auth schemas", () => {
   it("rejects invalid signup input with Persian messages", () => {
@@ -23,5 +27,31 @@ describe("auth schemas", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("accepts a valid signup payload", () => {
+    expect(
+      signupSchema.safeParse({
+        fullName: "کاربر آزمایشی",
+        email: "user-a@example.com",
+        password: "12345678",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("requires matching passwords on update", () => {
+    expect(
+      updatePasswordSchema.safeParse({
+        password: "12345678",
+        confirmPassword: "87654321",
+      }).success,
+    ).toBe(false);
+
+    expect(
+      updatePasswordSchema.safeParse({
+        password: "12345678",
+        confirmPassword: "12345678",
+      }).success,
+    ).toBe(true);
   });
 });
