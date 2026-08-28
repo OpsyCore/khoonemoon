@@ -205,3 +205,17 @@ Documents are **Private** or **Household Shared** (same classification as §2). 
 - Regression: M8–M11 authorization tests still pass.
 
 Hosted **khoonemoon**: `0011` APPLIED; `documents` / `document_attachments` RLS enabled; bucket `documents` private. Two-user interactive QA = NOT EXECUTED.
+
+## 14) Security Advisor hardening (`drizzle/0012_security_hardening.sql`)
+
+Repo SQL (not applied from this environment — no `DATABASE_URL`):
+
+- `set_current_timestamp_updated_at`: `SET search_path = public, pg_temp`; execute revoked from PUBLIC/anon/authenticated (trigger-only).
+- Trigger helpers (`handle_new_user_profile`, `protect_*`, shopping updated_at): execute revoked from client roles.
+- RLS helpers (`is_household_member`, `is_household_owner`, `current_user_can_access_*` except finance, `valid_*`): REVOKE PUBLIC/anon; GRANT authenticated.
+- `current_user_can_access_finance_record`: remains ungranted to authenticated.
+- Client RPCs (household/chore/finance): REVOKE PUBLIC/anon; GRANT authenticated.
+
+Leaked Password Protection: enable in Supabase Dashboard → Authentication → Attack Protection. Not changeable from this environment.
+
+Performance Advisor (unindexed FKs, auth RLS initplan, unused indexes): non-blocker; no new indexes in 0012.

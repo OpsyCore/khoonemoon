@@ -40,8 +40,9 @@
 9. `drizzle/0009_milestone8_shopping_lists.sql`
 10. `drizzle/0010_milestone9_finance.sql`
 11. `drizzle/0011_milestone12_documents.sql`
+12. `drizzle/0012_security_hardening.sql` (grants + `search_path` only; **not applied live from this environment**)
 
-زنجیرهٔ فایل‌های ریپو: `0001` → `0011`.
+زنجیرهٔ فایل‌های ریپو: `0001` → `0012`.
 
 `0010` باید همان فایل workspace باشد (Finance Lite: `finance_records` با `EXPENSE | BILL`). مدل محصول فقط `finance_records` است.
 
@@ -90,6 +91,8 @@ npm run lint
 ## چک‌لیست انتشار
 
 - [x] مهاجرت‌های 0001–0011 + `repair_m9_finance_lite` روی پروژهٔ khoonemoon اعمال شده
+- [ ] `drizzle/0012_security_hardening.sql` روی hosted (REVOKE PUBLIC execute + search_path)
+- [ ] Leaked Password Protection در Auth Dashboard
 - [x] `finance_records` / `documents` / `document_attachments` + RLS + bucket خصوصی `documents`
 - [x] `npm run build` روی همین commit سبز است
 - [ ] `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `NEXT_PUBLIC_APP_URL` روی host
