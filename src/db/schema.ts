@@ -5,6 +5,7 @@ import {
   foreignKey,
   index,
   integer,
+  numeric,
   pgEnum,
   pgSchema,
   pgTable,
@@ -78,6 +79,14 @@ export const reminderStatusEnum = pgEnum("reminder_status", [
   "SNOOZED",
   "SENT",
   "CANCELED",
+]);
+export const financeRecordTypeEnum = pgEnum("finance_record_type", [
+  "EXPENSE",
+  "BILL",
+]);
+export const financeVisibilityEnum = pgEnum("finance_visibility", [
+  "PRIVATE",
+  "HOUSEHOLD_SHARED",
 ]);
 
 export const profiles = pgTable(
@@ -636,6 +645,73 @@ export const notificationPreferences = pgTable(
       name: "notification_preferences_user_id_auth_users_fk",
     }).onDelete("cascade"),
     uniqueIndex("notification_preferences_user_uniq").on(table.userId),
+  ],
+);
+
+export const financeRecords = pgTable(
+  "finance_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recordType: financeRecordTypeEnum("record_type").notNull(),
+    title: text("title").notNull(),
+    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+    currency: text("currency").notNull().default("IRR"),
+    ownerId: uuid("owner_id").notNull(),
+    createdBy: uuid("created_by").notNull(),
+    householdId: uuid("household_id"),
+    visibility: financeVisibilityEnum("visibility")
+      .notNull()
+      .default("PRIVATE"),
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    paidBy: uuid("paid_by"),
+    category: text("category"),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.ownerId],
+      foreignColumns: [authUsers.id],
+      name: "finance_records_owner_id_auth_users_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [authUsers.id],
+      name: "finance_records_created_by_auth_users_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.householdId],
+      foreignColumns: [households.id],
+      name: "finance_records_household_id_households_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.paidBy],
+      foreignColumns: [authUsers.id],
+      name: "finance_records_paid_by_auth_users_fk",
+    }).onDelete("set null"),
+    index("finance_records_owner_type_due_idx").on(
+      table.ownerId,
+      table.recordType,
+      table.dueAt,
+    ),
+    index("finance_records_household_visibility_due_idx").on(
+      table.householdId,
+      table.visibility,
+      table.dueAt,
+    ),
+    index("finance_records_unpaid_bills_due_idx")
+      .on(table.dueAt)
+      .where(sql`${table.recordType} = 'BILL' and ${table.paidAt} is null`),
+    index("finance_records_paid_by_idx")
+      .on(table.paidBy)
+      .where(sql`${table.paidBy} is not null`),
   ],
 );
 
