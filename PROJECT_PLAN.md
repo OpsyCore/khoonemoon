@@ -149,4 +149,4 @@ Redirect/auth URLها باید در داشبورد Supabase با دامنهٔ و
 
 M1–M12 در ریپو تکمیل شده‌اند. milestone بعدی محصول (Health / Vehicles / Meal / Goals / Advanced Finance) تعریف نشده و نباید بدون spec ساخته شود.
 
-برای hosting تولیدی: env روی host، اعمال مهاجرت‌های `0001`–`0011` روی همان پروژهٔ Supabase، و QA دوکاربره زنده (`E2E.md` / `SECURITY_TESTS.md`).
+برای hosting تولیدی: env روی host، Auth Site URL + `/api/auth/callback`، سپس deploy. مهاجرت‌های hosted اعمال شده‌اند.
