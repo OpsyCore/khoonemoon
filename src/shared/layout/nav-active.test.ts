@@ -10,4 +10,10 @@ describe("isBottomNavActive", () => {
     expect(isBottomNavActive("/today", "/today")).toBe(true);
     expect(isBottomNavActive("/lists", "/home")).toBe(false);
   });
+
+  it("treats /settings as part of Profile without a sixth tab", () => {
+    expect(isBottomNavActive("/settings", "/profile")).toBe(true);
+    expect(isBottomNavActive("/settings", "/home")).toBe(false);
+    expect(isBottomNavActive("/search", "/profile")).toBe(false);
+  });
 });

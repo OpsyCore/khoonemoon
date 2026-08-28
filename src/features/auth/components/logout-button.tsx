@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/shared/ui/button";
 
-export function LogoutButton() {
+export function LogoutButton({ showLabel = false }: { showLabel?: boolean }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,12 +27,12 @@ export function LogoutButton() {
     <Button
       variant="ghost"
       size="sm"
-      className="w-9 px-0"
+      className={showLabel ? undefined : "w-9 px-0"}
       aria-label="خروج از حساب"
       onClick={handleLogout}
       disabled={isLoading}
     >
-      <LogOut className="size-4" />
+      {showLabel ? "خروج از حساب" : <LogOut className="size-4" />}
     </Button>
   );
 }

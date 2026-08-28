@@ -3,7 +3,7 @@
 ## Current Phase
 
 - Phase 1 (MVP)
-- Current milestone: **Milestone 10 (Search)** ✅ Search completed
+- Current milestone: **Milestone 10 (Search + Settings + Offline UX)** ✅ Completed
 
 ## Planning Deliverables
 
@@ -92,8 +92,8 @@ Not in M9: income, debt, installments, subscriptions, budget, savings, goals, re
 ## Milestone 10 - Search + Settings + Offline Improvements
 
 - [x] global household-scoped search (`/search`, `GET /api/search`)
-- [ ] settings pages
-- [ ] improved offline UX
+- [x] settings page (account, theme, connection, reminders, PWA/offline help)
+- [x] resilient offline UX (status, retry, SW fallback; no offline mutation queue)
 
 ## Milestone 11 - Hardening
 

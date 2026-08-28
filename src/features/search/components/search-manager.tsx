@@ -21,6 +21,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
+import { offlineUserMessage } from "@/shared/offline/online-status";
 import { ErrorState } from "@/shared/ui/error-state";
 import { Input } from "@/shared/ui/input";
 
@@ -77,6 +78,13 @@ export function SearchManager() {
     abortRef.current = controller;
 
     const timer = window.setTimeout(() => {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        setLoading(false);
+        setResponse(null);
+        setErrorMessage(offlineUserMessage());
+        return;
+      }
+
       setLoading(true);
       setErrorMessage(null);
       void (async () => {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { OfflineRetry } from "@/app/offline/offline-retry";
 
 export default function OfflinePage() {
   return (
@@ -12,14 +13,7 @@ export default function OfflinePage() {
           برنامه برگردید.
         </p>
 
-        <div className="mt-5">
-          <Link
-            href="/today"
-            className="inline-flex h-11 w-full items-center justify-center rounded-2xl bg-sky-600 px-4 text-sm font-medium text-white transition hover:bg-sky-500"
-          >
-            تلاش مجدد
-          </Link>
-        </div>
+        <OfflineRetry />
 
         <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
           اگر مشکل ادامه داشت، بعداً دوباره امتحان کنید.

@@ -1,6 +1,6 @@
 # FEATURES.md
 
-وضعیت فعلی: **Milestone 10 Search completed**
+وضعیت فعلی: **Milestone 10 completed (Search + Settings + Offline UX)**
 
 ## Phase 1 (MVP) Feature Matrix
 
@@ -25,8 +25,8 @@
 | Realtime                  | scoped sync for shopping + shared task updates     | Partial (M8)      |
 | Finance Lite              | bills + one-off expenses; PRIVATE/SHARED; `/finance` + Today + Home + FAB | ✅ Completed (M9) |
 | Search                    | cross-domain search with permission filters        | Planned (M10)     |
-| Settings                  | profile/household/privacy/theme/pwa help           | Planned (M10)     |
-| Offline Improvements      | app shell cache + offline page + retry UX          | Planned (M10)     |
+| Settings                  | account/theme/connection/reminders on `/settings`  | ✅ Completed (M10) |
+| Offline Improvements      | SW fallback + connection status + retry UX         | ✅ Completed (M10) |
 | Test Hardening            | unit/integration/e2e critical flows                | Planned (M11)     |
 | Security Review           | RLS verification + auth audit                      | Planned (M11)     |
 
