@@ -1,5 +1,6 @@
 "use client";
 
+import { House } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -19,12 +20,14 @@ import type {
   HouseholdSummary,
 } from "@/features/households/types";
 import { Button } from "@/shared/ui/button";
+import { BranchDecor } from "@/shared/ui/decor";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Input } from "@/shared/ui/input";
 import {
   formatPersianDate,
   formatPersianTime,
+  toPersianNumber,
 } from "@/shared/utils/locale";
 
 type HouseholdManagerProps = {
@@ -256,7 +259,7 @@ export function HouseholdManager({
 
   if (!household) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <EmptyState
           title="هنوز خانه‌ای ندارید"
           description="یک خانه بسازید یا با کد دعوت شریک‌تان وارد خانه شوید."
@@ -306,27 +309,33 @@ export function HouseholdManager({
         </Card>
 
         {errorMessage ? (
-          <p className="text-sm text-rose-600 dark:text-rose-400">
-            {errorMessage}
-          </p>
+          <p className="text-sm text-danger-ink">{errorMessage}</p>
         ) : null}
         {successMessage ? (
-          <p className="text-sm text-emerald-600 dark:text-emerald-400">
-            {successMessage}
-          </p>
+          <p className="text-sm text-olive-ink">{successMessage}</p>
         ) : null}
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <Card className="space-y-2">
-        <CardTitle>{household.name}</CardTitle>
-        <CardDescription>
-          نقش شما: {role === "OWNER" ? "مالک" : "عضو"} • تعداد اعضای فعال:{" "}
-          {members.length}
-        </CardDescription>
+    <div className="space-y-5">
+      <Card className="relative overflow-hidden p-5">
+        <BranchDecor className="pointer-events-none absolute -left-3 -top-2 h-16 w-32 -scale-x-100 opacity-25" />
+        <div className="flex items-center gap-4">
+          <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-olive-soft text-olive-ink">
+            <House className="size-6" strokeWidth={1.75} />
+          </span>
+          <div className="min-w-0">
+            <h3 className="truncate text-lg font-bold text-ink">
+              {household.name}
+            </h3>
+            <p className="mt-0.5 text-[12px] text-muted">
+              نقش شما: {role === "OWNER" ? "مالک" : "عضو"} · اعضای فعال:{" "}
+              {toPersianNumber(members.length)}
+            </p>
+          </div>
+        </div>
       </Card>
 
       <Card className="space-y-3">
@@ -353,36 +362,42 @@ export function HouseholdManager({
             </Button>
           </form>
         ) : (
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          <p className="text-sm text-ink-soft">
             فقط مالک می‌تواند نام خانه را تغییر دهد.
           </p>
         )}
       </Card>
 
-      <Card className="space-y-3">
+      <Card className="space-y-3 p-5">
         <CardTitle>اعضای خانه</CardTitle>
-        <ul className="space-y-2">
-          {members.map((member) => (
-            <li
-              key={member.id}
-              className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
-            >
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                {member.profiles?.[0]?.full_name?.trim() || "کاربر بدون نام"}
-              </p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                {member.role === "OWNER" ? "مالک" : "عضو"} • عضویت از{" "}
-                {formatPersianDate(new Date(member.joined_at))}
-              </p>
-            </li>
-          ))}
+        <ul className="divide-y divide-line">
+          {members.map((member) => {
+            const name =
+              member.profiles?.[0]?.full_name?.trim() || "کاربر بدون نام";
+            return (
+              <li key={member.id} className="flex items-center gap-3 py-3">
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-clay-soft text-[13px] font-semibold text-clay-ink">
+                  {name.slice(0, 1)}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-ink">
+                    {name}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    {member.role === "OWNER" ? "مالک" : "عضو"} · عضویت از{" "}
+                    {formatPersianDate(new Date(member.joined_at))}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </Card>
 
       <Card className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           <CardTitle>دعوت شریک</CardTitle>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          <span className="text-xs text-muted">
             دعوت فعال: {activeInvitationCount}
           </span>
         </div>
@@ -396,19 +411,19 @@ export function HouseholdManager({
             ایجاد دعوت‌نامه جدید
           </Button>
         ) : (
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          <p className="text-sm text-ink-soft">
             فقط مالک می‌تواند دعوت‌نامه جدید بسازد.
           </p>
         )}
 
         {generatedInvite ? (
-          <div className="space-y-2 rounded-2xl border border-sky-200 bg-sky-50 p-3 dark:border-sky-900 dark:bg-sky-950/30">
-            <p className="text-xs text-zinc-600 dark:text-zinc-300">کد دعوت</p>
-            <p className="break-all text-sm font-semibold text-sky-700 dark:text-sky-300">
+          <div className="space-y-2 rounded-field border border-dashed border-olive/60 bg-olive-soft/60 p-4">
+            <p className="text-[11px] font-medium text-muted">کد دعوت</p>
+            <p className="break-all text-lg font-bold tracking-wide text-olive-ink">
               {generatedInvite.code}
             </p>
-            <p className="text-xs text-zinc-600 dark:text-zinc-300">لینک دعوت</p>
-            <p className="break-all text-xs text-sky-700 dark:text-sky-300">
+            <p className="pt-1 text-[11px] font-medium text-muted">لینک دعوت</p>
+            <p className="break-all text-xs text-olive-ink">
               {generatedInvite.inviteUrl}
             </p>
           </div>
@@ -420,12 +435,12 @@ export function HouseholdManager({
             return (
               <li
                 key={invitation.id}
-                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                className="rounded-field border border-line bg-paper px-3.5 py-3"
               >
-                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
+                <p className="text-sm font-medium text-ink">
                   وضعیت: {invitation.status}
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="text-xs text-muted">
                   انقضا: {formatPersianDate(new Date(invitation.expires_at))} -{" "}
                   {formatPersianTime(new Date(invitation.expires_at))}
                 </p>
@@ -447,7 +462,7 @@ export function HouseholdManager({
         </ul>
       </Card>
 
-      <Card className="space-y-3 border-rose-200 dark:border-rose-900">
+      <Card className="space-y-3 border-danger/30 bg-danger-soft/30 p-5">
         <CardTitle>ترک خانه</CardTitle>
         <CardDescription>
           اگر مالک باشید و عضو فعال دیگری وجود داشته باشد، فعلاً امکان ترک خانه
@@ -463,12 +478,10 @@ export function HouseholdManager({
       </Card>
 
       {errorMessage ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">{errorMessage}</p>
+        <p className="text-sm text-danger-ink">{errorMessage}</p>
       ) : null}
       {successMessage ? (
-        <p className="text-sm text-emerald-600 dark:text-emerald-400">
-          {successMessage}
-        </p>
+        <p className="text-sm text-olive-ink">{successMessage}</p>
       ) : null}
     </div>
   );

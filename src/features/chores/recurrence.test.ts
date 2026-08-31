@@ -35,11 +35,7 @@ describe("chore recurrence", () => {
       },
     });
 
-    expect(result).toEqual([
-      "2026-08-20",
-      "2026-08-23",
-      "2026-08-26",
-    ]);
+    expect(result).toEqual(["2026-08-20", "2026-08-23", "2026-08-26"]);
   });
 
   it("generates weekly occurrences for selected weekdays", () => {

@@ -1,15 +1,25 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { FinanceManager } from "@/features/finance/components/finance-manager";
+import { PageHeader } from "@/shared/ui/page-header";
 
 export default function FinancePage() {
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        <Link href="/home" className="font-medium text-sky-700 dark:text-sky-300">
-          خونه
+    <div className="space-y-7">
+      <div className="space-y-4">
+        <Link
+          href="/home"
+          className="inline-flex items-center gap-1 text-[12px] font-medium text-muted transition hover:text-ink"
+        >
+          <ChevronRight className="size-3.5" strokeWidth={1.75} />
+          بازگشت به خونه
         </Link>
-        <span> / مالی</span>
-      </p>
+        <PageHeader
+          kicker="دفتر خرج و دخل"
+          title="مالی"
+          subtitle="قبض‌ها، هزینه‌ها و بودجه خانه با هم و شفاف."
+        />
+      </div>
       <FinanceManager householdId={null} />
     </div>
   );

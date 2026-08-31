@@ -39,15 +39,15 @@ describe("finance status rendering", () => {
     expect(
       billStatusOf(bill({ paid_at: "2026-08-20T00:00:00.000Z" }), now),
     ).toBe("PAID");
-    expect(
-      billStatusOf(bill({ due_at: "2026-08-26T12:00:00.000" }), now),
-    ).toBe("OVERDUE");
-    expect(
-      billStatusOf(bill({ due_at: "2026-08-27T18:00:00.000" }), now),
-    ).toBe("DUE");
-    expect(
-      billStatusOf(bill({ due_at: "2026-08-28T09:00:00.000" }), now),
-    ).toBe("UPCOMING");
+    expect(billStatusOf(bill({ due_at: "2026-08-26T12:00:00.000" }), now)).toBe(
+      "OVERDUE",
+    );
+    expect(billStatusOf(bill({ due_at: "2026-08-27T18:00:00.000" }), now)).toBe(
+      "DUE",
+    );
+    expect(billStatusOf(bill({ due_at: "2026-08-28T09:00:00.000" }), now)).toBe(
+      "UPCOMING",
+    );
     expect(
       billStatusOf(
         bill({

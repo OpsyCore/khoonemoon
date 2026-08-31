@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 
@@ -34,31 +35,51 @@ export function NotificationCapability() {
   };
 
   return (
-    <Card className="space-y-3">
+    <Card className="space-y-3 p-5">
       <CardTitle>وضعیت اعلان‌های وب / PWA</CardTitle>
       <CardDescription>
         این بخش فقط قابلیت و مجوز اعلان را بررسی می‌کند. در مرورگر، اجرای دقیق
         یادآور در پس‌زمینه همیشه تضمین‌شده نیست.
       </CardDescription>
 
-      <ul className="space-y-1 text-sm text-zinc-700 dark:text-zinc-200">
-        <li>
-          Notification API:{" "}
-          {support.notifications ? "پشتیبانی می‌شود" : "پشتیبانی نمی‌شود"}
+      <ul className="divide-y divide-line text-sm">
+        {[
+          { label: "Notification API", ok: support.notifications },
+          { label: "Service Worker", ok: support.serviceWorker },
+          { label: "Push Manager", ok: support.pushManager },
+        ].map((row) => (
+          <li
+            key={row.label}
+            className="flex items-center justify-between py-2.5"
+          >
+            <span className="text-ink-soft">{row.label}</span>
+            <Badge tone={row.ok ? "success" : "warning"}>
+              {row.ok ? "پشتیبانی می‌شود" : "پشتیبانی نمی‌شود"}
+            </Badge>
+          </li>
+        ))}
+        <li className="flex items-center justify-between py-2.5">
+          <span className="text-ink-soft">وضعیت مجوز</span>
+          <Badge
+            tone={
+              permission === "granted"
+                ? "success"
+                : permission === "denied"
+                  ? "danger"
+                  : "neutral"
+            }
+          >
+            {permission === "granted"
+              ? "فعال"
+              : permission === "denied"
+                ? "رد شده"
+                : "نامشخص"}
+          </Badge>
         </li>
-        <li>
-          Service Worker:{" "}
-          {support.serviceWorker ? "پشتیبانی می‌شود" : "پشتیبانی نمی‌شود"}
-        </li>
-        <li>
-          Push Manager:{" "}
-          {support.pushManager ? "پشتیبانی می‌شود" : "پشتیبانی نمی‌شود"}
-        </li>
-        <li>وضعیت مجوز: {permission}</li>
       </ul>
 
       {!support.notifications ? (
-        <p className="text-sm text-amber-700 dark:text-amber-300">
+        <p className="text-sm text-warn-ink">
           مرورگر شما اعلان وب را پشتیبانی نمی‌کند. یادآورها همچنان درون برنامه
           قابل مشاهده خواهند بود.
         </p>

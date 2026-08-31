@@ -56,7 +56,10 @@ function createMockSupabase(options: MockOptions) {
       },
       async single() {
         if (table === "households") {
-          return { data: options.household ?? null, error: options.household ? null : { message: "missing" } };
+          return {
+            data: options.household ?? null,
+            error: options.household ? null : { message: "missing" },
+          };
         }
         return { data: null, error: { message: "missing" } };
       },
@@ -117,7 +120,11 @@ describe("household API auth", () => {
     expect(
       (
         await read(
-          await POST(jsonRequest("http://localhost/api/household", "POST", { name: "خانه" })),
+          await POST(
+            jsonRequest("http://localhost/api/household", "POST", {
+              name: "خانه",
+            }),
+          ),
         )
       ).status,
     ).toBe(401);
@@ -148,7 +155,13 @@ describe("household API auth", () => {
     expect(
       (
         await read(
-          await POST(jsonRequest("http://localhost/api/household/invitations", "POST", {})),
+          await POST(
+            jsonRequest(
+              "http://localhost/api/household/invitations",
+              "POST",
+              {},
+            ),
+          ),
         )
       ).status,
     ).toBe(401);
@@ -194,7 +207,9 @@ describe("household API authorization", () => {
     const { PATCH } = await import("./route");
     const result = await read(
       await PATCH(
-        jsonRequest("http://localhost/api/household", "PATCH", { name: "خانه جدید" }),
+        jsonRequest("http://localhost/api/household", "PATCH", {
+          name: "خانه جدید",
+        }),
       ),
     );
     expect(result.status).toBe(403);

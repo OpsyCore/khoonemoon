@@ -34,7 +34,11 @@ function createMockSupabase(options: MockOptions) {
   const records = options.records ?? [];
   const record = options.record ?? records[0] ?? null;
   const deleted =
-    options.deleted === undefined ? (record ? { id: record.id } : null) : options.deleted;
+    options.deleted === undefined
+      ? record
+        ? { id: record.id }
+        : null
+      : options.deleted;
 
   function tableQuery(table: string) {
     let mode: "select" | "delete" = "select";
@@ -182,9 +186,14 @@ describe("finance API auth", () => {
   it("PATCH unauthenticated → 401", async () => {
     const { PATCH } = await import("./[id]/route");
     const result = await read(
-      await PATCH(jsonRequest("http://localhost/api/finance/rec-1", "PATCH", { action: "unpay" }), {
-        params: Promise.resolve({ id: "rec-1" }),
-      }),
+      await PATCH(
+        jsonRequest("http://localhost/api/finance/rec-1", "PATCH", {
+          action: "unpay",
+        }),
+        {
+          params: Promise.resolve({ id: "rec-1" }),
+        },
+      ),
     );
     expect(result.status).toBe(401);
   });
@@ -192,9 +201,12 @@ describe("finance API auth", () => {
   it("DELETE unauthenticated → 401", async () => {
     const { DELETE } = await import("./[id]/route");
     const result = await read(
-      await DELETE(jsonRequest("http://localhost/api/finance/rec-1", "DELETE"), {
-        params: Promise.resolve({ id: "rec-1" }),
-      }),
+      await DELETE(
+        jsonRequest("http://localhost/api/finance/rec-1", "DELETE"),
+        {
+          params: Promise.resolve({ id: "rec-1" }),
+        },
+      ),
     );
     expect(result.status).toBe(401);
   });
@@ -955,13 +967,20 @@ describe("finance API PATCH", () => {
 describe("finance API DELETE", () => {
   it("deletes an authorized record", async () => {
     mockCreateClient.mockResolvedValue(
-      createMockSupabase({ user: userA, record: bill(), deleted: { id: "rec-1" } }),
+      createMockSupabase({
+        user: userA,
+        record: bill(),
+        deleted: { id: "rec-1" },
+      }),
     );
     const { DELETE } = await import("./[id]/route");
     const result = await read(
-      await DELETE(jsonRequest("http://localhost/api/finance/rec-1", "DELETE"), {
-        params: Promise.resolve({ id: "rec-1" }),
-      }),
+      await DELETE(
+        jsonRequest("http://localhost/api/finance/rec-1", "DELETE"),
+        {
+          params: Promise.resolve({ id: "rec-1" }),
+        },
+      ),
     );
     expect(result.status).toBe(200);
     expect(result.body.ok).toBe(true);
@@ -973,9 +992,12 @@ describe("finance API DELETE", () => {
     );
     const { DELETE } = await import("./[id]/route");
     const result = await read(
-      await DELETE(jsonRequest("http://localhost/api/finance/rec-1", "DELETE"), {
-        params: Promise.resolve({ id: "rec-1" }),
-      }),
+      await DELETE(
+        jsonRequest("http://localhost/api/finance/rec-1", "DELETE"),
+        {
+          params: Promise.resolve({ id: "rec-1" }),
+        },
+      ),
     );
     expect(result.status).toBe(404);
   });

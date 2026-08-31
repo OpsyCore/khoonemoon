@@ -106,7 +106,9 @@ describe("profile API", () => {
     const { PATCH } = await import("./route");
     const result = await read(
       await PATCH(
-        jsonRequest("http://localhost/api/profile", "PATCH", { full_name: "ا" }),
+        jsonRequest("http://localhost/api/profile", "PATCH", {
+          full_name: "ا",
+        }),
       ),
     );
     expect(result.status).toBe(400);

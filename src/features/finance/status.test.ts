@@ -77,9 +77,9 @@ describe("deriveBillStatus", () => {
     const record = bill({ due_at: "2026-08-27T00:00:00.000" });
     expect(deriveBillStatus(record, now)).toBe("DUE");
     expect(deriveBillStatus(record, now)).toBe("DUE");
-    expect(
-      deriveBillStatus(record, new Date("2026-08-28T12:00:00.000")),
-    ).toBe("OVERDUE");
+    expect(deriveBillStatus(record, new Date("2026-08-28T12:00:00.000"))).toBe(
+      "OVERDUE",
+    );
   });
 
   it("does not treat an expense as a bill status target", () => {

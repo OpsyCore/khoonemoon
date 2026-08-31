@@ -60,7 +60,10 @@ function resolveAssignee(
 
   try {
     // common signature A: (userIds, index)
-    const a = (getRotationAssignee as Function)(rotationUserIds, occurrenceIndex);
+    const a = (getRotationAssignee as Function)(
+      rotationUserIds,
+      occurrenceIndex,
+    );
     if (typeof a === "string") return a;
   } catch {
     // ignore
@@ -79,7 +82,10 @@ function resolveAssignee(
 
   try {
     const c = (getRotationAssignee as Function)({
-      rotation: rotationUserIds.map((userId, position) => ({ userId, position })),
+      rotation: rotationUserIds.map((userId, position) => ({
+        userId,
+        position,
+      })),
       occurrenceIndex,
     });
     if (typeof c === "string") return c;

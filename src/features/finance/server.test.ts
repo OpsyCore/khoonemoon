@@ -325,11 +325,11 @@ describe("mapFinanceError", () => {
     expect(financeErrorStatus(new Error("FAILED_TO_LOAD_MEMBERSHIP"))).toBe(
       500,
     );
-    expect(
-      financeErrorCode(new Error("INVALID_FINANCE_RECORD_TYPE")),
-    ).toBe("INVALID_FINANCE_RECORD_TYPE");
-    expect(
-      financeErrorCode(new Error("FINANCE_RECORD_IMMUTABLE_FIELDS")),
-    ).toBe("FINANCE_RECORD_IMMUTABLE_FIELDS");
+    expect(financeErrorCode(new Error("INVALID_FINANCE_RECORD_TYPE"))).toBe(
+      "INVALID_FINANCE_RECORD_TYPE",
+    );
+    expect(financeErrorCode(new Error("FINANCE_RECORD_IMMUTABLE_FIELDS"))).toBe(
+      "FINANCE_RECORD_IMMUTABLE_FIELDS",
+    );
   });
 });

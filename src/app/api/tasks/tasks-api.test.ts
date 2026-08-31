@@ -75,7 +75,10 @@ function createMockSupabase(options: MockOptions) {
         return { data: task, error: null };
       },
       then(
-        resolve: (value: { data: unknown; error: { message: string } | null }) => unknown,
+        resolve: (value: {
+          data: unknown;
+          error: { message: string } | null;
+        }) => unknown,
         reject?: (reason: unknown) => unknown,
       ) {
         let data: unknown = [];
@@ -87,8 +90,10 @@ function createMockSupabase(options: MockOptions) {
         if (table === "task_assignees" && options.insertError) {
           error = options.insertError;
         }
-        if (table === "tasks" && options.updateError) error = options.updateError;
-        if (table === "tasks" && options.deleteError) error = options.deleteError;
+        if (table === "tasks" && options.updateError)
+          error = options.updateError;
+        if (table === "tasks" && options.deleteError)
+          error = options.deleteError;
         return Promise.resolve({ data, error }).then(resolve, reject);
       },
     };
@@ -145,7 +150,13 @@ describe("tasks API auth", () => {
     expect(
       (
         await read(
-          await POST(jsonRequest("http://localhost/api/tasks", "POST", privateTaskPayload)),
+          await POST(
+            jsonRequest(
+              "http://localhost/api/tasks",
+              "POST",
+              privateTaskPayload,
+            ),
+          ),
         )
       ).status,
     ).toBe(401);
@@ -157,7 +168,9 @@ describe("tasks API auth", () => {
       (
         await read(
           await PATCH(
-            jsonRequest("http://localhost/api/tasks/t1", "PATCH", { action: "complete" }),
+            jsonRequest("http://localhost/api/tasks/t1", "PATCH", {
+              action: "complete",
+            }),
             { params: Promise.resolve({ id: "t1" }) },
           ),
         )
@@ -185,7 +198,14 @@ describe("tasks API authorization", () => {
       createMockSupabase({
         user: userA,
         membership: null,
-        tasks: [{ id: "t-private", title: "خصوصی", visibility: "PRIVATE", owner_id: userA.id }],
+        tasks: [
+          {
+            id: "t-private",
+            title: "خصوصی",
+            visibility: "PRIVATE",
+            owner_id: userA.id,
+          },
+        ],
       }),
     );
     const { GET } = await import("./route");
@@ -220,7 +240,9 @@ describe("tasks API authorization", () => {
     );
     const { POST } = await import("./route");
     const result = await read(
-      await POST(jsonRequest("http://localhost/api/tasks", "POST", privateTaskPayload)),
+      await POST(
+        jsonRequest("http://localhost/api/tasks", "POST", privateTaskPayload),
+      ),
     );
     expect(result.status).toBe(200);
     expect(result.body.id).toBe("t-new");
@@ -256,7 +278,9 @@ describe("tasks API authorization", () => {
     const { PATCH } = await import("./[id]/route");
     const result = await read(
       await PATCH(
-        jsonRequest("http://localhost/api/tasks/t1", "PATCH", { action: "complete" }),
+        jsonRequest("http://localhost/api/tasks/t1", "PATCH", {
+          action: "complete",
+        }),
         { params: Promise.resolve({ id: "t1" }) },
       ),
     );

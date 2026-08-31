@@ -47,12 +47,14 @@ function refineBillExpenseDates(
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["occurredAt"],
-      message: "قبض و هزینه نمی‌توانند هم‌زمان تاریخ سررسید و وقوع داشته باشند.",
+      message:
+        "قبض و هزینه نمی‌توانند هم‌زمان تاریخ سررسید و وقوع داشته باشند.",
     });
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["dueAt"],
-      message: "قبض و هزینه نمی‌توانند هم‌زمان تاریخ سررسید و وقوع داشته باشند.",
+      message:
+        "قبض و هزینه نمی‌توانند هم‌زمان تاریخ سررسید و وقوع داشته باشند.",
     });
   }
 }
@@ -158,8 +160,12 @@ export const patchFinanceRecordSchema = z.discriminatedUnion("action", [
     .strict(),
 ]);
 
-export type CreateFinanceRecordInput = z.infer<typeof createFinanceRecordSchema>;
-export type UpdateFinanceRecordInput = z.infer<typeof updateFinanceRecordSchema>;
+export type CreateFinanceRecordInput = z.infer<
+  typeof createFinanceRecordSchema
+>;
+export type UpdateFinanceRecordInput = z.infer<
+  typeof updateFinanceRecordSchema
+>;
 export type PayFinanceRecordInput = z.infer<typeof payFinanceRecordSchema>;
 export type UnpayFinanceRecordInput = z.infer<typeof unpayFinanceRecordSchema>;
 export type PatchFinanceRecordInput = z.infer<typeof patchFinanceRecordSchema>;

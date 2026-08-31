@@ -1,14 +1,19 @@
 "use client";
 
+import { WifiOff } from "lucide-react";
 import { useOnlineStatus } from "@/shared/offline/use-online-status";
-import { Badge } from "@/shared/ui/badge";
 
 export function ConnectionStatus() {
   const isOnline = useOnlineStatus();
 
   if (isOnline) {
-    return <Badge tone="success">آنلاین</Badge>;
+    return null;
   }
 
-  return <Badge tone="danger">آفلاین</Badge>;
+  return (
+    <span className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-clay-soft px-2.5 py-1 text-[11px] font-medium text-clay-ink">
+      <WifiOff className="size-3" strokeWidth={2} />
+      آفلاین
+    </span>
+  );
 }

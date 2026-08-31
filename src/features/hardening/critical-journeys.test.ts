@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { signupSchema } from "@/features/auth/schemas";
 import { buildTodayBillItems } from "@/features/finance/today";
 import { canAccessPrivateRecord } from "@/features/households/security";
-import { canAccessTask, validateTaskAssignment } from "@/features/tasks/security";
+import {
+  canAccessTask,
+  validateTaskAssignment,
+} from "@/features/tasks/security";
 import { createShoppingListSchema } from "@/features/shopping/schemas";
 
 /**
@@ -85,9 +88,9 @@ describe("M11 critical journeys", () => {
   });
 
   it("5. shopping lists require a household-scoped name payload", () => {
-    expect(createShoppingListSchema.safeParse({ name: "نانوایی" }).success).toBe(
-      true,
-    );
+    expect(
+      createShoppingListSchema.safeParse({ name: "نانوایی" }).success,
+    ).toBe(true);
     expect(
       createShoppingListSchema.safeParse({
         name: "نانوایی",

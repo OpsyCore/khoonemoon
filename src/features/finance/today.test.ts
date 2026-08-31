@@ -31,7 +31,13 @@ function record(
 describe("buildTodayBillItems", () => {
   it("includes an unpaid bill due yesterday", () => {
     const items = buildTodayBillItems(
-      [record({ id: "overdue", title: "برق", due_at: "2026-08-26T12:00:00.000" })],
+      [
+        record({
+          id: "overdue",
+          title: "برق",
+          due_at: "2026-08-26T12:00:00.000",
+        }),
+      ],
       now,
     );
     expect(items.map((item) => item.id)).toEqual(["overdue"]);
@@ -41,7 +47,13 @@ describe("buildTodayBillItems", () => {
 
   it("includes an unpaid bill due earlier today", () => {
     const items = buildTodayBillItems(
-      [record({ id: "due-am", title: "آب", due_at: "2026-08-27T08:00:00.000" })],
+      [
+        record({
+          id: "due-am",
+          title: "آب",
+          due_at: "2026-08-27T08:00:00.000",
+        }),
+      ],
       now,
     );
     expect(items.map((item) => item.id)).toEqual(["due-am"]);
@@ -65,7 +77,13 @@ describe("buildTodayBillItems", () => {
 
   it("excludes an unpaid bill due tomorrow", () => {
     const items = buildTodayBillItems(
-      [record({ id: "upcoming", title: "اجاره", due_at: "2026-08-28T09:00:00.000" })],
+      [
+        record({
+          id: "upcoming",
+          title: "اجاره",
+          due_at: "2026-08-28T09:00:00.000",
+        }),
+      ],
       now,
     );
     expect(items).toEqual([]);
@@ -221,7 +239,7 @@ describe("buildTodayBillItems", () => {
 });
 
 describe("today pay", () => {
-  it("sends exactly { action: \"pay\" }", () => {
+  it('sends exactly { action: "pay" }', () => {
     expect(buildPayAction()).toEqual({ action: "pay" });
     expect(JSON.stringify(buildPayAction())).toBe('{"action":"pay"}');
   });

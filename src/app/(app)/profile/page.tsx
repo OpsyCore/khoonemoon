@@ -1,8 +1,10 @@
+import { Settings } from "lucide-react";
 import Link from "next/link";
 import { ProfileForm } from "@/features/profile/components/profile-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorState } from "@/shared/ui/error-state";
+import { PageHeader } from "@/shared/ui/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -28,18 +30,21 @@ export default async function ProfilePage() {
     .maybeSingle();
 
   return (
-    <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">پروفایل</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          اطلاعات حساب، منطقه زمانی و زبان پیش‌فرض خود را مدیریت کنید. تنظیمات
-          ظاهر، اتصال و یادآور در{" "}
-          <Link href="/settings" className="text-sky-700 dark:text-sky-300">
+    <div className="space-y-7">
+      <PageHeader
+        kicker="حساب من"
+        title="پروفایل"
+        subtitle="اطلاعات حساب، منطقه زمانی و زبان پیش‌فرض شما."
+        action={
+          <Link
+            href="/settings"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line-strong bg-card px-4 text-[13px] font-medium text-ink transition hover:bg-sunken"
+          >
+            <Settings className="size-3.5" strokeWidth={1.75} />
             تنظیمات
-          </Link>{" "}
-          است.
-        </p>
-      </section>
+          </Link>
+        }
+      />
 
       {error ? (
         <ErrorState

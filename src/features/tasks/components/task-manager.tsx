@@ -19,12 +19,23 @@ import {
 import type { TaskMember, TaskRecord } from "@/features/tasks/types";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Badge } from "@/shared/ui/badge";
-import { priorityLabel, priorityTone, statusLabel, statusTone } from "@/shared/utils/task-ranks";
+import {
+  priorityLabel,
+  priorityTone,
+  statusLabel,
+  statusTone,
+} from "@/shared/utils/task-ranks";
 import { Button } from "@/shared/ui/button";
-import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
+import { Card, CardTitle } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Input } from "@/shared/ui/input";
-import { formatPersianDate, formatPersianTime } from "@/shared/utils/locale";
+import { SectionLabel } from "@/shared/ui/section-label";
+import {
+  formatPersianDate,
+  formatPersianTime,
+  toPersianNumber,
+} from "@/shared/utils/locale";
+import { cn } from "@/shared/utils/cn";
 
 function toDateTimeLocal(iso: string | null) {
   if (!iso) return "";
@@ -299,328 +310,357 @@ export function TaskManager({
   };
 
   return (
-    <div className="space-y-4">
-      <Card className="space-y-3">
-        <CardTitle>{editingTask ? "ویرایش تسک" : "تسک جدید"}</CardTitle>
-        <form
-          className="space-y-3"
-          onSubmit={handleSubmit(onSubmit)}
-          noValidate
-        >
-          <Input
-            label="عنوان"
-            error={errors.title?.message}
-            {...register("title")}
-          />
-
-          <Input
-            label="توضیحات"
-            error={errors.description?.message}
-            {...register("description")}
-          />
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                حریم خصوصی
-              </label>
-              <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                {...register("visibility")}
-              >
-                <option value="PRIVATE">خصوصی</option>
-                <option value="HOUSEHOLD_SHARED" disabled={!householdId}>
-                  اشتراکی خانه
-                </option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                اولویت
-              </label>
-              <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                {...register("priority")}
-              >
-                <option value="LOW">کم</option>
-                <option value="NORMAL">عادی</option>
-                <option value="HIGH">زیاد</option>
-                <option value="CRITICAL">بحرانی</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                وضعیت
-              </label>
-              <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                {...register("status")}
-              >
-                <option value="PENDING">در انتظار</option>
-                <option value="IN_PROGRESS">در حال انجام</option>
-                <option value="COMPLETED">تکمیل‌شده</option>
-                <option value="SKIPPED">رد شده</option>
-              </select>
-            </div>
+    <section className="space-y-7">
+      <div className="space-y-3">
+        <SectionLabel>ثبت تسک</SectionLabel>
+        <Card id="quick-add-task" className="space-y-4 p-5">
+          <CardTitle>{editingTask ? "ویرایش تسک" : "تسک جدید"}</CardTitle>
+          <form
+            className="space-y-3.5"
+            onSubmit={handleSubmit(onSubmit)}
+            noValidate
+          >
+            <Input
+              label="عنوان"
+              error={errors.title?.message}
+              {...register("title")}
+            />
 
             <Input
-              label="موعد"
-              type="datetime-local"
-              value={toDateTimeLocal(dueAtValue ?? null)}
-              onChange={(event) => {
-                setValue("dueAt", fromDateTimeLocal(event.target.value));
-              }}
+              label="توضیحات"
+              error={errors.description?.message}
+              {...register("description")}
             />
-          </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-              مسئول
-            </label>
-            <select
-              multiple
-              className="min-h-24 w-full rounded-2xl border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-              {...register("assigneeIds")}
-            >
-              {visibility === "PRIVATE" ? (
-                <option value={userId}>من</option>
-              ) : (
-                members.map((member) => (
-                  <option key={member.user_id} value={member.user_id}>
-                    {member.full_name}
+            <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-medium text-ink-soft">
+                  حریم خصوصی
+                </label>
+                <select
+                  className="h-11 w-full rounded-field border border-line-strong bg-paper px-3 text-sm text-ink outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/25"
+                  {...register("visibility")}
+                >
+                  <option value="PRIVATE">خصوصی</option>
+                  <option value="HOUSEHOLD_SHARED" disabled={!householdId}>
+                    اشتراکی خانه
                   </option>
-                ))
-              )}
-            </select>
-            {errors.assigneeIds ? (
-              <p className="text-xs text-rose-600 dark:text-rose-400">
-                {errors.assigneeIds.message as string}
-              </p>
-            ) : null}
-          </div>
+                </select>
+              </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                تکرار
-              </label>
-              <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                {...register("recurrence.frequency")}
-              >
-                <option value="NONE">بدون تکرار</option>
-                <option value="DAILY">روزانه</option>
-                <option value="INTERVAL_DAYS">هر چند روز</option>
-                <option value="WEEKLY">هفتگی (روزهای منتخب)</option>
-                <option value="MONTHLY">ماهانه</option>
-                <option value="YEARLY">سالانه</option>
-              </select>
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-medium text-ink-soft">
+                  اولویت
+                </label>
+                <select
+                  className="h-11 w-full rounded-field border border-line-strong bg-paper px-3 text-sm text-ink outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/25"
+                  {...register("priority")}
+                >
+                  <option value="LOW">کم</option>
+                  <option value="NORMAL">عادی</option>
+                  <option value="HIGH">زیاد</option>
+                  <option value="CRITICAL">بحرانی</option>
+                </select>
+              </div>
             </div>
 
-            {recurrenceFrequency === "INTERVAL_DAYS" ? (
-              <Input
-                label="فاصله روز"
-                type="number"
-                min={1}
-                max={365}
-                error={errors.recurrence?.intervalDays?.message}
-                {...register("recurrence.intervalDays", {
-                  valueAsNumber: true,
-                })}
-              />
-            ) : null}
+            <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-medium text-ink-soft">
+                  وضعیت
+                </label>
+                <select
+                  className="h-11 w-full rounded-field border border-line-strong bg-paper px-3 text-sm text-ink outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/25"
+                  {...register("status")}
+                >
+                  <option value="PENDING">در انتظار</option>
+                  <option value="IN_PROGRESS">در حال انجام</option>
+                  <option value="COMPLETED">تکمیل‌شده</option>
+                  <option value="SKIPPED">رد شده</option>
+                </select>
+              </div>
 
-            {recurrenceFrequency === "WEEKLY" ? (
               <Input
-                label="روزهای هفته (مثلاً 1,4)"
-                hint="۰=یکشنبه تا ۶=شنبه"
-                error={
-                  errors.recurrence?.weekdays?.message as string | undefined
-                }
+                label="موعد"
+                type="datetime-local"
+                value={toDateTimeLocal(dueAtValue ?? null)}
                 onChange={(event) => {
-                  const values = event.target.value
-                    .split(",")
-                    .map((item) => Number(item.trim()))
-                    .filter(
-                      (item) =>
-                        Number.isInteger(item) && item >= 0 && item <= 6,
-                    );
-                  setValue("recurrence.weekdays", values);
+                  setValue("dueAt", fromDateTimeLocal(event.target.value));
                 }}
               />
-            ) : null}
-          </div>
+            </div>
 
-          <div className="flex gap-2">
-            <Button type="submit" className="flex-1" isLoading={isSubmitting}>
-              {editingTask ? "ذخیره تغییرات" : "افزودن تسک"}
-            </Button>
-            {editingTask ? (
-              <Button type="button" variant="ghost" onClick={clearEdit}>
-                انصراف
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-medium text-ink-soft">
+                مسئول
+              </label>
+              <select
+                multiple
+                className="min-h-24 w-full rounded-field border border-line-strong bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/25"
+                {...register("assigneeIds")}
+              >
+                {visibility === "PRIVATE" ? (
+                  <option value={userId}>من</option>
+                ) : (
+                  members.map((member) => (
+                    <option key={member.user_id} value={member.user_id}>
+                      {member.full_name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {errors.assigneeIds ? (
+                <p className="text-xs text-danger-ink">
+                  {errors.assigneeIds.message as string}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-medium text-ink-soft">
+                  تکرار
+                </label>
+                <select
+                  className="h-11 w-full rounded-field border border-line-strong bg-paper px-3 text-sm text-ink outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/25"
+                  {...register("recurrence.frequency")}
+                >
+                  <option value="NONE">بدون تکرار</option>
+                  <option value="DAILY">روزانه</option>
+                  <option value="INTERVAL_DAYS">هر چند روز</option>
+                  <option value="WEEKLY">هفتگی (روزهای منتخب)</option>
+                  <option value="MONTHLY">ماهانه</option>
+                  <option value="YEARLY">سالانه</option>
+                </select>
+              </div>
+
+              {recurrenceFrequency === "INTERVAL_DAYS" ? (
+                <Input
+                  label="فاصله روز"
+                  type="number"
+                  min={1}
+                  max={365}
+                  error={errors.recurrence?.intervalDays?.message}
+                  {...register("recurrence.intervalDays", {
+                    valueAsNumber: true,
+                  })}
+                />
+              ) : null}
+
+              {recurrenceFrequency === "WEEKLY" ? (
+                <Input
+                  label="روزهای هفته (مثلاً 1,4)"
+                  hint="۰=یکشنبه تا ۶=شنبه"
+                  error={
+                    errors.recurrence?.weekdays?.message as string | undefined
+                  }
+                  onChange={(event) => {
+                    const values = event.target.value
+                      .split(",")
+                      .map((item) => Number(item.trim()))
+                      .filter(
+                        (item) =>
+                          Number.isInteger(item) && item >= 0 && item <= 6,
+                      );
+                    setValue("recurrence.weekdays", values);
+                  }}
+                />
+              ) : null}
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button type="submit" className="flex-1" isLoading={isSubmitting}>
+                {editingTask ? "ذخیره تغییرات" : "افزودن تسک"}
               </Button>
-            ) : null}
-          </div>
-        </form>
-      </Card>
-
-      <Card className="grid grid-cols-3 gap-2 text-center">
-        <div>
-          <p className="text-sm font-semibold">{taskCounts.dueToday}</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">امروز</p>
-        </div>
-        <div>
-          <p className="text-sm font-semibold">{taskCounts.overdue}</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">معوق</p>
-        </div>
-        <div>
-          <p className="text-sm font-semibold">{taskCounts.completed}</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">تکمیل‌شده</p>
-        </div>
-      </Card>
+              {editingTask ? (
+                <Button type="button" variant="ghost" onClick={clearEdit}>
+                  انصراف
+                </Button>
+              ) : null}
+            </div>
+          </form>
+        </Card>
+      </div>
 
       {errorMessage ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
-          {errorMessage}
-        </p>
+        <p className="text-sm text-danger-ink">{errorMessage}</p>
       ) : null}
       {successMessage ? (
-        <p className="text-sm text-emerald-600 dark:text-emerald-400">
-          {successMessage}
-        </p>
+        <p className="text-sm text-olive-ink">{successMessage}</p>
       ) : null}
 
-      {tasks.length === 0 ? (
-        <EmptyState
-          title="تسکی ندارید"
-          description="اولین تسک شخصی یا اشتراکی خود را از فرم بالا ایجاد کنید."
-        />
-      ) : (
-        <div className="space-y-3">
-          {tasks.map((task) => {
-            const dueLabel = task.due_at
-              ? `${formatPersianDate(new Date(task.due_at))} - ${formatPersianTime(
-                  new Date(task.due_at),
-                )}`
-              : "بدون موعد";
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <SectionLabel className="min-w-0 flex-1">همه تسک‌ها</SectionLabel>
+          <div className="flex shrink-0 flex-wrap gap-1.5">
+            {taskCounts.overdue > 0 ? (
+              <Badge tone="danger">
+                {toPersianNumber(taskCounts.overdue)} معوق
+              </Badge>
+            ) : null}
+            {taskCounts.dueToday > 0 ? (
+              <Badge tone="warning">
+                {toPersianNumber(taskCounts.dueToday)} امروز
+              </Badge>
+            ) : null}
+            {taskCounts.completed > 0 ? (
+              <Badge tone="success">
+                {toPersianNumber(taskCounts.completed)} تکمیل‌شده
+              </Badge>
+            ) : null}
+          </div>
+        </div>
 
-            return (
-              <Card key={task.id} className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <CardTitle>{task.title}</CardTitle>
-                    <CardDescription>
-                      {task.description || "بدون توضیحات"}
-                    </CardDescription>
-                  </div>
-                  <Badge tone={statusTone(task.status)}>{statusLabel(task.status)}</Badge>
-                </div>
+        {tasks.length === 0 ? (
+          <EmptyState
+            title="هنوز تسکی ثبت نشده"
+            description="اولین تسک شخصی یا اشتراکی‌تان را از فرم بالا بنویسید."
+          />
+        ) : (
+          <ul className="divide-y divide-line rounded-card border border-line bg-card shadow-paper">
+            {tasks.map((task) => {
+              const completed = task.status === "COMPLETED";
+              const dueLabel = task.due_at
+                ? `${formatPersianDate(new Date(task.due_at))} — ${formatPersianTime(
+                    new Date(task.due_at),
+                  )}`
+                : "بدون موعد";
 
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <Badge tone="neutral">
-                    {task.visibility === "PRIVATE" ? "خصوصی" : "اشتراکی"}
-                  </Badge>
-                  <Badge  tone={priorityTone(task.priority)}>{priorityLabel(task.priority)}</Badge>
-                  <Badge tone="neutral">{dueLabel}</Badge>
-                </div>
+              return (
+                <li key={task.id} className="space-y-3 px-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleComplete(task)}
+                      aria-label={completed ? "بازگردانی" : "تکمیل"}
+                      className={cn(
+                        "mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full border transition",
+                        completed
+                          ? "border-olive bg-olive text-cream dark:text-[#221c14]"
+                          : "border-line-strong bg-paper text-transparent hover:border-olive hover:text-olive/50",
+                      )}
+                    >
+                      <CheckCircle2 className="size-3.5" strokeWidth={2} />
+                    </button>
 
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => toggleComplete(task)}
-                  >
-                    <CheckCircle2 className="size-4" />
-                    {task.status === "COMPLETED" ? "بازگردانی" : "تکمیل"}
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setEditTask(task)}
-                  >
-                    <Pencil className="size-4" />
-                    ویرایش
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setReschedulingTaskId(task.id);
-                      setRescheduleValue(toDateTimeLocal(task.due_at));
-                    }}
-                  >
-                    <CalendarClock className="size-4" />
-                    زمان‌بندی مجدد
-                  </Button>
-
-                  <ReminderComposer
-                    targetType="TASK"
-                    targetId={task.id}
-                    baseDateTime={task.due_at ?? new Date().toISOString()}
-                    householdId={task.household_id}
-                    onCreated={() => router.refresh()}
-                  />
-
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => archiveTask(task.id)}
-                  >
-                    <RotateCcw className="size-4" />
-                    آرشیو
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => deleteTask(task.id)}
-                  >
-                    <Trash2 className="size-4" />
-                    حذف
-                  </Button>
-                </div>
-
-                {reschedulingTaskId === task.id ? (
-                  <div className="flex flex-col gap-2 rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700">
-                    <Input
-                      label="موعد جدید"
-                      type="datetime-local"
-                      value={rescheduleValue}
-                      onChange={(event) =>
-                        setRescheduleValue(event.target.value)
-                      }
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => submitReschedule(task.id)}
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={cn(
+                          "text-sm font-medium",
+                          completed ? "text-muted line-through" : "text-ink",
+                        )}
                       >
-                        ذخیره موعد جدید
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
+                        {task.title}
+                      </p>
+                      {task.description ? (
+                        <p className="mt-0.5 text-[12px] leading-5 text-muted">
+                          {task.description}
+                        </p>
+                      ) : null}
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <Badge tone={statusTone(task.status)}>
+                          {statusLabel(task.status)}
+                        </Badge>
+                        <Badge tone={priorityTone(task.priority)}>
+                          {priorityLabel(task.priority)}
+                        </Badge>
+                        <Badge tone="neutral">
+                          {task.visibility === "PRIVATE" ? "خصوصی" : "اشتراکی"}
+                        </Badge>
+                        <span className="text-[11px] text-muted">
+                          {dueLabel}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setEditTask(task)}
+                        aria-label="ویرایش"
+                        className="inline-flex size-7 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
+                      >
+                        <Pencil className="size-3.5" strokeWidth={1.75} />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => {
-                          setReschedulingTaskId(null);
-                          setRescheduleValue("");
+                          setReschedulingTaskId(task.id);
+                          setRescheduleValue(toDateTimeLocal(task.due_at));
                         }}
+                        aria-label="زمان‌بندی مجدد"
+                        className="inline-flex size-7 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
                       >
-                        انصراف
-                      </Button>
+                        <CalendarClock
+                          className="size-3.5"
+                          strokeWidth={1.75}
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => archiveTask(task.id)}
+                        aria-label="آرشیو"
+                        className="inline-flex size-7 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
+                      >
+                        <RotateCcw className="size-3.5" strokeWidth={1.75} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteTask(task.id)}
+                        aria-label="حذف"
+                        className="inline-flex size-7 items-center justify-center rounded-full text-muted transition hover:bg-danger-soft hover:text-danger-ink"
+                      >
+                        <Trash2 className="size-3.5" strokeWidth={1.75} />
+                      </button>
                     </div>
                   </div>
-                ) : null}
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </div>
+
+                  <div className="pr-9">
+                    <ReminderComposer
+                      targetType="TASK"
+                      targetId={task.id}
+                      baseDateTime={task.due_at ?? new Date().toISOString()}
+                      householdId={task.household_id}
+                      onCreated={() => router.refresh()}
+                    />
+                  </div>
+
+                  {reschedulingTaskId === task.id ? (
+                    <div className="mr-9 flex flex-col gap-2 rounded-field border border-olive/50 bg-olive-soft/40 p-3">
+                      <Input
+                        label="موعد جدید"
+                        type="datetime-local"
+                        value={rescheduleValue}
+                        onChange={(event) =>
+                          setRescheduleValue(event.target.value)
+                        }
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => submitReschedule(task.id)}
+                        >
+                          ذخیره موعد جدید
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setReschedulingTaskId(null);
+                            setRescheduleValue("");
+                          }}
+                        >
+                          انصراف
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }

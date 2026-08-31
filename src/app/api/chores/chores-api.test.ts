@@ -120,7 +120,9 @@ describe("chores API auth", () => {
     expect(
       (
         await read(
-          await POST(jsonRequest("http://localhost/api/chores", "POST", createPayload)),
+          await POST(
+            jsonRequest("http://localhost/api/chores", "POST", createPayload),
+          ),
         )
       ).status,
     ).toBe(401);
@@ -173,7 +175,9 @@ describe("chores API authorization", () => {
     );
     const { POST } = await import("./route");
     const result = await read(
-      await POST(jsonRequest("http://localhost/api/chores", "POST", createPayload)),
+      await POST(
+        jsonRequest("http://localhost/api/chores", "POST", createPayload),
+      ),
     );
     expect(result.status).toBe(400);
     expect(result.body.message).toContain("خانه");

@@ -3,13 +3,7 @@ import type { FinanceRecord, TodayBillItem } from "@/features/finance/types";
 
 export type TodayBillSource = Pick<
   FinanceRecord,
-  | "id"
-  | "record_type"
-  | "title"
-  | "amount"
-  | "currency"
-  | "due_at"
-  | "paid_at"
+  "id" | "record_type" | "title" | "amount" | "currency" | "due_at" | "paid_at"
 > & {
   category?: string | null;
   note?: string | null;

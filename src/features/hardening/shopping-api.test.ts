@@ -118,7 +118,9 @@ describe("shopping API auth", () => {
       (
         await read(
           await POST(
-            jsonRequest("http://localhost/api/shopping/lists", "POST", { name: "نانوایی" }),
+            jsonRequest("http://localhost/api/shopping/lists", "POST", {
+              name: "نانوایی",
+            }),
           ),
         )
       ).status,
@@ -215,7 +217,9 @@ describe("shopping API authorization", () => {
     const { POST } = await import("@/app/api/shopping/lists/route");
     const result = await read(
       await POST(
-        jsonRequest("http://localhost/api/shopping/lists", "POST", { name: "نانوایی" }),
+        jsonRequest("http://localhost/api/shopping/lists", "POST", {
+          name: "نانوایی",
+        }),
       ),
     );
     expect(result.status).toBe(400);

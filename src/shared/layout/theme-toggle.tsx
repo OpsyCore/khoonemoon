@@ -11,7 +11,11 @@ function subscribeNever() {
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const mounted = useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false,
+  );
   const isDark = resolvedTheme === "dark";
 
   return (

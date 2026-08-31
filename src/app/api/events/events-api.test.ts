@@ -57,14 +57,19 @@ function createMockSupabase(options: MockOptions) {
         return { data: null, error: { message: "missing" } };
       },
       then(
-        resolve: (value: { data: unknown; error: { message: string } | null }) => unknown,
+        resolve: (value: {
+          data: unknown;
+          error: { message: string } | null;
+        }) => unknown,
         reject?: (reason: unknown) => unknown,
       ) {
         let data: unknown = [];
         let error: { message: string } | null = null;
         if (table === "events") data = options.events ?? [];
-        if (table === "events" && options.updateError) error = options.updateError;
-        if (table === "events" && options.deleteError) error = options.deleteError;
+        if (table === "events" && options.updateError)
+          error = options.updateError;
+        if (table === "events" && options.deleteError)
+          error = options.deleteError;
         return Promise.resolve({ data, error }).then(resolve, reject);
       },
     };
@@ -117,7 +122,9 @@ describe("events API auth", () => {
     expect(
       (
         await read(
-          await POST(jsonRequest("http://localhost/api/events", "POST", privateEvent)),
+          await POST(
+            jsonRequest("http://localhost/api/events", "POST", privateEvent),
+          ),
         )
       ).status,
     ).toBe(401);
@@ -128,9 +135,16 @@ describe("events API auth", () => {
     expect(
       (
         await read(
-          await PATCH(jsonRequest("http://localhost/api/events/e1", "PATCH", privateEvent), {
-            params: Promise.resolve({ id: "e1" }),
-          }),
+          await PATCH(
+            jsonRequest(
+              "http://localhost/api/events/e1",
+              "PATCH",
+              privateEvent,
+            ),
+            {
+              params: Promise.resolve({ id: "e1" }),
+            },
+          ),
         )
       ).status,
     ).toBe(401);
@@ -141,9 +155,12 @@ describe("events API auth", () => {
     expect(
       (
         await read(
-          await DELETE(jsonRequest("http://localhost/api/events/e1", "DELETE"), {
-            params: Promise.resolve({ id: "e1" }),
-          }),
+          await DELETE(
+            jsonRequest("http://localhost/api/events/e1", "DELETE"),
+            {
+              params: Promise.resolve({ id: "e1" }),
+            },
+          ),
         )
       ).status,
     ).toBe(401);
@@ -155,7 +172,14 @@ describe("events API authorization", () => {
     mockCreateClient.mockResolvedValue(
       createMockSupabase({
         user: userA,
-        events: [{ id: "e1", title: "خصوصی", visibility: "PRIVATE", owner_id: userA.id }],
+        events: [
+          {
+            id: "e1",
+            title: "خصوصی",
+            visibility: "PRIVATE",
+            owner_id: userA.id,
+          },
+        ],
       }),
     );
     const { GET } = await import("./route");
@@ -184,7 +208,9 @@ describe("events API authorization", () => {
     );
     const { POST } = await import("./route");
     const result = await read(
-      await POST(jsonRequest("http://localhost/api/events", "POST", privateEvent)),
+      await POST(
+        jsonRequest("http://localhost/api/events", "POST", privateEvent),
+      ),
     );
     expect(result.status).toBe(200);
     expect(result.body.id).toBe("e-new");

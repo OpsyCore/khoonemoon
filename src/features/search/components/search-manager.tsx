@@ -2,9 +2,11 @@
 
 import {
   CalendarDays,
+  ChevronLeft,
   CircleCheckBig,
   House,
   Loader2,
+  Search,
   ShoppingCart,
   Wallet,
   X,
@@ -18,13 +20,12 @@ import {
   type SearchResponse,
   type SearchResult,
 } from "@/features/search/types";
-import { Badge } from "@/shared/ui/badge";
-import { Button } from "@/shared/ui/button";
-import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
+import { Card } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { offlineUserMessage } from "@/shared/offline/online-status";
 import { ErrorState } from "@/shared/ui/error-state";
 import { Input } from "@/shared/ui/input";
+import { SectionLabel } from "@/shared/ui/section-label";
 
 const TYPE_ICONS: Record<SearchEntityType, typeof CircleCheckBig> = {
   task: CircleCheckBig,
@@ -161,48 +162,39 @@ export function SearchManager({
   }
 
   return (
-    <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-          جستجو
-        </h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          بین تسک‌ها، کارهای خانه، خرید، رویدادها و مالی جستجو کنید.
-        </p>
-      </section>
-
-      <div className="flex items-end gap-2">
-        <div className="min-w-0 flex-1">
-          <Input
-            id="global-search"
-            name="q"
-            label="جستجو"
-            value={draft}
-            autoFocus
-            autoComplete="off"
-            placeholder="مثلاً نان، قبض برق، خرید هفتگی"
-            onChange={(event) => setDraft(event.target.value)}
-          />
-        </div>
+    <div className="space-y-5">
+      <div className="relative">
+        <Search
+          className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-muted"
+          strokeWidth={1.75}
+        />
+        <Input
+          id="global-search"
+          name="q"
+          value={draft}
+          autoFocus
+          autoComplete="off"
+          placeholder="مثلاً نان، قبض برق، خرید هفتگی"
+          onChange={(event) => setDraft(event.target.value)}
+          className="h-12 rounded-full border-line-strong bg-card pr-11 shadow-paper"
+        />
         {draft ? (
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
-            className="h-11 w-11 shrink-0 px-0"
             aria-label="پاک کردن جستجو"
             onClick={() => {
               setDraft("");
               setQuery("");
             }}
+            className="absolute left-2.5 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
           >
-            <X className="size-4" />
-          </Button>
+            <X className="size-4" strokeWidth={1.75} />
+          </button>
         ) : null}
       </div>
 
       {loading ? (
-        <Card className="flex items-center gap-2 text-sm text-zinc-500">
+        <Card className="flex items-center gap-2 text-sm text-muted">
           <Loader2 className="size-4 animate-spin" />
           در حال جستجو...
         </Card>
@@ -223,7 +215,11 @@ export function SearchManager({
         />
       ) : null}
 
-      {query && !loading && !errorMessage && response && response.total === 0 ? (
+      {query &&
+      !loading &&
+      !errorMessage &&
+      response &&
+      response.total === 0 ? (
         <EmptyState
           title="چیزی پیدا نشد"
           description={`نتیجه‌ای برای «${query}» پیدا نشد.`}
@@ -233,30 +229,34 @@ export function SearchManager({
       {query && !loading && !errorMessage && groups.length > 0 ? (
         <div className="space-y-4">
           {groups.map((group) => (
-            <section key={group.type} className="space-y-2">
-              <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                {SEARCH_TYPE_LABELS[group.type]}
-              </p>
-              <ul className="space-y-2">
+            <section key={group.type} className="space-y-3">
+              <SectionLabel>{SEARCH_TYPE_LABELS[group.type]}</SectionLabel>
+              <ul className="divide-y divide-line rounded-card border border-line bg-card shadow-paper">
                 {group.items.map((item) => {
                   const Icon = TYPE_ICONS[item.type];
                   return (
                     <li key={`${item.type}:${item.id}`}>
-                      <Link href={item.href} className="block min-w-0">
-                        <Card className="flex min-w-0 items-start gap-3 transition hover:border-sky-300 dark:hover:border-sky-800">
-                          <Icon className="mt-0.5 size-4 shrink-0 text-sky-600 dark:text-sky-400" />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex min-w-0 items-start justify-between gap-2">
-                              <CardTitle>{item.title}</CardTitle>
-                              <Badge tone="neutral">
-                                {SEARCH_TYPE_LABELS[item.type]}
-                              </Badge>
-                            </div>
-                            {item.snippet ? (
-                              <CardDescription>{item.snippet}</CardDescription>
-                            ) : null}
-                          </div>
-                        </Card>
+                      <Link
+                        href={item.href}
+                        className="flex min-w-0 items-start gap-3 px-4 py-3.5 transition hover:bg-sunken/50"
+                      >
+                        <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-olive-soft text-olive-ink">
+                          <Icon className="size-4" strokeWidth={1.75} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-ink">
+                            {item.title}
+                          </p>
+                          {item.snippet ? (
+                            <p className="mt-0.5 text-[12px] leading-5 text-muted">
+                              {item.snippet}
+                            </p>
+                          ) : null}
+                        </div>
+                        <ChevronLeft
+                          className="mt-1 size-4 shrink-0 text-faint"
+                          strokeWidth={1.75}
+                        />
                       </Link>
                     </li>
                   );

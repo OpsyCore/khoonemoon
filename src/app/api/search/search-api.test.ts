@@ -35,7 +35,10 @@ function createMockSupabase({
         return query;
       },
       then(
-        resolve: (value: { data: unknown; error: { message: string } | null }) => unknown,
+        resolve: (value: {
+          data: unknown;
+          error: { message: string } | null;
+        }) => unknown,
         reject?: (reason: unknown) => unknown,
       ) {
         const row = tables[table] ?? { data: [] };
@@ -98,7 +101,9 @@ describe("search API query handling", () => {
 
   it("rejects whitespace query", async () => {
     const { GET } = await import("./route");
-    const result = await read(await GET(searchRequest("q=+++".replaceAll("+", "%20"))));
+    const result = await read(
+      await GET(searchRequest("q=+++".replaceAll("+", "%20"))),
+    );
     expect(result.status).toBe(400);
   });
 
@@ -266,7 +271,10 @@ describe("search API results", () => {
     );
     expect(result.status).toBe(200);
     expect(queried).toEqual(["finance_records"]);
-    const results = result.body.results as Array<{ type: string; href: string }>;
+    const results = result.body.results as Array<{
+      type: string;
+      href: string;
+    }>;
     expect(results).toHaveLength(1);
     expect(results[0]?.type).toBe("finance");
     expect(results[0]?.href).toBe("/finance");

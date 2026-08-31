@@ -1,13 +1,12 @@
 "use client";
 
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { TodayChoreItem } from "@/features/chores/today";
 import { Badge } from "@/shared/ui/badge";
-import { Button } from "@/shared/ui/button";
-import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
-import { EmptyState } from "@/shared/ui/empty-state";
+import { SectionLabel } from "@/shared/ui/section-label";
+import { cn } from "@/shared/utils/cn";
 
 type Member = { userId: string; fullName: string };
 
@@ -63,72 +62,60 @@ export function TodayChores({
     const busy = pendingKey === key;
 
     return (
-      <li>
-        <Card className="space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <CardTitle>{item.title}</CardTitle>
-              {item.description ? (
-                <CardDescription>{item.description}</CardDescription>
-              ) : null}
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                تاریخ: {item.forDate} · مسئول: {nameOf(item.assignedTo)}
-              </p>
-            </div>
+      <li className="flex items-start gap-3 px-4 py-3.5">
+        <button
+          type="button"
+          disabled={busy || item.completed}
+          onClick={() => void complete(item)}
+          aria-label={item.completed ? "انجام شده" : `انجام ${item.title}`}
+          className={cn(
+            "mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full border transition",
+            item.completed
+              ? "border-olive bg-olive text-cream dark:text-[#221c14]"
+              : "border-line-strong bg-paper text-transparent hover:border-olive hover:text-olive/50",
+          )}
+        >
+          {busy ? (
+            <Loader2 className="size-3.5 animate-spin text-olive" />
+          ) : (
+            <Check className="size-3.5" strokeWidth={2.5} />
+          )}
+        </button>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p
+              className={cn(
+                "text-sm font-medium",
+                item.completed ? "text-muted line-through" : "text-ink",
+              )}
+            >
+              {item.title}
+            </p>
             {item.overdue ? (
               <Badge tone="danger">معوق</Badge>
             ) : item.completed ? (
               <Badge tone="success">انجام شد</Badge>
-            ) : (
-              <Badge tone="info">امروز</Badge>
-            )}
+            ) : null}
           </div>
-
-          {!item.completed ? (
-            <Button
-              type="button"
-              size="sm"
-              disabled={busy}
-              onClick={() => void complete(item)}
-            >
-              {busy ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="size-4" />
-              )}
-              انجام شد
-            </Button>
+          {item.description ? (
+            <p className="mt-0.5 text-[12px] text-muted">{item.description}</p>
           ) : null}
-        </Card>
+          <p className="mt-0.5 text-[11px] text-muted">
+            تاریخ: {item.forDate} · مسئول: {nameOf(item.assignedTo)}
+          </p>
+        </div>
       </li>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <section className="space-y-3">
-        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-          کارهای خانه
-        </h3>
-        <EmptyState
-          title="کار خانه‌ای برای امروز نیست"
-          description="اگر کاری تعریف کرده باشید، occurrence امروز و معوق‌ها اینجا می‌آید."
-        />
-      </section>
     );
   }
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-          کارهای خانه
-        </h3>
-        <div className="flex flex-wrap gap-2 text-xs">
+      <div className="flex items-center gap-3">
+        <SectionLabel className="min-w-0 flex-1">کارهای خانه</SectionLabel>
+        <div className="flex shrink-0 flex-wrap gap-1.5">
           {overdue.length > 0 ? (
             <Badge tone="danger">{overdue.length} معوق</Badge>
           ) : null}
-          <Badge tone="info">{todayOpen.length} امروز</Badge>
           {todayDone.length > 0 ? (
             <Badge tone="success">{todayDone.length} انجام‌شده</Badge>
           ) : null}
@@ -136,49 +123,23 @@ export function TodayChores({
       </div>
 
       {errorMessage ? (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+        <p className="rounded-field border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-danger-ink">
           {errorMessage}
         </p>
       ) : null}
 
-      {overdue.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-rose-600 dark:text-rose-300">
-            معوق
-          </p>
-          <ul className="space-y-2">
-            {overdue.map((item) => (
-              <Row key={`${item.choreId}:${item.forDate}`} item={item} />
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {todayOpen.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-sky-700 dark:text-sky-300">
-            امروز
-          </p>
-          <ul className="space-y-2">
-            {todayOpen.map((item) => (
-              <Row key={`${item.choreId}:${item.forDate}`} item={item} />
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {todayDone.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-            انجام‌شده امروز
-          </p>
-          <ul className="space-y-2">
-            {todayDone.map((item) => (
-              <Row key={`${item.choreId}:${item.forDate}`} item={item} />
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      {items.length === 0 ? (
+        <p className="rounded-field border border-dashed border-line-strong/70 px-4 py-4 text-center text-[13px] text-muted">
+          کار خانه‌ای برای امروز نیست — کارهای تعریف‌شده و معوق‌ها اینجا
+          می‌آیند.
+        </p>
+      ) : (
+        <ul className="divide-y divide-line rounded-card border border-line bg-card shadow-paper">
+          {[...overdue, ...todayOpen, ...todayDone].map((item) => (
+            <Row key={`${item.choreId}:${item.forDate}`} item={item} />
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

@@ -45,9 +45,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json(body);
   } catch {
-    return NextResponse.json(
-      { message: "جستجو ناموفق بود." },
-      { status: 500 },
-    );
+    return NextResponse.json({ message: "جستجو ناموفق بود." }, { status: 500 });
   }
 }

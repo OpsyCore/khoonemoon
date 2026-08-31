@@ -61,13 +61,13 @@ export function ProfileForm({
       <CardTitle>ویرایش پروفایل</CardTitle>
 
       {errorMessage ? (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+        <p className="rounded-field border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-danger-ink">
           {errorMessage}
         </p>
       ) : null}
 
       {successMessage ? (
-        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+        <p className="rounded-field border border-olive/50 bg-olive-soft px-3 py-2 text-sm text-olive-ink">
           {successMessage}
         </p>
       ) : null}

@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FinanceRecord } from "@/features/finance/types";
-import {
-  filterFinanceRecords,
-  summarizeFinanceRecords,
-} from "./finance-list";
+import { filterFinanceRecords, summarizeFinanceRecords } from "./finance-list";
 
 function record(overrides: Partial<FinanceRecord> = {}): FinanceRecord {
   return {
@@ -47,30 +44,27 @@ describe("filterFinanceRecords", () => {
   const all = [unpaidBill, paidBill, expense];
 
   it("returns every record for ALL / ALL", () => {
-    expect(filterFinanceRecords(all, "ALL", "ALL").map((item) => item.id)).toEqual([
-      "unpaid",
-      "paid",
-      "expense",
-    ]);
+    expect(
+      filterFinanceRecords(all, "ALL", "ALL").map((item) => item.id),
+    ).toEqual(["unpaid", "paid", "expense"]);
   });
 
   it("filters bills and expenses by type", () => {
-    expect(filterFinanceRecords(all, "BILL", "ALL").map((item) => item.id)).toEqual([
-      "unpaid",
-      "paid",
-    ]);
-    expect(filterFinanceRecords(all, "EXPENSE", "ALL").map((item) => item.id)).toEqual([
-      "expense",
-    ]);
+    expect(
+      filterFinanceRecords(all, "BILL", "ALL").map((item) => item.id),
+    ).toEqual(["unpaid", "paid"]);
+    expect(
+      filterFinanceRecords(all, "EXPENSE", "ALL").map((item) => item.id),
+    ).toEqual(["expense"]);
   });
 
   it("filters bills by paid status and hides expenses", () => {
-    expect(filterFinanceRecords(all, "ALL", "UNPAID").map((item) => item.id)).toEqual([
-      "unpaid",
-    ]);
-    expect(filterFinanceRecords(all, "ALL", "PAID").map((item) => item.id)).toEqual([
-      "paid",
-    ]);
+    expect(
+      filterFinanceRecords(all, "ALL", "UNPAID").map((item) => item.id),
+    ).toEqual(["unpaid"]);
+    expect(
+      filterFinanceRecords(all, "ALL", "PAID").map((item) => item.id),
+    ).toEqual(["paid"]);
   });
 
   it("ignores paid filter when type is EXPENSE", () => {
@@ -82,9 +76,7 @@ describe("filterFinanceRecords", () => {
 
 describe("summarizeFinanceRecords", () => {
   it("splits totals by unpaid bills, paid bills, and expenses", () => {
-    expect(
-      summarizeFinanceRecords([unpaidBill, paidBill, expense]),
-    ).toEqual([
+    expect(summarizeFinanceRecords([unpaidBill, paidBill, expense])).toEqual([
       {
         currency: "IRR",
         unpaidBills: 10,

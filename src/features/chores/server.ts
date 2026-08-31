@@ -30,9 +30,7 @@ export async function getCurrentChoreMembership(userId: string) {
   return data;
 }
 
-export async function getChoreHouseholdMemberIds(
-  householdId: string,
-) {
+export async function getChoreHouseholdMemberIds(householdId: string) {
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
@@ -61,14 +59,9 @@ export async function validateCreateChoreForUser({
     throw new Error("NO_HOUSEHOLD_FOR_CHORE");
   }
 
-  const memberIds = await getChoreHouseholdMemberIds(
-    membership.household_id,
-  );
+  const memberIds = await getChoreHouseholdMemberIds(membership.household_id);
 
-  if (
-    input.defaultAssigneeId &&
-    !memberIds.includes(input.defaultAssigneeId)
-  ) {
+  if (input.defaultAssigneeId && !memberIds.includes(input.defaultAssigneeId)) {
     throw new Error("INVALID_DEFAULT_ASSIGNEE");
   }
 
@@ -97,21 +90,13 @@ export async function validateUpdateChoreForUser({
 }) {
   const membership = await getCurrentChoreMembership(userId);
 
-  if (
-    !membership?.household_id ||
-    membership.household_id !== householdId
-  ) {
+  if (!membership?.household_id || membership.household_id !== householdId) {
     throw new Error("CHORE_ACCESS_DENIED");
   }
 
-  const memberIds = await getChoreHouseholdMemberIds(
-    householdId,
-  );
+  const memberIds = await getChoreHouseholdMemberIds(householdId);
 
-  if (
-    input.defaultAssigneeId &&
-    !memberIds.includes(input.defaultAssigneeId)
-  ) {
+  if (input.defaultAssigneeId && !memberIds.includes(input.defaultAssigneeId)) {
     throw new Error("INVALID_DEFAULT_ASSIGNEE");
   }
 
@@ -130,9 +115,7 @@ export async function validateUpdateChoreForUser({
   };
 }
 
-export function choreRecurrenceToRow(
-  recurrence: ChoreRecurrence,
-) {
+export function choreRecurrenceToRow(recurrence: ChoreRecurrence) {
   return {
     frequency: recurrence.frequency,
     interval_days: recurrence.intervalDays ?? null,

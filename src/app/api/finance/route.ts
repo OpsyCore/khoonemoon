@@ -78,7 +78,9 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      records: sortFinanceRecords((recordsResult.data ?? []) as FinanceRecord[]),
+      records: sortFinanceRecords(
+        (recordsResult.data ?? []) as FinanceRecord[],
+      ),
       members,
       householdId,
     });

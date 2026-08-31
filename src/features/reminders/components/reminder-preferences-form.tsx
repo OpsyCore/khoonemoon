@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
+import { Toggle } from "@/shared/ui/toggle";
 
 type PreferencesState = {
   in_app_enabled: boolean;
@@ -83,50 +84,33 @@ export function ReminderPreferencesForm() {
   }
 
   return (
-    <Card className="space-y-3">
+    <Card className="space-y-3 p-5">
       <CardTitle>ترجیحات یادآور</CardTitle>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
+      <div className="divide-y divide-line">
+        <Toggle
+          label="یادآور درون‌برنامه‌ای"
           checked={state.in_app_enabled}
-          onChange={(event) =>
-            setState((prev) => ({
-              ...prev,
-              in_app_enabled: event.target.checked,
-            }))
+          onChange={(checked) =>
+            setState((prev) => ({ ...prev, in_app_enabled: checked }))
           }
         />
-        یادآور درون‌برنامه‌ای
-      </label>
-
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
+        <Toggle
+          label="یادآور وب (Push)"
           checked={state.web_push_enabled}
-          onChange={(event) =>
-            setState((prev) => ({
-              ...prev,
-              web_push_enabled: event.target.checked,
-            }))
+          onChange={(checked) =>
+            setState((prev) => ({ ...prev, web_push_enabled: checked }))
           }
         />
-        یادآور وب (Push)
-      </label>
-
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
+        <Toggle
+          label="ساعات سکوت"
+          description="در این بازه یادآورها بی‌صدا می‌مانند."
           checked={state.quiet_hours_enabled}
-          onChange={(event) =>
-            setState((prev) => ({
-              ...prev,
-              quiet_hours_enabled: event.target.checked,
-            }))
+          onChange={(checked) =>
+            setState((prev) => ({ ...prev, quiet_hours_enabled: checked }))
           }
         />
-        ساعات سکوت
-      </label>
+      </div>
 
       {state.quiet_hours_enabled ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -155,14 +139,8 @@ export function ReminderPreferencesForm() {
         </div>
       ) : null}
 
-      {error ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
-      ) : null}
-      {success ? (
-        <p className="text-sm text-emerald-600 dark:text-emerald-400">
-          {success}
-        </p>
-      ) : null}
+      {error ? <p className="text-sm text-danger-ink">{error}</p> : null}
+      {success ? <p className="text-sm text-olive-ink">{success}</p> : null}
 
       <Button onClick={save} isLoading={saving}>
         ذخیره تنظیمات یادآور

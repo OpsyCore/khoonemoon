@@ -242,10 +242,7 @@ describe("paid_by validation", () => {
         ownerId: "user-a",
         householdId: householdA,
         paidBy: "user-c",
-        memberships: [
-          ...activeHouseholdA,
-          membership("user-c", householdB),
-        ],
+        memberships: [...activeHouseholdA, membership("user-c", householdB)],
       }),
     ).toBe(false);
   });

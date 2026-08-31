@@ -23,9 +23,7 @@ export function ConnectionSettingsCard() {
         </Badge>
       </div>
       {!isOnline ? (
-        <p className="text-sm text-rose-700 dark:text-rose-300">
-          {offlineUserMessage()}
-        </p>
+        <p className="text-sm text-danger-ink">{offlineUserMessage()}</p>
       ) : null}
       <Button
         type="button"

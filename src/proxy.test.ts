@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  isGuestOnlyAuthPath,
-  isProtectedPath,
-} from "@/proxy";
+import { isGuestOnlyAuthPath, isProtectedPath } from "@/proxy";
 
 describe("app path protection", () => {
   it("protects app shell routes including finance", () => {

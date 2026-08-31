@@ -1,42 +1,39 @@
 import Link from "next/link";
 import { Plus, Wallet } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
+import { SectionLabel } from "@/shared/ui/section-label";
 
 export function HomeFinanceSection() {
   return (
     <section id="finance" className="space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-            مالی
-          </h3>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            قبض‌ها و هزینه‌های یک‌بارهٔ شخصی یا مشترک خانه.
-          </p>
-        </div>
+      <div className="flex items-center gap-3">
+        <SectionLabel className="min-w-0 flex-1">مالی</SectionLabel>
         <Link
           href="/finance"
-          className="inline-flex h-9 shrink-0 items-center justify-center rounded-2xl bg-sky-600 px-3 text-sm font-medium text-white transition hover:bg-sky-500 dark:bg-sky-500 dark:hover:bg-sky-400"
+          className="shrink-0 text-[12px] font-medium text-clay-ink transition hover:opacity-80"
         >
-          مشاهده
+          مشاهده همه
         </Link>
       </div>
 
-      <Card className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <Card className="flex min-w-0 flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <Wallet className="mt-0.5 size-5 shrink-0 text-sky-600 dark:text-sky-400" />
-          <div className="min-w-0 space-y-1">
+          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-field bg-olive-soft text-olive-ink">
+            <Wallet className="size-5" strokeWidth={1.75} />
+          </span>
+          <div className="min-w-0">
             <CardTitle>مدیریت قبض و هزینه</CardTitle>
             <CardDescription>
-              بدون عضویت در خانه هم می‌توانید مورد خصوصی ثبت کنید.
+              قبض‌ها و هزینه‌های شخصی یا مشترک خانه — بدون عضویت در خانه هم
+              می‌توانید مورد خصوصی ثبت کنید.
             </CardDescription>
           </div>
         </div>
         <Link
           href="/finance#quick-add-finance"
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-2xl bg-transparent px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
+          className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-line-strong bg-paper px-4 text-[13px] font-medium text-ink transition hover:bg-sunken"
         >
-          <Plus className="size-4" />
+          <Plus className="size-3.5" strokeWidth={2} />
           مورد جدید
         </Link>
       </Card>

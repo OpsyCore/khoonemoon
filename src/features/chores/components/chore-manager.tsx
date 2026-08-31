@@ -1,13 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  CheckCircle2,
-  Loader2,
-  Pencil,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { CheckCircle2, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
@@ -19,6 +13,7 @@ import type { ChoreFrequency } from "@/features/chores/types";
 import { CHORE_FREQUENCIES } from "@/features/chores/types";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
+import { SectionLabel } from "@/shared/ui/section-label";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Input } from "@/shared/ui/input";
@@ -67,10 +62,7 @@ type ListResponse = {
     userId?: string;
     full_name?: string;
     fullName?: string;
-    profiles?:
-      | { full_name?: string }
-      | { full_name?: string }[]
-      | null;
+    profiles?: { full_name?: string } | { full_name?: string }[] | null;
   }>;
   householdId?: string | null;
   household_id?: string | null;
@@ -164,8 +156,7 @@ function buildDefaultValues(
     };
   }
 
-  const frequency = (chore.recurrence?.frequency ??
-    "NONE") as ChoreFrequency;
+  const frequency = (chore.recurrence?.frequency ?? "NONE") as ChoreFrequency;
 
   return {
     title: chore.title,
@@ -217,8 +208,7 @@ export function ChoreManager({
   });
 
   const frequency = useWatch({ control, name: "recurrence.frequency" });
-  const rotationUserIds =
-    useWatch({ control, name: "rotationUserIds" }) ?? [];
+  const rotationUserIds = useWatch({ control, name: "rotationUserIds" }) ?? [];
   const weekdays = useWatch({ control, name: "recurrence.weekdays" }) ?? [];
 
   const isEditing = Boolean(editingChoreId);
@@ -364,9 +354,7 @@ export function ChoreManager({
       return;
     }
 
-    setSuccessMessage(
-      isEditing ? "کار خانه ویرایش شد." : "کار خانه ثبت شد.",
-    );
+    setSuccessMessage(isEditing ? "کار خانه ویرایش شد." : "کار خانه ثبت شد.");
     closeForm();
     await loadChores();
     router.refresh();
@@ -398,7 +386,7 @@ export function ChoreManager({
     }
   }
 
-async function deleteChore(choreId: string, title?: string) {
+  async function deleteChore(choreId: string, title?: string) {
     const label = title?.trim() ? `«${title.trim()}»` : "این کار";
     const ok = window.confirm(
       `حذف ${label}؟\nاز لیست فعال‌ها برداشته می‌شود (تاریخچه انجام‌ها می‌ماند).`,
@@ -453,28 +441,21 @@ async function deleteChore(choreId: string, title?: string) {
 
   return (
     <div id="chores" className="space-y-4">
-      <section className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-            کارهای خانه
-          </h3>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            تعریف کار مشترک، تکرار، چرخش نوبت و ثبت انجام روزانه.
-          </p>
-        </div>
+      <div className="flex items-center gap-3">
+        <SectionLabel className="min-w-0 flex-1">کارهای خانه</SectionLabel>
         <Button size="sm" type="button" onClick={toggleFormHeaderButton}>
-          <Plus className="size-4" />
+          <Plus className="size-4" strokeWidth={2} />
           {showForm ? "بستن فرم" : "کار جدید"}
         </Button>
-      </section>
+      </div>
 
       {errorMessage ? (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+        <p className="rounded-field border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-danger-ink">
           {errorMessage}
         </p>
       ) : null}
       {successMessage ? (
-        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+        <p className="rounded-field border border-olive/50 bg-olive-soft px-3 py-2 text-sm text-olive-ink">
           {successMessage}
         </p>
       ) : null}
@@ -501,11 +482,11 @@ async function deleteChore(choreId: string, title?: string) {
             />
 
             <label className="block space-y-1.5">
-              <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-100">
+              <span className="block text-[13px] font-medium text-ink-soft">
                 توضیحات (اختیاری)
               </span>
               <textarea
-                className="min-h-24 w-full rounded-2xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="min-h-24 w-full rounded-field border border-line-strong bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/25"
                 {...register("description")}
               />
             </label>
@@ -518,11 +499,11 @@ async function deleteChore(choreId: string, title?: string) {
             />
 
             <label className="block space-y-1.5">
-              <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-100">
+              <span className="block text-[13px] font-medium text-ink-soft">
                 مسئول پیش‌فرض
               </span>
               <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="h-11 w-full rounded-field border border-line-strong bg-paper px-3 text-sm text-ink outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/25"
                 {...register("defaultAssigneeId")}
               >
                 <option value="">بدون مسئول ثابت</option>
@@ -533,18 +514,18 @@ async function deleteChore(choreId: string, title?: string) {
                 ))}
               </select>
               {errors.defaultAssigneeId?.message ? (
-                <p className="text-xs text-rose-600 dark:text-rose-400">
+                <p className="text-xs text-danger-ink">
                   {errors.defaultAssigneeId.message}
                 </p>
               ) : null}
             </label>
 
             <label className="block space-y-1.5">
-              <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-100">
+              <span className="block text-[13px] font-medium text-ink-soft">
                 تکرار
               </span>
               <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="h-11 w-full rounded-field border border-line-strong bg-paper px-3 text-sm text-ink outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/25"
                 {...register("recurrence.frequency")}
               >
                 {CHORE_FREQUENCIES.map((item) => (
@@ -569,7 +550,7 @@ async function deleteChore(choreId: string, title?: string) {
 
             {frequency === "WEEKLY" ? (
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
+                <p className="text-[13px] font-medium text-ink-soft">
                   روزهای هفته
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -581,10 +562,10 @@ async function deleteChore(choreId: string, title?: string) {
                         type="button"
                         onClick={() => toggleWeekday(day.value)}
                         className={cn(
-                          "rounded-full border px-3 py-1 text-xs transition",
+                          "rounded-full border px-3 py-1.5 text-xs font-medium transition",
                           active
-                            ? "border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"
-                            : "border-zinc-200 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300",
+                            ? "border-olive/60 bg-olive-soft text-olive-ink"
+                            : "border-line-strong bg-paper text-ink-soft hover:bg-sunken",
                         )}
                       >
                         {day.label}
@@ -593,7 +574,7 @@ async function deleteChore(choreId: string, title?: string) {
                   })}
                 </div>
                 {errors.recurrence?.weekdays?.message ? (
-                  <p className="text-xs text-rose-600 dark:text-rose-400">
+                  <p className="text-xs text-danger-ink">
                     {errors.recurrence.weekdays.message}
                   </p>
                 ) : null}
@@ -601,10 +582,10 @@ async function deleteChore(choreId: string, title?: string) {
             ) : null}
 
             <div className="space-y-2">
-              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
+              <p className="text-[13px] font-medium text-ink-soft">
                 چرخش نوبت (اختیاری)
               </p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs text-muted">
                 اگر چند نفر را انتخاب کنید، نوبت به‌صورت گردشی بین آن‌ها عوض
                 می‌شود.
               </p>
@@ -614,11 +595,12 @@ async function deleteChore(choreId: string, title?: string) {
                   return (
                     <label
                       key={member.userId}
-                      className="flex items-center justify-between rounded-2xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700"
+                      className="flex items-center justify-between rounded-field border border-line bg-paper px-3.5 py-2.5 text-sm"
                     >
                       <span>{member.fullName}</span>
                       <input
                         type="checkbox"
+                        className="size-4 accent-[#9AA06E]"
                         checked={checked}
                         onChange={() => toggleRotation(member.userId)}
                       />
@@ -627,7 +609,7 @@ async function deleteChore(choreId: string, title?: string) {
                 })}
               </div>
               {errors.rotationUserIds?.message ? (
-                <p className="text-xs text-rose-600 dark:text-rose-400">
+                <p className="text-xs text-danger-ink">
                   {errors.rotationUserIds.message}
                 </p>
               ) : null}
@@ -665,7 +647,7 @@ async function deleteChore(choreId: string, title?: string) {
       ) : null}
 
       {loading ? (
-        <Card className="flex items-center gap-2 text-sm text-zinc-500">
+        <Card className="flex items-center gap-2 text-sm text-muted">
           <Loader2 className="size-4 animate-spin" />
           در حال بارگذاری کارها...
         </Card>
@@ -687,8 +669,7 @@ async function deleteChore(choreId: string, title?: string) {
                 <Card
                   className={cn(
                     "space-y-3",
-                    editingThis &&
-                      "ring-2 ring-sky-400/60 dark:ring-sky-500/40",
+                    editingThis && "ring-2 ring-olive/30 ",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -703,7 +684,7 @@ async function deleteChore(choreId: string, title?: string) {
                     </Badge>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <div className="flex flex-wrap gap-2 text-xs text-muted">
                     <span>شروع: {chore.startDate || "—"}</span>
                     <span>
                       مسئول پیش‌فرض: {memberName(chore.defaultAssigneeId)}
@@ -718,40 +699,39 @@ async function deleteChore(choreId: string, title?: string) {
                     ) : null}
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <Button
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
                       type="button"
-                      size="sm"
                       disabled={busy}
                       onClick={() => void completeChore(chore.id)}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-olive px-3.5 text-[12px] font-medium text-cream transition hover:bg-olive-deep disabled:opacity-60 dark:text-[#221c14]"
                     >
                       {busy ? (
-                        <Loader2 className="size-4 animate-spin" />
+                        <Loader2 className="size-3.5 animate-spin" />
                       ) : (
-                        <CheckCircle2 className="size-4" />
+                        <CheckCircle2 className="size-3.5" strokeWidth={2} />
                       )}
                       انجام امروز
-                    </Button>
-                    <Button
+                    </button>
+                    <button
                       type="button"
-                      size="sm"
-                      variant="ghost"
                       disabled={busy}
                       onClick={() => openEditForm(chore)}
+                      aria-label="ویرایش"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line-strong bg-paper px-3.5 text-[12px] font-medium text-ink-soft transition hover:bg-sunken disabled:opacity-60"
                     >
-                      <Pencil className="size-4" />
+                      <Pencil className="size-3.5" strokeWidth={1.75} />
                       {editingThis ? "در حال ویرایش" : "ویرایش"}
-                    </Button>
-                    <Button
+                    </button>
+                    <button
                       type="button"
-                      size="sm"
-                      variant="ghost"
                       disabled={busy}
                       onClick={() => void deleteChore(chore.id, chore.title)}
+                      aria-label="حذف"
+                      className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-danger-soft hover:text-danger-ink disabled:opacity-60"
                     >
-                      <Trash2 className="size-4" />
-                      حذف
-                    </Button>
+                      <Trash2 className="size-4" strokeWidth={1.75} />
+                    </button>
                   </div>
                 </Card>
               </li>

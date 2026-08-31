@@ -10,13 +10,10 @@ export const choreDateSchema = z
 export const choreFrequencySchema = z.enum(CHORE_FREQUENCIES);
 
 /** Select خالی → null (نه رشتهٔ خالی که uuid را می‌شکند) */
-const optionalUuid = z.preprocess(
-  (value) => {
-    if (value === "" || value === undefined) return null;
-    return value;
-  },
-  z.uuid().nullable(),
-);
+const optionalUuid = z.preprocess((value) => {
+  if (value === "" || value === undefined) return null;
+  return value;
+}, z.uuid().nullable());
 
 export const choreRecurrenceSchema = z
   .object({

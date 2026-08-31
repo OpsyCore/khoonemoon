@@ -2,11 +2,7 @@ import type { TaskRecurrence } from "@/features/tasks/types";
 
 function startOfDayUtc(date: Date) {
   return new Date(
-    Date.UTC(
-      date.getUTCFullYear(),
-      date.getUTCMonth(),
-      date.getUTCDate(),
-    ),
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
   );
 }
 
@@ -31,9 +27,7 @@ export function getNextOccurrence({
 
     case "INTERVAL_DAYS": {
       const result = new Date(base);
-      result.setUTCDate(
-        result.getUTCDate() + (recurrence.intervalDays ?? 1),
-      );
+      result.setUTCDate(result.getUTCDate() + (recurrence.intervalDays ?? 1));
       return result;
     }
 

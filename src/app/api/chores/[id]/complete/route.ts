@@ -51,10 +51,7 @@ export async function POST(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json(
-      { message: "Unauthorized" },
-      { status: 401 },
-    );
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   let body: unknown;
@@ -80,14 +77,11 @@ export async function POST(
     );
   }
 
-  const { data: chore, error: choreError } =
-    await supabase
-      .from("chores")
-      .select(
-        "id, start_date, default_assignee_id, is_active",
-      )
-      .eq("id", id)
-      .maybeSingle();
+  const { data: chore, error: choreError } = await supabase
+    .from("chores")
+    .select("id, start_date, default_assignee_id, is_active")
+    .eq("id", id)
+    .maybeSingle();
 
   if (choreError || !chore) {
     return NextResponse.json(
@@ -103,12 +97,11 @@ export async function POST(
     );
   }
 
-  const { data: recurrenceRow, error: recurrenceError } =
-    await supabase
-      .from("chore_recurrences")
-      .select("frequency, interval_days, weekdays")
-      .eq("chore_id", id)
-      .maybeSingle();
+  const { data: recurrenceRow, error: recurrenceError } = await supabase
+    .from("chore_recurrences")
+    .select("frequency, interval_days, weekdays")
+    .eq("chore_id", id)
+    .maybeSingle();
 
   if (recurrenceError || !recurrenceRow) {
     return NextResponse.json(
@@ -117,12 +110,11 @@ export async function POST(
     );
   }
 
-  const { data: rotationRows, error: rotationError } =
-    await supabase
-      .from("chore_rotations")
-      .select("user_id, position")
-      .eq("chore_id", id)
-      .order("position", { ascending: true });
+  const { data: rotationRows, error: rotationError } = await supabase
+    .from("chore_rotations")
+    .select("user_id, position")
+    .eq("chore_id", id)
+    .order("position", { ascending: true });
 
   if (rotationError) {
     return NextResponse.json(
@@ -137,9 +129,7 @@ export async function POST(
     weekdays: recurrenceRow.weekdays,
   };
 
-  const rotation: ChoreRotationMember[] = (
-    rotationRows ?? []
-  ).map((row) => ({
+  const rotation: ChoreRotationMember[] = (rotationRows ?? []).map((row) => ({
     userId: row.user_id,
     position: row.position,
   }));
@@ -152,25 +142,22 @@ export async function POST(
       forDate: parsed.data.forDate,
       recurrence,
       rotation,
-      defaultAssigneeId:
-        chore.default_assignee_id ?? null,
+      defaultAssigneeId: chore.default_assignee_id ?? null,
     }).assignedTo;
   } catch {
     return NextResponse.json(
       {
-        message:
-          "این تاریخ جزو برنامه این کار خانه نیست.",
+        message: "این تاریخ جزو برنامه این کار خانه نیست.",
       },
       { status: 400 },
     );
   }
 
-  const { data: completionId, error } =
-    await supabase.rpc("complete_chore", {
-      p_chore_id: id,
-      p_for_date: parsed.data.forDate,
-      p_assigned_to: assignedTo,
-    });
+  const { data: completionId, error } = await supabase.rpc("complete_chore", {
+    p_chore_id: id,
+    p_for_date: parsed.data.forDate,
+    p_assigned_to: assignedTo,
+  });
 
   if (error || !completionId) {
     const mapped = mapCompletionError(

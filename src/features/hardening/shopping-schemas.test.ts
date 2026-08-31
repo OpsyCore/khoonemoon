@@ -10,9 +10,9 @@ const listId = "11111111-1111-4111-8111-111111111111";
 
 describe("shopping schemas", () => {
   it("accepts a valid list name and rejects a blank one", () => {
-    expect(createShoppingListSchema.safeParse({ name: "نانوایی" }).success).toBe(
-      true,
-    );
+    expect(
+      createShoppingListSchema.safeParse({ name: "نانوایی" }).success,
+    ).toBe(true);
     expect(createShoppingListSchema.safeParse({ name: "   " }).success).toBe(
       false,
     );
@@ -56,8 +56,8 @@ describe("shopping schemas", () => {
     expect(
       updateShoppingItemSchema.safeParse({ isChecked: true }).success,
     ).toBe(true);
-    expect(
-      updateShoppingItemSchema.safeParse({ name: "" }).success,
-    ).toBe(false);
+    expect(updateShoppingItemSchema.safeParse({ name: "" }).success).toBe(
+      false,
+    );
   });
 });

@@ -73,15 +73,19 @@ export function ReminderComposer({
 
   if (!open) {
     return (
-      <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
-        <BellPlus className="size-4" />
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex h-7 items-center gap-1.5 rounded-full border border-line-strong bg-paper px-3 text-[11px] font-medium text-ink-soft transition hover:bg-sunken"
+      >
+        <BellPlus className="size-3.5" strokeWidth={1.75} />
         یادآور
-      </Button>
+      </button>
     );
   }
 
   return (
-    <div className="space-y-2 rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700">
+    <div className="space-y-2 rounded-field border border-olive/40 bg-olive-soft/40 p-3.5">
       <Input
         label="Offset دقیقه‌ای (مثال: 1440,60,10)"
         value={offsets}
@@ -89,14 +93,8 @@ export function ReminderComposer({
         hint="به معنای: ۱ روز، ۱ ساعت و ۱۰ دقیقه قبل"
       />
 
-      {error ? (
-        <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>
-      ) : null}
-      {success ? (
-        <p className="text-xs text-emerald-600 dark:text-emerald-400">
-          {success}
-        </p>
-      ) : null}
+      {error ? <p className="text-xs text-danger-ink">{error}</p> : null}
+      {success ? <p className="text-xs text-olive-ink">{success}</p> : null}
 
       <div className="flex gap-2">
         <Button size="sm" onClick={submit} isLoading={loading}>

@@ -348,7 +348,11 @@ describe("documents API CRUD and isolation", () => {
 
   it("does not issue a signed URL for an inaccessible document", async () => {
     mockCreateClient.mockResolvedValue(
-      createMockSupabase({ user: userB, document: null, signedUrl: "https://x" }),
+      createMockSupabase({
+        user: userB,
+        document: null,
+        signedUrl: "https://x",
+      }),
     );
     const { GET } = await import("./[id]/url/route");
     const result = await read(

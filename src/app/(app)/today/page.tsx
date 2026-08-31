@@ -16,6 +16,8 @@ import { TodayDashboard } from "@/features/tasks/components/today-dashboard";
 import type { TaskMember, TaskRecord } from "@/features/tasks/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/shared/ui/error-state";
+import { PageHeader } from "@/shared/ui/page-header";
+import { formatJalaliLongDate } from "@/shared/utils/jalali";
 
 export const dynamic = "force-dynamic";
 
@@ -230,14 +232,12 @@ export default async function TodayPage() {
   });
 
   return (
-    <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">امروز چه کارهایی داریم؟</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          مرور سریع کارهای معوق، برنامه امروز و رویدادهای پیش‌رو با امکان اقدام
-          فوری.
-        </p>
-      </section>
+    <div className="space-y-7">
+      <PageHeader
+        kicker={formatJalaliLongDate(new Date())}
+        title="دفتر امروز"
+        subtitle="مرور آرام کارهای معوق، برنامه امروز و رویدادهای پیش‌رو."
+      />
 
       <TodayDashboard tasks={tasks} events={events} />
 

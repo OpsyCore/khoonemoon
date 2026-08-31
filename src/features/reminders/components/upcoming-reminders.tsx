@@ -1,13 +1,19 @@
 "use client";
 
+import { BellRing, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReminderRecord } from "@/features/reminders/types";
-import { Button } from "@/shared/ui/button";
-import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
-import { EmptyState } from "@/shared/ui/empty-state";
+import { SectionLabel } from "@/shared/ui/section-label";
 import { formatJalaliLongDate } from "@/shared/utils/jalali";
 import { formatPersianTime } from "@/shared/utils/locale";
+
+const statusLabels: Record<string, string> = {
+  PENDING: "در انتظار",
+  SNOOZED: "به تعویق افتاده",
+  DELIVERED: "ارسال‌شده",
+  CANCELLED: "لغوشده",
+};
 
 export function UpcomingReminders({
   reminders,
@@ -52,19 +58,15 @@ export function UpcomingReminders({
   };
 
   return (
-    <Card className="space-y-3">
-      <CardTitle>یادآورهای آینده نزدیک</CardTitle>
-      <CardDescription>
-        نمایش تا ۷۲ ساعت آینده بر اساس منطقه زمانی فعلی شما.
-      </CardDescription>
+    <section className="space-y-3">
+      <SectionLabel>یادآورهای پیش‌رو</SectionLabel>
 
       {reminders.length === 0 ? (
-        <EmptyState
-          title="یادآور فعالی ندارید"
-          description="برای تسک‌ها و رویدادها یادآور ثبت کنید."
-        />
+        <p className="rounded-field border border-dashed border-line-strong/70 px-4 py-4 text-center text-[13px] text-muted">
+          یادآور فعالی تا ۷۲ ساعت آینده ندارید.
+        </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-line rounded-card border border-line bg-card shadow-paper">
           {reminders.map((reminder) => {
             const effectiveAt = reminder.snoozed_until ?? reminder.remind_at;
             const d = new Date(effectiveAt);
@@ -72,34 +74,40 @@ export function UpcomingReminders({
             return (
               <li
                 key={reminder.id}
-                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                className="flex items-start gap-3 px-4 py-3.5"
               >
-                <p className="text-sm font-semibold">
-                  {reminder.target_type === "TASK"
-                    ? "یادآور تسک"
-                    : "یادآور رویداد"}
-                </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {formatJalaliLongDate(d)} - {formatPersianTime(d)}
-                </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  وضعیت: {reminder.status}
-                </p>
-                <div className="mt-2 flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
+                <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-warn-soft text-warn-ink">
+                  <BellRing className="size-4" strokeWidth={1.75} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-ink">
+                    {reminder.target_type === "TASK"
+                      ? "یادآور تسک"
+                      : "یادآور رویداد"}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    {formatJalaliLongDate(d)} — {formatPersianTime(d)}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    وضعیت: {statusLabels[reminder.status] ?? reminder.status}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
                     onClick={() => snooze(reminder.id, 10)}
+                    className="inline-flex h-7 items-center rounded-full border border-line-strong bg-paper px-2.5 text-[11px] font-medium text-ink-soft transition hover:bg-sunken"
                   >
-                    تعویق ۱۰ دقیقه
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="danger"
+                    ۱۰ دقیقه بعد
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => cancel(reminder.id)}
+                    aria-label="لغو یادآور"
+                    className="inline-flex size-7 items-center justify-center rounded-full text-muted transition hover:bg-danger-soft hover:text-danger-ink"
                   >
-                    لغو
-                  </Button>
+                    <X className="size-3.5" strokeWidth={1.75} />
+                  </button>
                 </div>
               </li>
             );
@@ -107,9 +115,7 @@ export function UpcomingReminders({
         </ul>
       )}
 
-      {error ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
-      ) : null}
-    </Card>
+      {error ? <p className="text-sm text-danger-ink">{error}</p> : null}
+    </section>
   );
 }

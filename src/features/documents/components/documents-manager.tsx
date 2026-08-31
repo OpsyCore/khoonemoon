@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Loader2, Plus, Trash2 } from "lucide-react";
+import { Eye, FileText, Info, Loader2, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
@@ -12,8 +12,9 @@ import {
   type DocumentRecord,
   type DocumentVisibility,
 } from "@/features/documents/types";
+import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
-import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
+import { Card, CardTitle } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorState } from "@/shared/ui/error-state";
 import { Input } from "@/shared/ui/input";
@@ -145,7 +146,9 @@ export function DocumentsManager() {
     setBusy(true);
     setErrorMessage(null);
     try {
-      const response = await fetch(`/api/documents/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/documents/${id}`, {
+        method: "DELETE",
+      });
       const data = (await response.json().catch(() => ({}))) as {
         message?: string;
       };
@@ -210,7 +213,10 @@ export function DocumentsManager() {
       const response = await fetch(`/api/documents/${id}/url`, {
         cache: "no-store",
       });
-      const data = (await response.json()) as { url?: string; message?: string };
+      const data = (await response.json()) as {
+        url?: string;
+        message?: string;
+      };
       if (!response.ok || !data.url) {
         throw new Error(data.message || "ساخت لینک مشاهده ناموفق بود.");
       }
@@ -273,25 +279,39 @@ export function DocumentsManager() {
   }
 
   return (
-    <div className="space-y-4">
-      <section className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            مدارک
-          </h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            فایل‌های شخصی یا مشترک خانه. حداکثر ۱۰ مگابایت، PDF یا تصویر.
-          </p>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        {/* soft folder tabs */}
+        <div className="flex items-end gap-1">
+          {(["ALL", "PRIVATE", "HOUSEHOLD_SHARED"] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setFilter(item)}
+              className={cn(
+                "rounded-t-[14px] border border-b-0 px-4 pb-2.5 pt-2 text-[12px] font-medium transition",
+                filter === item
+                  ? "border-line bg-card text-ink shadow-paper"
+                  : "border-transparent bg-sunken/70 text-muted hover:text-ink",
+              )}
+            >
+              {item === "ALL"
+                ? "همه"
+                : item === "PRIVATE"
+                  ? "خصوصی"
+                  : "اشتراکی"}
+            </button>
+          ))}
         </div>
         <Button
           size="sm"
           type="button"
           onClick={() => setShowForm((value) => !value)}
         >
-          <Plus className="size-4" />
+          <Plus className="size-4" strokeWidth={2} />
           {showForm ? "بستن فرم" : "مدرک جدید"}
         </Button>
-      </section>
+      </div>
 
       {errorMessage ? (
         <ErrorState
@@ -320,9 +340,11 @@ export function DocumentsManager() {
               onChange={(event) => setDescription(event.target.value)}
             />
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">حریم خصوصی</label>
+              <label className="block text-[13px] font-medium text-ink-soft">
+                حریم خصوصی
+              </label>
               <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className="h-11 w-full rounded-field border border-line-strong bg-paper px-3 text-sm text-ink outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/25"
                 value={canShare ? visibility : "PRIVATE"}
                 disabled={!canShare}
                 onChange={(event) =>
@@ -349,84 +371,72 @@ export function DocumentsManager() {
         </form>
       ) : null}
 
-      <div className="flex flex-wrap gap-2">
-        {(["ALL", "PRIVATE", "HOUSEHOLD_SHARED"] as const).map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => setFilter(item)}
-            className={cn(
-              "rounded-full border px-3 py-1.5 text-xs font-medium",
-              filter === item
-                ? "border-sky-300 bg-sky-100 text-sky-800 dark:border-sky-800 dark:bg-sky-900/40 dark:text-sky-200"
-                : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
-            )}
-          >
-            {item === "ALL"
-              ? "همه"
-              : item === "PRIVATE"
-                ? "خصوصی"
-                : "اشتراکی"}
-          </button>
-        ))}
-      </div>
-
       {loading ? (
-        <Card className="flex items-center gap-2 text-sm text-zinc-500">
+        <Card className="flex items-center gap-2 text-sm text-muted">
           <Loader2 className="size-4 animate-spin" />
           در حال بارگذاری مدارک...
         </Card>
       ) : visible.length === 0 && !errorMessage ? (
         <EmptyState
-          title="مدرکی ندارید"
-          description="یک فایل PDF یا تصویر بارگذاری کنید."
+          title="بایگانی هنوز خالی است"
+          description="اولین مدرک‌تان را بارگذاری کنید — PDF یا تصویر، تا ۱۰ مگابایت."
         />
       ) : (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-line rounded-card border border-line bg-card shadow-paper">
           {visible.map((item) => (
             <li key={item.id}>
-              <Card className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <CardTitle>
-                      <span className="inline-flex items-center gap-2">
-                        <FileText className="size-4 shrink-0" />
-                        {item.title}
+              <div className="space-y-3 px-4 py-4">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-field bg-sunken text-ink-soft">
+                    <FileText className="size-4" strokeWidth={1.75} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-ink">
+                      {item.title}
+                    </p>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <Badge
+                        tone={
+                          item.visibility === "PRIVATE" ? "neutral" : "success"
+                        }
+                      >
+                        {item.visibility === "PRIVATE" ? "خصوصی" : "اشتراکی"}
+                      </Badge>
+                      <span className="text-[11px] text-muted">
+                        {formatSize(item.file_size)}
                       </span>
-                    </CardTitle>
-                    <CardDescription>
-                      {item.visibility === "PRIVATE" ? "خصوصی" : "اشتراکی"} ·{" "}
-                      {formatSize(item.file_size)}
-                    </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => void onView(item.id)}
+                      aria-label="مشاهده"
+                      className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
+                    >
+                      <Eye className="size-4" strokeWidth={1.75} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void onOpen(item.id)}
+                      aria-label="جزئیات"
+                      className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
+                    >
+                      <Info className="size-4" strokeWidth={1.75} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void onDelete(item.id)}
+                      disabled={busy}
+                      aria-label="حذف"
+                      className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-danger-soft hover:text-danger-ink"
+                    >
+                      <Trash2 className="size-4" strokeWidth={1.75} />
+                    </button>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => void onView(item.id)}
-                  >
-                    مشاهده
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => void onOpen(item.id)}
-                  >
-                    جزئیات
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => void onDelete(item.id)}
-                    disabled={busy}
-                  >
-                    <Trash2 className="size-4" />
-                    حذف
-                  </Button>
-                </div>
                 {selectedId === item.id ? (
-                  <div className="space-y-3 rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700">
+                  <div className="space-y-3 rounded-field border border-line bg-sunken/50 p-3.5">
                     <Input
                       label="ویرایش عنوان"
                       value={editTitle}
@@ -442,7 +452,7 @@ export function DocumentsManager() {
                     </Button>
                     <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                       <select
-                        className="h-11 rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                        className="h-11 rounded-field border border-line-strong bg-paper px-3 text-sm text-ink outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/25"
                         value={entityType}
                         onChange={(event) =>
                           setEntityType(
@@ -471,7 +481,7 @@ export function DocumentsManager() {
                       پیوست به مورد
                     </Button>
                     {attachments.length === 0 ? (
-                      <p className="text-xs text-zinc-500">پیوستی ندارد.</p>
+                      <p className="text-xs text-muted">پیوستی ندارد.</p>
                     ) : (
                       <ul className="space-y-1 text-sm">
                         {attachments.map((attachment) => (
@@ -497,7 +507,7 @@ export function DocumentsManager() {
                     )}
                   </div>
                 ) : null}
-              </Card>
+              </div>
             </li>
           ))}
         </ul>

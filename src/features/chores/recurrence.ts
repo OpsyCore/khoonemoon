@@ -1,7 +1,4 @@
-import type {
-  ChoreRecurrence,
-  ChoreRotationMember,
-} from "./types";
+import type { ChoreRecurrence, ChoreRotationMember } from "./types";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -12,9 +9,7 @@ function parseDate(date: string): Date {
 
   const [year, month, day] = date.split("-").map(Number);
 
-  const result = new Date(
-    Date.UTC(year, month - 1, day),
-  );
+  const result = new Date(Date.UTC(year, month - 1, day));
 
   if (
     result.getUTCFullYear() !== year ||
@@ -45,24 +40,14 @@ function addMonths(date: Date, months: number): Date {
   const originalDay = date.getUTCDate();
 
   const target = new Date(
-    Date.UTC(
-      date.getUTCFullYear(),
-      date.getUTCMonth() + months,
-      1,
-    ),
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1),
   );
 
   const lastDayOfTargetMonth = new Date(
-    Date.UTC(
-      target.getUTCFullYear(),
-      target.getUTCMonth() + 1,
-      0,
-    ),
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
   ).getUTCDate();
 
-  target.setUTCDate(
-    Math.min(originalDay, lastDayOfTargetMonth),
-  );
+  target.setUTCDate(Math.min(originalDay, lastDayOfTargetMonth));
 
   return target;
 }
@@ -72,9 +57,7 @@ function addYears(date: Date, years: number): Date {
   const month = date.getUTCMonth();
   const day = date.getUTCDate();
 
-  const result = new Date(
-    Date.UTC(targetYear, month, 1),
-  );
+  const result = new Date(Date.UTC(targetYear, month, 1));
 
   const lastDayOfMonth = new Date(
     Date.UTC(targetYear, month + 1, 0),
@@ -99,8 +82,7 @@ function isOccurrenceDate({
   }
 
   const dayDifference = Math.floor(
-    (candidate.getTime() - start.getTime()) /
-      (24 * 60 * 60 * 1000),
+    (candidate.getTime() - start.getTime()) / (24 * 60 * 60 * 1000),
   );
 
   switch (recurrence.frequency) {
@@ -239,9 +221,7 @@ export function getRotationAssignee({
     return null;
   }
 
-  const ordered = [...rotation].sort(
-    (a, b) => a.position - b.position,
-  );
+  const ordered = [...rotation].sort((a, b) => a.position - b.position);
 
   return ordered[occurrenceIndex % ordered.length]?.userId ?? null;
 }

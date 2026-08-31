@@ -9,6 +9,8 @@ import type {
 } from "@/features/households/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/shared/ui/error-state";
+import { PageHeader } from "@/shared/ui/page-header";
+import { SectionLabel } from "@/shared/ui/section-label";
 
 export const dynamic = "force-dynamic";
 
@@ -54,23 +56,25 @@ export default async function HomePage({
 
   if (!membership) {
     return (
-      <div className="space-y-4">
-        <section className="space-y-2">
-          <h2 className="text-lg font-semibold">خونه</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            برای شروع، یک خانه بسازید یا با دعوت شریک‌تان وارد شوید.
-          </p>
-        </section>
+      <div className="space-y-7">
+        <PageHeader
+          kicker="زندگی مشترک"
+          title="خونه"
+          subtitle="برای شروع، یک خانه بسازید یا با دعوت شریک‌تان وارد شوید."
+        />
 
         <HomeFinanceSection />
 
-        <HouseholdManager
-          household={null}
-          members={[]}
-          invitations={[]}
-          role={null}
-          prefillInviteCode={prefillInviteCode}
-        />
+        <section className="space-y-3">
+          <SectionLabel>خانه و اعضا</SectionLabel>
+          <HouseholdManager
+            household={null}
+            members={[]}
+            invitations={[]}
+            role={null}
+            prefillInviteCode={prefillInviteCode}
+          />
+        </section>
       </div>
     );
   }
@@ -116,7 +120,10 @@ export default async function HomePage({
 
   const profilesResult =
     userIds.length > 0
-      ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
+      ? await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", userIds)
       : { data: [] as { id: string; full_name: string | null }[], error: null };
 
   const profileNameById = new Map<string, string>();
@@ -175,14 +182,12 @@ export default async function HomePage({
   });
 
   return (
-    <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">خونه</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          مدیریت خانه، اعضا، دعوت‌نامه‌ها و کارهای مشترک خانه در این بخش انجام
-          می‌شود.
-        </p>
-      </section>
+    <div className="space-y-7">
+      <PageHeader
+        kicker="زندگی مشترک"
+        title="خونه"
+        subtitle="خانه، اعضا، دعوت‌نامه‌ها و کارهای مشترک در همین دفتر."
+      />
 
       <HomeFinanceSection />
 
@@ -192,13 +197,16 @@ export default async function HomePage({
         initialMembers={choreMembers}
       />
 
-      <HouseholdManager
-        household={householdResult.data as HouseholdSummary}
-        members={normalizedMembers}
-        invitations={normalizedInvitations}
-        role={membership.role as HouseholdRole}
-        prefillInviteCode={prefillInviteCode}
-      />
+      <section className="space-y-3">
+        <SectionLabel>خانه و اعضا</SectionLabel>
+        <HouseholdManager
+          household={householdResult.data as HouseholdSummary}
+          members={normalizedMembers}
+          invitations={normalizedInvitations}
+          role={membership.role as HouseholdRole}
+          prefillInviteCode={prefillInviteCode}
+        />
+      </section>
     </div>
   );
 }

@@ -41,7 +41,9 @@ export function FinanceForm({
   return (
     <Card id="quick-add-finance" className="min-w-0 space-y-4">
       <div className="space-y-1">
-        <CardTitle>{isEditing ? "ویرایش مورد مالی" : "مورد مالی جدید"}</CardTitle>
+        <CardTitle>
+          {isEditing ? "ویرایش مورد مالی" : "مورد مالی جدید"}
+        </CardTitle>
         <CardDescription>
           {isEditing
             ? "نوع و حریم خصوصی پس از ثبت قابل تغییر نیست."
@@ -55,14 +57,16 @@ export function FinanceForm({
         {!isEditing ? (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <label className="block space-y-1.5">
-              <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-100">
+              <span className="block text-[13px] font-medium text-ink-soft">
                 نوع
               </span>
               <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="h-11 w-full rounded-field border border-line-strong bg-paper px-3 text-sm text-ink outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/25"
                 value={state.recordType}
                 onChange={(event) =>
-                  setState({ recordType: event.target.value as FinanceRecordType })
+                  setState({
+                    recordType: event.target.value as FinanceRecordType,
+                  })
                 }
               >
                 <option value="EXPENSE">هزینه</option>
@@ -70,11 +74,11 @@ export function FinanceForm({
               </select>
             </label>
             <label className="block space-y-1.5">
-              <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-100">
+              <span className="block text-[13px] font-medium text-ink-soft">
                 حریم خصوصی
               </span>
               <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="h-11 w-full rounded-field border border-line-strong bg-paper px-3 text-sm text-ink outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/25"
                 value={canShare ? state.visibility : "PRIVATE"}
                 disabled={!canShare}
                 onChange={(event) =>
@@ -96,7 +100,9 @@ export function FinanceForm({
           label="عنوان"
           value={state.title}
           onChange={(event) => setState({ title: event.target.value })}
-          placeholder={state.recordType === "BILL" ? "مثلاً قبض برق" : "مثلاً نان"}
+          placeholder={
+            state.recordType === "BILL" ? "مثلاً قبض برق" : "مثلاً نان"
+          }
           maxLength={180}
         />
 
@@ -156,7 +162,12 @@ export function FinanceForm({
             {busy ? <Loader2 className="size-4 animate-spin" /> : null}
             {isEditing ? "ذخیره تغییرات" : "ثبت"}
           </Button>
-          <Button type="button" variant="ghost" disabled={busy} onClick={onCancel}>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={busy}
+            onClick={onCancel}
+          >
             انصراف
           </Button>
         </div>

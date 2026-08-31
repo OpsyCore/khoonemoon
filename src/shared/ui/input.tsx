@@ -22,7 +22,7 @@ export function Input({
       {label ? (
         <label
           htmlFor={fieldId}
-          className="block text-sm font-medium text-zinc-800 dark:text-zinc-100"
+          className="block text-[13px] font-medium text-ink-soft"
         >
           {label}
         </label>
@@ -30,20 +30,14 @@ export function Input({
       <input
         id={fieldId}
         className={cn(
-          "h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
-          error
-            ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/30"
-            : "",
+          "h-11 w-full rounded-field border border-line-strong bg-paper px-3.5 text-sm text-ink outline-none transition placeholder:text-faint focus:border-olive focus:ring-2 focus:ring-olive/25",
+          error ? "border-danger focus:border-danger focus:ring-danger/25" : "",
           className,
         )}
         {...props}
       />
-      {error ? (
-        <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>
-      ) : null}
-      {!error && hint ? (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>
-      ) : null}
+      {error ? <p className="text-xs text-danger-ink">{error}</p> : null}
+      {!error && hint ? <p className="text-xs text-muted">{hint}</p> : null}
     </div>
   );
 }

@@ -8,10 +8,10 @@ import {
   CalendarPlus,
   CircleCheckBig,
   House,
+  X,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/utils/cn";
 
 type QuickAction =
@@ -104,15 +104,15 @@ export function QuickAddFab() {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 left-4 z-40 inline-flex size-14 items-center justify-center rounded-full bg-sky-600 text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:ring-offset-zinc-950 md:bottom-6 md:right-6 md:left-auto"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] left-4 z-40 inline-flex size-12 items-center justify-center rounded-full bg-olive text-cream shadow-paper-lg transition hover:bg-olive-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive focus-visible:ring-offset-2 focus-visible:ring-offset-paper dark:text-[#221c14] md:left-6"
         aria-label="افزودن سریع"
       >
-        <Plus className="size-6" />
+        <Plus className="size-5" strokeWidth={2} />
       </button>
 
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-zinc-900/40 transition",
+          "fixed inset-0 z-50 bg-ink/40 transition",
           isOpen
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0",
@@ -121,21 +121,26 @@ export function QuickAddFab() {
       >
         <section
           className={cn(
-            "absolute inset-x-0 bottom-0 rounded-t-3xl border border-zinc-200 bg-white p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl transition-transform dark:border-zinc-800 dark:bg-zinc-900 md:inset-x-auto md:bottom-6 md:left-auto md:right-6 md:w-80 md:rounded-3xl",
+            "absolute inset-x-0 bottom-0 rounded-t-[24px] border-t border-line bg-paper p-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] shadow-paper-lg transition-transform md:inset-x-auto md:bottom-6 md:left-6 md:w-96 md:rounded-card md:border",
             isOpen ? "translate-y-0" : "translate-y-full md:translate-y-4",
           )}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              افزودن سریع
-            </h2>
-            <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
-              بستن
-            </Button>
+          <span className="mx-auto mb-4 block h-1 w-10 rounded-full bg-kraft md:hidden" />
+
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-bold text-ink">افزودن سریع</h2>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
+              aria-label="بستن"
+            >
+              <X className="size-4" strokeWidth={1.75} />
+            </button>
           </div>
 
-          <ul className="space-y-2">
+          <ul className="grid grid-cols-2 gap-2.5">
             {quickActions.map((action) => {
               const Icon = action.icon;
               const disabled = !action.enabled;
@@ -147,21 +152,30 @@ export function QuickAddFab() {
                     disabled={disabled}
                     onClick={() => handleAction(action)}
                     className={cn(
-                      "flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-right text-sm transition",
+                      "flex w-full flex-col items-start gap-2.5 rounded-card border p-3.5 text-right text-[13px] font-medium transition",
                       disabled
-                        ? "cursor-not-allowed border-zinc-100 text-zinc-400 dark:border-zinc-800 dark:text-zinc-500"
-                        : "border-zinc-200 text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800",
+                        ? "cursor-not-allowed border-line/70 text-faint"
+                        : "border-line bg-card text-ink shadow-paper hover:border-olive/60 hover:bg-olive-soft/50",
                     )}
                   >
-                    <span className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "inline-flex size-9 items-center justify-center rounded-full",
+                        disabled
+                          ? "bg-sunken text-faint"
+                          : "bg-olive-soft text-olive-ink",
+                      )}
+                    >
+                      <Icon className="size-[18px]" strokeWidth={1.75} />
+                    </span>
+                    <span className="flex items-center gap-1.5">
                       {action.label}
                       {disabled && action.soon ? (
-                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                        <span className="rounded-full bg-sunken px-2 py-0.5 text-[10px] font-normal text-muted">
                           به‌زودی
                         </span>
                       ) : null}
                     </span>
-                    <Icon className="size-4 shrink-0" />
                   </button>
                 </li>
               );

@@ -57,9 +57,7 @@ export async function PATCH(
   if (parsed.data.isChecked !== undefined) {
     update.is_checked = parsed.data.isChecked;
     update.checked_by = parsed.data.isChecked ? user.id : null;
-    update.checked_at = parsed.data.isChecked
-      ? new Date().toISOString()
-      : null;
+    update.checked_at = parsed.data.isChecked ? new Date().toISOString() : null;
   }
 
   const { data, error } = await supabase

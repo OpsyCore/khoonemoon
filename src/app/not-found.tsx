@@ -3,18 +3,21 @@ import { EmptyState } from "@/shared/ui/empty-state";
 
 export default function NotFound() {
   return (
-    <main className="mx-auto grid min-h-dvh w-full max-w-md place-items-center px-4">
-      <div className="w-full space-y-3">
+    <main className="mx-auto grid min-h-dvh w-full max-w-md place-items-center bg-paper px-4">
+      <div className="w-full space-y-2 text-center">
+        <p className="text-[44px] font-bold leading-none text-kraft">۴۰۴</p>
         <EmptyState
-          title="این صفحه پیدا نشد"
-          description="ممکن است آدرس را اشتباه وارد کرده باشید."
+          title="این صفحه در دفترمون نیست"
+          description="ممکن است آدرس را اشتباه وارد کرده باشید یا این برگه جابه‌جا شده باشد."
+          action={
+            <Link
+              href="/today"
+              className="inline-flex h-10 items-center rounded-full bg-olive px-5 text-sm font-medium text-cream transition hover:bg-olive-deep dark:text-[#221c14]"
+            >
+              بازگشت به امروز
+            </Link>
+          }
         />
-        <Link
-          href="/today"
-          className="text-sm text-sky-600 underline dark:text-sky-400"
-        >
-          بازگشت به امروز
-        </Link>
       </div>
     </main>
   );

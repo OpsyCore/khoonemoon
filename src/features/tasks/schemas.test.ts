@@ -53,7 +53,9 @@ describe("task schemas", () => {
   });
 
   it("accepts complete/undo/archive patch actions", () => {
-    expect(patchTaskSchema.safeParse({ action: "complete" }).success).toBe(true);
+    expect(patchTaskSchema.safeParse({ action: "complete" }).success).toBe(
+      true,
+    );
     expect(patchTaskSchema.safeParse({ action: "undo" }).success).toBe(true);
     expect(patchTaskSchema.safeParse({ action: "archive" }).success).toBe(true);
   });

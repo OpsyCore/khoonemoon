@@ -46,27 +46,35 @@ function createMockSupabase(options: MockOptions) {
       },
       async maybeSingle() {
         if (table === "tasks" || table === "events") {
-          return { data: options.target ? { id: options.target.id } : null, error: null };
+          return {
+            data: options.target ? { id: options.target.id } : null,
+            error: null,
+          };
         }
         return { data: options.reminder ?? null, error: null };
       },
       async single() {
         if (table === "tasks" || table === "events") {
-          if (!options.target) return { data: null, error: { message: "missing" } };
+          if (!options.target)
+            return { data: null, error: { message: "missing" } };
           return { data: options.target, error: null };
         }
-        if (!options.reminder) return { data: null, error: { message: "missing" } };
+        if (!options.reminder)
+          return { data: null, error: { message: "missing" } };
         return { data: options.reminder, error: null };
       },
       then(
-        resolve: (value: { data: unknown; error: { message: string } | null }) => unknown,
+        resolve: (value: {
+          data: unknown;
+          error: { message: string } | null;
+        }) => unknown,
         reject?: (reason: unknown) => unknown,
       ) {
         if (table === "reminders" && options.insertError) {
-          return Promise.resolve({ data: null, error: options.insertError }).then(
-            resolve,
-            reject,
-          );
+          return Promise.resolve({
+            data: null,
+            error: options.insertError,
+          }).then(resolve, reject);
         }
         const data =
           table === "reminders"
@@ -110,7 +118,9 @@ describe("reminders API auth", () => {
     const { GET } = await import("./route");
     expect(
       (
-        await read(await GET(jsonRequest("http://localhost/api/reminders", "GET")))
+        await read(
+          await GET(jsonRequest("http://localhost/api/reminders", "GET")),
+        )
       ).status,
     ).toBe(401);
   });

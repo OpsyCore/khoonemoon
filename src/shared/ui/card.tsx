@@ -5,7 +5,7 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900",
+        "rounded-card border border-line bg-card p-4 shadow-paper",
         className,
       )}
       {...props}
@@ -14,15 +14,9 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
 }
 
 export function CardTitle({ children }: { children: ReactNode }) {
-  return (
-    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-      {children}
-    </h3>
-  );
+  return <h3 className="text-[15px] font-semibold text-ink">{children}</h3>;
 }
 
 export function CardDescription({ children }: { children: ReactNode }) {
-  return (
-    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{children}</p>
-  );
+  return <p className="mt-1 text-sm leading-6 text-muted">{children}</p>;
 }

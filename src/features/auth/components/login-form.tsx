@@ -51,10 +51,8 @@ export function LoginForm() {
   return (
     <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
       <div className="space-y-1">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-          ورود به خونه‌مون
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <h1 className="text-[22px] font-bold text-ink">ورود به خونه‌مون</h1>
+        <p className="text-[13px] leading-6 text-muted">
           با حساب خود وارد شوید و کارهای امروزتان را ببینید.
         </p>
       </div>
@@ -76,15 +74,13 @@ export function LoginForm() {
       />
 
       {callbackError ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
+        <p className="text-sm text-danger-ink">
           {getPersianAuthErrorMessage(callbackError)}
         </p>
       ) : null}
 
       {serverError ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
-          {serverError}
-        </p>
+        <p className="text-sm text-danger-ink">{serverError}</p>
       ) : null}
 
       <Button type="submit" className="w-full" isLoading={isSubmitting}>
@@ -94,13 +90,13 @@ export function LoginForm() {
       <div className="flex items-center justify-between gap-3 text-sm">
         <Link
           href="/auth/forgot-password"
-          className="text-sky-600 underline dark:text-sky-400"
+          className="font-medium text-clay-ink underline decoration-clay/40 underline-offset-4"
         >
           رمز عبور را فراموش کرده‌اید؟
         </Link>
         <Link
           href="/auth/signup"
-          className="text-sky-600 underline dark:text-sky-400"
+          className="font-medium text-clay-ink underline decoration-clay/40 underline-offset-4"
         >
           ساخت حساب
         </Link>

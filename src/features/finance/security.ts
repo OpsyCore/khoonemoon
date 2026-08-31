@@ -10,9 +10,7 @@ export type FinanceMembership = {
   leftAt: string | Date | null;
 };
 
-export function isFinanceVisibility(
-  value: string,
-): value is FinanceVisibility {
+export function isFinanceVisibility(value: string): value is FinanceVisibility {
   return (FINANCE_VISIBILITIES as readonly string[]).includes(value);
 }
 

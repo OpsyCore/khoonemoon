@@ -9,17 +9,15 @@ export function OfflineRetry() {
   return (
     <div className="mt-5 space-y-3">
       {!isOnline ? (
-        <p className="text-sm text-rose-700 dark:text-rose-300">
-          هنوز آفلاین هستید.
-        </p>
+        <p className="text-sm text-clay-ink">هنوز آفلاین هستید.</p>
       ) : (
-        <p className="text-sm text-emerald-700 dark:text-emerald-300">
+        <p className="text-sm text-olive-ink">
           اتصال برگشته است. می‌توانید به برنامه برگردید.
         </p>
       )}
       <button
         type="button"
-        className="inline-flex h-11 w-full items-center justify-center rounded-2xl bg-sky-600 px-4 text-sm font-medium text-white transition hover:bg-sky-500"
+        className="inline-flex h-11 w-full items-center justify-center rounded-full bg-olive px-4 text-sm font-medium text-cream transition hover:bg-olive-deep dark:text-[#221c14]"
         onClick={() => {
           window.location.assign(resolveOfflineRetryHref(isOnline));
         }}

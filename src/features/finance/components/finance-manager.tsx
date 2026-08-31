@@ -10,7 +10,8 @@ import type {
   FinanceRecordType,
 } from "@/features/finance/types";
 import { Button } from "@/shared/ui/button";
-import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
+import { Card, CardTitle } from "@/shared/ui/card";
+import { SectionLabel } from "@/shared/ui/section-label";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { cn } from "@/shared/utils/cn";
 import { formatAmount, toDateTimeLocal } from "./finance-display";
@@ -71,8 +72,8 @@ function FilterChip({
       className={cn(
         "rounded-full border px-3 py-1.5 text-xs font-medium transition",
         selected
-          ? "border-sky-300 bg-sky-100 text-sky-800 dark:border-sky-800 dark:bg-sky-900/40 dark:text-sky-200"
-          : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800",
+          ? "border-olive/50 bg-olive-soft text-olive-ink "
+          : "border-line bg-card text-ink-soft hover:bg-sunken ",
       )}
       aria-pressed={selected}
     >
@@ -132,7 +133,9 @@ export function FinanceManager({
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "بارگذاری موارد مالی ناموفق بود.",
+        error instanceof Error
+          ? error.message
+          : "بارگذاری موارد مالی ناموفق بود.",
       );
     } finally {
       setLoading(false);
@@ -222,7 +225,8 @@ export function FinanceManager({
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     const type: FinanceRecordType = editingId
-      ? (records.find((item) => item.id === editingId)?.record_type ?? form.recordType)
+      ? (records.find((item) => item.id === editingId)?.record_type ??
+        form.recordType)
       : form.recordType;
 
     const clientError = validateFinanceFormClient(form, type);
@@ -255,7 +259,9 @@ export function FinanceManager({
         throw new Error(data.message || "ذخیره مورد مالی ناموفق بود.");
       }
 
-      setSuccessMessage(editingId ? "مورد مالی ویرایش شد." : "مورد مالی ثبت شد.");
+      setSuccessMessage(
+        editingId ? "مورد مالی ویرایش شد." : "مورد مالی ثبت شد.",
+      );
       closeForm();
       await loadRecords();
       router.refresh();
@@ -286,7 +292,9 @@ export function FinanceManager({
       router.refresh();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "تغییر وضعیت پرداخت ناموفق بود.",
+        error instanceof Error
+          ? error.message
+          : "تغییر وضعیت پرداخت ناموفق بود.",
       );
     } finally {
       setBusyId(null);
@@ -298,7 +306,9 @@ export function FinanceManager({
     setBusyId(record.id);
     setErrorMessage(null);
     try {
-      const response = await fetch(`/api/finance/${record.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/finance/${record.id}`, {
+        method: "DELETE",
+      });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(data.message || "حذف مورد مالی ناموفق بود.");
@@ -316,28 +326,23 @@ export function FinanceManager({
   }
 
   return (
-    <div id="finance" className="space-y-4">
-      <section className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            مالی
-          </h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            قبض‌ها و هزینه‌های یک‌بارهٔ شخصی یا مشترک خانه.
-          </p>
-        </div>
+    <div id="finance" className="space-y-5">
+      <div className="flex items-center gap-3">
+        <SectionLabel className="min-w-0 flex-1">
+          قبض‌ها و هزینه‌ها
+        </SectionLabel>
         <Button
           size="sm"
           type="button"
           onClick={() => (showForm ? closeForm() : openCreate())}
         >
-          <Plus className="size-4" />
+          <Plus className="size-4" strokeWidth={2} />
           {showForm ? "بستن فرم" : "مورد جدید"}
         </Button>
-      </section>
+      </div>
 
       {errorMessage ? (
-        <div className="space-y-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+        <div className="space-y-2 rounded-field border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-danger-ink">
           <p>{errorMessage}</p>
           <Button
             type="button"
@@ -353,7 +358,7 @@ export function FinanceManager({
         </div>
       ) : null}
       {successMessage ? (
-        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+        <p className="rounded-field border border-olive/50 bg-olive-soft px-3 py-2 text-sm text-olive-ink">
           {successMessage}
         </p>
       ) : null}
@@ -421,7 +426,7 @@ export function FinanceManager({
       </div>
 
       {loading ? (
-        <Card className="flex items-center gap-2 text-sm text-zinc-500">
+        <Card className="flex items-center gap-2 text-sm text-muted">
           <Loader2 className="size-4 animate-spin" />
           در حال بارگذاری موارد مالی...
         </Card>
@@ -438,20 +443,37 @@ export function FinanceManager({
       ) : (
         <div className="min-w-0 space-y-4">
           {totals.length > 0 ? (
-            <Card className="space-y-2">
-              <CardTitle>جمع مبالغ</CardTitle>
-              <CardDescription>بر اساس فیلتر فعلی.</CardDescription>
-              <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-200">
+            <Card className="space-y-3 p-5">
+              <div className="flex items-baseline justify-between">
+                <CardTitle>جمع مبالغ</CardTitle>
+                <span className="text-[11px] text-muted">
+                  بر اساس فیلتر فعلی
+                </span>
+              </div>
+              <ul className="divide-y divide-line text-sm">
                 {totals.map((row) => (
-                  <li key={row.currency} className="space-y-1">
-                    <p>
-                      قبض‌های پرداخت‌نشده:{" "}
-                      {formatAmount(row.unpaidBills, row.currency)}
-                    </p>
-                    <p>هزینه‌ها: {formatAmount(row.expenses, row.currency)}</p>
-                    <p>
-                      قبض‌های پرداخت‌شده: {formatAmount(row.paidBills, row.currency)}
-                    </p>
+                  <li
+                    key={row.currency}
+                    className="space-y-2 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-ink-soft">قبض‌های پرداخت‌نشده</span>
+                      <span className="font-semibold text-clay-ink">
+                        {formatAmount(row.unpaidBills, row.currency)}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-ink-soft">هزینه‌ها</span>
+                      <span className="font-semibold text-ink">
+                        {formatAmount(row.expenses, row.currency)}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-ink-soft">قبض‌های پرداخت‌شده</span>
+                      <span className="font-semibold text-olive-ink">
+                        {formatAmount(row.paidBills, row.currency)}
+                      </span>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -460,9 +482,7 @@ export function FinanceManager({
 
           {bills.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                قبض‌ها
-              </p>
+              <SectionLabel>قبض‌ها</SectionLabel>
               <ul className="space-y-2">
                 {bills.map((record) => (
                   <li key={record.id}>
@@ -482,9 +502,7 @@ export function FinanceManager({
           ) : null}
           {expenses.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                هزینه‌ها
-              </p>
+              <SectionLabel>هزینه‌ها</SectionLabel>
               <ul className="space-y-2">
                 {expenses.map((record) => (
                   <li key={record.id}>

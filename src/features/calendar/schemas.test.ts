@@ -38,9 +38,9 @@ describe("event schemas", () => {
   });
 
   it("rejects a short title", () => {
-    expect(createEventSchema.safeParse(validEvent({ title: "ا" })).success).toBe(
-      false,
-    );
+    expect(
+      createEventSchema.safeParse(validEvent({ title: "ا" })).success,
+    ).toBe(false);
   });
 
   it("rejects an unknown visibility", () => {

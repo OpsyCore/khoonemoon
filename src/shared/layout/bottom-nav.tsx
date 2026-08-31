@@ -24,8 +24,8 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 md:hidden">
-      <ul className="mx-auto grid w-full max-w-md grid-cols-5 gap-1">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+      <ul className="mx-auto grid w-full max-w-md grid-cols-5 px-2 py-1.5">
         {navItems.map((item) => {
           const isActive = isBottomNavActive(pathname, item.href);
           const Icon = item.icon;
@@ -35,14 +35,22 @@ export function BottomNav() {
               <Link
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[11px] font-medium transition",
-                  isActive
-                    ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
-                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+                  "group flex flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 text-[10.5px] font-medium transition",
+                  isActive ? "text-olive-ink" : "text-muted hover:text-ink",
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
-                <Icon className="size-4" />
+                <span
+                  className={cn(
+                    "inline-flex h-7 w-12 items-center justify-center rounded-full transition",
+                    isActive ? "bg-olive-soft" : "group-hover:bg-sunken",
+                  )}
+                >
+                  <Icon
+                    className="size-[18px]"
+                    strokeWidth={isActive ? 2 : 1.75}
+                  />
+                </span>
                 <span>{item.label}</span>
               </Link>
             </li>

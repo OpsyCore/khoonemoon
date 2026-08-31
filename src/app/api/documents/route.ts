@@ -74,10 +74,7 @@ export async function POST(request: Request) {
 
   const file = form.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json(
-      { message: "فایل الزامی است." },
-      { status: 400 },
-    );
+    return NextResponse.json({ message: "فایل الزامی است." }, { status: 400 });
   }
 
   const parsed = createDocumentMetaSchema.safeParse({

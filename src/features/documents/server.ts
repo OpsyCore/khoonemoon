@@ -44,7 +44,10 @@ export async function validateCreateDocumentForUser({
   return { householdId: null };
 }
 
-export async function entityExistsForUser(entityType: DocumentEntityType, entityId: string) {
+export async function entityExistsForUser(
+  entityType: DocumentEntityType,
+  entityId: string,
+) {
   const supabase = await createSupabaseServerClient();
   const table = ENTITY_TABLE[entityType];
   const { data, error } = await supabase
@@ -103,7 +106,8 @@ export function buildStoragePath({
   documentId: string;
   fileName: string;
 }) {
-  const safe = fileName.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 80) || "file";
+  const safe =
+    fileName.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 80) || "file";
   if (visibility === "PRIVATE") {
     return `user/${userId}/${documentId}/${safe}`;
   }

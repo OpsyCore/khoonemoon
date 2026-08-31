@@ -107,8 +107,7 @@ export function toFinanceUpdateRpcInput({
 }): FinanceUpdateRpcInput {
   return {
     title: patch.title ?? existing.title,
-    amount:
-      patch.amount !== undefined ? patch.amount : Number(existing.amount),
+    amount: patch.amount !== undefined ? patch.amount : Number(existing.amount),
     currency: patch.currency ?? existing.currency,
     dueAt:
       existing.record_type === "BILL"
@@ -122,8 +121,7 @@ export function toFinanceUpdateRpcInput({
           ? existing.occurred_at
           : patch.occurredAt
         : null,
-    category:
-      patch.category === undefined ? existing.category : patch.category,
+    category: patch.category === undefined ? existing.category : patch.category,
     note: patch.note === undefined ? existing.note : patch.note,
   };
 }

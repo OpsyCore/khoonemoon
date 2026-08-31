@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
 
-import {
-  updateChoreSchema,
-} from "@/features/chores/schemas";
+import { updateChoreSchema } from "@/features/chores/schemas";
 import type { ChoreFrequency } from "@/features/chores/types";
 
-import {
-  validateUpdateChoreForUser,
-} from "@/features/chores/server";
+import { validateUpdateChoreForUser } from "@/features/chores/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -15,8 +11,6 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   if (value == null) return null;
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
-
-
 
 function mapChoreError(error: unknown) {
   if (!(error instanceof Error)) {
@@ -65,7 +59,6 @@ function mapChoreError(error: unknown) {
   return "انجام عملیات کار خانه ناموفق بود.";
 }
 
-
 export async function GET(
   _request: Request,
   context: {
@@ -81,10 +74,7 @@ export async function GET(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json(
-      { message: "Unauthorized" },
-      { status: 401 },
-    );
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   const { data: chore, error } = await supabase
@@ -128,7 +118,6 @@ export async function GET(
   });
 }
 
-
 export async function PATCH(
   request: Request,
   context: {
@@ -144,10 +133,7 @@ export async function PATCH(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json(
-      { message: "Unauthorized" },
-      { status: 401 },
-    );
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   let body: unknown;
@@ -173,11 +159,10 @@ export async function PATCH(
     );
   }
 
-  const { data: existing, error: loadError } =
-    await supabase
-      .from("chores")
-      .select(
-        `
+  const { data: existing, error: loadError } = await supabase
+    .from("chores")
+    .select(
+      `
           id,
           household_id,
           title,
@@ -195,9 +180,9 @@ export async function PATCH(
             position
           )
         `,
-      )
-      .eq("id", id)
-      .maybeSingle();
+    )
+    .eq("id", id)
+    .maybeSingle();
 
   if (loadError || !existing) {
     return NextResponse.json(
@@ -225,8 +210,7 @@ export async function PATCH(
   if (!currentRecurrence?.frequency) {
     return NextResponse.json(
       {
-        message:
-          "تنظیم تکرار فعلی کار خانه یافت نشد.",
+        message: "تنظیم تکرار فعلی کار خانه یافت نشد.",
       },
       { status: 400 },
     );
@@ -245,44 +229,32 @@ export async function PATCH(
 
   const input = parsed.data;
 
-  const title =
-    input.title ??
-    existing.title;
+  const title = input.title ?? existing.title;
 
   const description =
-    input.description === undefined
-      ? existing.description
-      : input.description;
+    input.description === undefined ? existing.description : input.description;
 
-  const startDate =
-    input.startDate ??
-    existing.start_date;
+  const startDate = input.startDate ?? existing.start_date;
 
   const defaultAssigneeId =
     input.defaultAssigneeId === undefined
       ? existing.default_assignee_id
       : input.defaultAssigneeId;
 
-  const isActive =
-    input.isActive ??
-    existing.is_active;
+  const isActive = input.isActive ?? existing.is_active;
 
-  const recurrence =
-    input.recurrence ?? {
-      frequency: currentRecurrence.frequency as ChoreFrequency,
-      intervalDays: currentRecurrence.interval_days ?? null,
-      weekdays: currentRecurrence.weekdays ?? null,
-    };
+  const recurrence = input.recurrence ?? {
+    frequency: currentRecurrence.frequency as ChoreFrequency,
+    intervalDays: currentRecurrence.interval_days ?? null,
+    weekdays: currentRecurrence.weekdays ?? null,
+  };
 
-  const rotationUserIds =
-    input.rotationUserIds ??
-    currentRotationIds;
+  const rotationUserIds = input.rotationUserIds ?? currentRotationIds;
 
   try {
     await validateUpdateChoreForUser({
       userId: user.id,
-      householdId:
-        existing.household_id,
+      householdId: existing.household_id,
       input: {
         title,
         description,
@@ -294,46 +266,30 @@ export async function PATCH(
       },
     });
 
-    const { data: updated, error } =
-      await supabase.rpc(
-        "update_chore",
-        {
-          p_chore_id: id,
+    const { data: updated, error } = await supabase.rpc("update_chore", {
+      p_chore_id: id,
 
-          p_title:
-            title,
+      p_title: title,
 
-          p_description:
-            description ?? null,
+      p_description: description ?? null,
 
-          p_start_date:
-            startDate,
+      p_start_date: startDate,
 
-          p_default_assignee_id:
-            defaultAssigneeId ?? null,
+      p_default_assignee_id: defaultAssigneeId ?? null,
 
-          p_frequency:
-            recurrence.frequency,
+      p_frequency: recurrence.frequency,
 
-          p_interval_days:
-            recurrence.intervalDays ?? null,
+      p_interval_days: recurrence.intervalDays ?? null,
 
-          p_weekdays:
-            recurrence.weekdays ?? null,
+      p_weekdays: recurrence.weekdays ?? null,
 
-          p_rotation_user_ids:
-            rotationUserIds,
+      p_rotation_user_ids: rotationUserIds,
 
-          p_is_active:
-            isActive,
-        },
-      );
+      p_is_active: isActive,
+    });
 
     if (error || !updated) {
-      throw new Error(
-        error?.message ??
-          "UPDATE_CHORE_FAILED",
-      );
+      throw new Error(error?.message ?? "UPDATE_CHORE_FAILED");
     }
 
     return NextResponse.json({
@@ -342,14 +298,12 @@ export async function PATCH(
   } catch (error) {
     return NextResponse.json(
       {
-        message:
-          mapChoreError(error),
+        message: mapChoreError(error),
       },
       { status: 400 },
     );
   }
 }
-
 
 export async function DELETE(
   _request: Request,
@@ -366,10 +320,7 @@ export async function DELETE(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json(
-      { message: "Unauthorized" },
-      { status: 401 },
-    );
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   const { data: existing, error: loadError } = await supabase

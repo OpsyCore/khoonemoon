@@ -8,13 +8,14 @@ import {
   Pencil,
   Plus,
   RotateCcw,
-  ShoppingCart,
   Trash2,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/shared/ui/button";
+import { EmptyState } from "@/shared/ui/empty-state";
+import { PageHeader } from "@/shared/ui/page-header";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 
@@ -264,10 +265,7 @@ export function ShoppingManager() {
       ? Number(itemQuantityValue)
       : null;
 
-    if (
-      quantity !== null &&
-      (!Number.isFinite(quantity) || quantity <= 0)
-    ) {
+    if (quantity !== null && (!Number.isFinite(quantity) || quantity <= 0)) {
       setError("تعداد باید یک عدد مثبت باشد.");
       return;
     }
@@ -322,9 +320,7 @@ export function ShoppingManager() {
 
       await loadLists();
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "تغییر وضعیت کالا ناموفق بود.",
-      );
+      setError(e instanceof Error ? e.message : "تغییر وضعیت کالا ناموفق بود.");
     } finally {
       setBusyKey(null);
     }
@@ -346,14 +342,9 @@ export function ShoppingManager() {
       return;
     }
 
-    const quantity = editItemQuantity.trim()
-      ? Number(editItemQuantity)
-      : null;
+    const quantity = editItemQuantity.trim() ? Number(editItemQuantity) : null;
 
-    if (
-      quantity !== null &&
-      (!Number.isFinite(quantity) || quantity <= 0)
-    ) {
+    if (quantity !== null && (!Number.isFinite(quantity) || quantity <= 0)) {
       setError("تعداد باید یک عدد مثبت باشد.");
       return;
     }
@@ -414,37 +405,34 @@ export function ShoppingManager() {
   }
 
   return (
-    <div className="space-y-4">
-      <section className="flex items-start justify-between gap-3">
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold">لیست‌های خرید</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            لیست‌های مشترک خانه؛ اضافه کنید، تیک بزنید و با هم خرید را جلو
-            ببرید.
-          </p>
-        </div>
-
-        <Button
-          size="sm"
-          type="button"
-          onClick={() => {
-            clearMessages();
-            setShowNewList((current) => !current);
-          }}
-        >
-          <Plus className="size-4" />
-          لیست جدید
-        </Button>
-      </section>
+    <div className="space-y-7">
+      <PageHeader
+        kicker="دفترچه خرید"
+        title="لیست‌ها"
+        subtitle="لیست‌های مشترک خانه؛ بنویسید، تیک بزنید و با هم خرید کنید."
+        action={
+          <Button
+            size="sm"
+            type="button"
+            onClick={() => {
+              clearMessages();
+              setShowNewList((current) => !current);
+            }}
+          >
+            <Plus className="size-4" strokeWidth={2} />
+            لیست جدید
+          </Button>
+        }
+      />
 
       {error ? (
-        <p className="rounded-2xl border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+        <p className="rounded-field border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-danger-ink">
           {error}
         </p>
       ) : null}
 
       {success ? (
-        <p className="rounded-2xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+        <p className="rounded-field border border-olive/50 bg-olive-soft px-3 py-2 text-sm text-olive-ink">
           {success}
         </p>
       ) : null}
@@ -452,7 +440,10 @@ export function ShoppingManager() {
       {showNewList ? (
         <Card id="quick-add-shopping" className="space-y-3">
           <CardTitle>لیست خرید جدید</CardTitle>
-          <form onSubmit={createList} className="flex flex-col gap-2 sm:flex-row">
+          <form
+            onSubmit={createList}
+            className="flex flex-col gap-2 sm:flex-row"
+          >
             <Input
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
@@ -487,28 +478,25 @@ export function ShoppingManager() {
       ) : null}
 
       {loading ? (
-        <Card className="flex items-center gap-2 text-sm text-zinc-500">
+        <Card className="flex items-center gap-2 text-sm text-muted">
           <Loader2 className="size-4 animate-spin" />
           در حال دریافت لیست‌های خرید...
         </Card>
       ) : lists.length === 0 ? (
-        <Card className="space-y-3 text-center">
-          <ShoppingCart className="mx-auto size-8 text-zinc-400" />
-          <div>
-            <CardTitle>هنوز لیست خریدی ندارید</CardTitle>
-            <CardDescription>
-              یک لیست مثل «خرید هفتگی» بسازید و کالاها را اضافه کنید.
-            </CardDescription>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => setShowNewList(true)}
-          >
-            <Plus className="size-4" />
-            ساخت اولین لیست
-          </Button>
-        </Card>
+        <EmptyState
+          title="هنوز لیست خریدی ندارید"
+          description="یک لیست مثل «خرید هفتگی» بسازید و کالاها را با هم اضافه کنید."
+          action={
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setShowNewList(true)}
+            >
+              <Plus className="size-4" strokeWidth={2} />
+              ساخت اولین لیست
+            </Button>
+          }
+        />
       ) : (
         <div className="space-y-4">
           {lists.map((list) => {
@@ -560,7 +548,7 @@ export function ShoppingManager() {
 
                   <button
                     type="button"
-                    className="rounded-xl p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
                     onClick={() =>
                       setExpanded((current) => ({
                         ...current,
@@ -613,14 +601,14 @@ export function ShoppingManager() {
                         disabled={listBusy}
                         onClick={() => void deleteList(list)}
                       >
-                        <Trash2 className="size-4 text-rose-500" />
+                        <Trash2 className="size-4 text-danger-ink" />
                         حذف لیست
                       </Button>
                     </div>
 
                     {addingTo === list.id ? (
                       <form
-                        className="space-y-3 rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                        className="space-y-3 rounded-field border border-olive/40 bg-olive-soft/40 p-3.5"
                         onSubmit={(event) => void addItem(event, list.id)}
                       >
                         <Input
@@ -639,7 +627,9 @@ export function ShoppingManager() {
                             min="0.01"
                             step="any"
                             value={itemQuantityValue}
-                            onChange={(e) => setItemQuantityValue(e.target.value)}
+                            onChange={(e) =>
+                              setItemQuantityValue(e.target.value)
+                            }
                             placeholder="مثلاً 2"
                           />
                           <Input
@@ -685,11 +675,11 @@ export function ShoppingManager() {
                     ) : null}
 
                     {items.length === 0 ? (
-                      <p className="rounded-2xl bg-zinc-50 px-3 py-4 text-center text-sm text-zinc-500 dark:bg-zinc-950/50 dark:text-zinc-400">
+                      <p className="rounded-field border border-dashed border-line-strong/70 px-3 py-4 text-center text-[13px] text-muted">
                         این لیست هنوز خالی است.
                       </p>
                     ) : (
-                      <ul className="space-y-2">
+                      <ul className="divide-y divide-line rounded-field border border-line bg-paper/50">
                         {[...items]
                           .sort(
                             (a, b) =>
@@ -700,10 +690,7 @@ export function ShoppingManager() {
                             const editing = editingItemId === item.id;
 
                             return (
-                              <li
-                                key={item.id}
-                                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
-                              >
+                              <li key={item.id} className="px-3.5 py-3">
                                 {editing ? (
                                   <div className="space-y-3">
                                     <Input
@@ -771,15 +758,12 @@ export function ShoppingManager() {
                                       type="button"
                                       disabled={itemBusy}
                                       onClick={() =>
-                                        void setChecked(
-                                          item,
-                                          !item.is_checked,
-                                        )
+                                        void setChecked(item, !item.is_checked)
                                       }
-                                      className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border transition ${
+                                      className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border transition ${
                                         item.is_checked
-                                          ? "border-emerald-500 bg-emerald-500 text-white"
-                                          : "border-zinc-300 text-transparent dark:border-zinc-600"
+                                          ? "border-olive bg-olive text-cream dark:text-[#221c14]"
+                                          : "border-line-strong bg-paper text-transparent hover:border-olive hover:text-olive/50"
                                       }`}
                                       aria-label={
                                         item.is_checked
@@ -788,9 +772,12 @@ export function ShoppingManager() {
                                       }
                                     >
                                       {itemBusy ? (
-                                        <Loader2 className="size-4 animate-spin text-zinc-500" />
+                                        <Loader2 className="size-3.5 animate-spin text-muted" />
                                       ) : (
-                                        <Check className="size-4" />
+                                        <Check
+                                          className="size-3.5"
+                                          strokeWidth={2.5}
+                                        />
                                       )}
                                     </button>
 
@@ -798,14 +785,14 @@ export function ShoppingManager() {
                                       <p
                                         className={`text-sm font-medium ${
                                           item.is_checked
-                                            ? "text-zinc-400 line-through"
-                                            : "text-zinc-900 dark:text-zinc-100"
+                                            ? "text-faint line-through"
+                                            : "text-ink "
                                         }`}
                                       >
                                         {item.name}
                                       </p>
 
-                                      <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-zinc-500 dark:text-zinc-400">
+                                      <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-muted">
                                         {item.quantity != null ? (
                                           <span>
                                             {itemQuantity(item)}
@@ -815,7 +802,9 @@ export function ShoppingManager() {
                                           <span>{item.unit}</span>
                                         ) : null}
 
-                                        {item.note ? <span>{item.note}</span> : null}
+                                        {item.note ? (
+                                          <span>{item.note}</span>
+                                        ) : null}
                                       </div>
                                     </div>
 
@@ -827,7 +816,7 @@ export function ShoppingManager() {
                                           onClick={() =>
                                             void setChecked(item, false)
                                           }
-                                          className="rounded-xl p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                          className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
                                           aria-label="برگرداندن"
                                         >
                                           <RotateCcw className="size-4" />
@@ -838,7 +827,7 @@ export function ShoppingManager() {
                                         type="button"
                                         disabled={itemBusy}
                                         onClick={() => startEditItem(item)}
-                                        className="rounded-xl p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                        className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
                                         aria-label="ویرایش کالا"
                                       >
                                         <Pencil className="size-4" />
@@ -848,7 +837,7 @@ export function ShoppingManager() {
                                         type="button"
                                         disabled={itemBusy}
                                         onClick={() => void deleteItem(item)}
-                                        className="rounded-xl p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                                        className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-danger-soft hover:text-danger-ink"
                                         aria-label="حذف کالا"
                                       >
                                         <Trash2 className="size-4" />

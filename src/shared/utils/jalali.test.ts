@@ -30,12 +30,12 @@ describe("jalali utils", () => {
   });
 
   it("detects same day correctly using local calendar fields", () => {
-    expect(
-      isSameDay(new Date(2026, 1, 1, 10), new Date(2026, 1, 1, 20)),
-    ).toBe(true);
+    expect(isSameDay(new Date(2026, 1, 1, 10), new Date(2026, 1, 1, 20))).toBe(
+      true,
+    );
 
-    expect(
-      isSameDay(new Date(2026, 1, 1, 10), new Date(2026, 1, 2, 10)),
-    ).toBe(false);
+    expect(isSameDay(new Date(2026, 1, 1, 10), new Date(2026, 1, 2, 10))).toBe(
+      false,
+    );
   });
 });

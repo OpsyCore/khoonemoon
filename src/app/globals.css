@@ -3,12 +3,127 @@
 /* next-themes sets class="dark" on <html>; Tailwind v4 must use class strategy */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ------------------------------------------------------------------
+   خونه‌مون — Warm archival paper design system
+   Light: a shared couple journal made of warm paper.
+   Dark: the same notebook at night — warm charcoal/brown, never OLED.
+------------------------------------------------------------------- */
+
 :root {
   color-scheme: light;
+
+  /* surfaces */
+  --paper: #f6f1e7; /* app background */
+  --card: #fcf8ee; /* raised paper card */
+  --sunken: #eee7d7; /* inset / wash areas */
+  --kraft: #d9cbb3; /* kraft accents, skeletons */
+  --line: #e2d8c4; /* hairline borders */
+  --line-strong: #cbbc9f;
+
+  /* ink */
+  --ink: #3f342b;
+  --ink-soft: #63564a;
+  --muted: #8a7b6a;
+  --faint: #ab9d8b;
+  --cream: #fbf7ec; /* text on olive/clay solids */
+
+  /* olive — primary */
+  --olive: #9aa06e;
+  --olive-deep: #7c8253; /* hover / pressed solids */
+  --olive-ink: #6e744a; /* olive as text on paper */
+  --olive-soft: #e9ead8; /* olive tint surface */
+
+  /* clay / terracotta — secondary accent */
+  --clay: #e07a5f;
+  --clay-ink: #b65138;
+  --clay-soft: #f8e4db;
+
+  /* feedback */
+  --warn-ink: #9a7233;
+  --warn-soft: #f1e5c9;
+  --danger: #b0563c;
+  --danger-ink: #a44e33;
+  --danger-soft: #f4dfd4;
+
+  --shadow-tint: 63, 52, 43;
 }
 
 .dark {
   color-scheme: dark;
+
+  --paper: #262119;
+  --card: #2e2920;
+  --sunken: #201c15;
+  --kraft: #4c4232;
+  --line: #3c352a;
+  --line-strong: #55492f;
+
+  --ink: #ede4d1;
+  --ink-soft: #cdc1ab;
+  --muted: #9c8f7a;
+  --faint: #786d5c;
+  --cream: #f6f1e7;
+
+  --olive: #8f955f;
+  --olive-deep: #a0a771;
+  --olive-ink: #c2c793;
+  --olive-soft: #363927;
+
+  --clay: #c76f53;
+  --clay-ink: #e7a48d;
+  --clay-soft: #452f26;
+
+  --warn-ink: #d3b074;
+  --warn-soft: #423826;
+  --danger: #a85942;
+  --danger-ink: #e4a48c;
+  --danger-soft: #46302a;
+
+  --shadow-tint: 0, 0, 0;
+}
+
+@theme inline {
+  /* colors */
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-sunken: var(--sunken);
+  --color-kraft: var(--kraft);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-cream: var(--cream);
+  --color-olive: var(--olive);
+  --color-olive-deep: var(--olive-deep);
+  --color-olive-ink: var(--olive-ink);
+  --color-olive-soft: var(--olive-soft);
+  --color-clay: var(--clay);
+  --color-clay-ink: var(--clay-ink);
+  --color-clay-soft: var(--clay-soft);
+  --color-warn-ink: var(--warn-ink);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-soft: var(--danger-soft);
+
+  /* geometry */
+  --radius-card: 1.125rem; /* 18px — paper cards */
+  --radius-field: 0.875rem; /* 14px — inputs, small controls */
+
+  /* restrained paper shadows */
+  --shadow-paper:
+    0 1px 2px rgba(var(--shadow-tint), 0.05),
+    0 4px 14px rgba(var(--shadow-tint), 0.05);
+  --shadow-paper-lg:
+    0 2px 4px rgba(var(--shadow-tint), 0.06),
+    0 12px 32px rgba(var(--shadow-tint), 0.12);
+
+  /* typography */
+  --font-sans:
+    "IRANSansX", "IRANSansXFaNum", var(--font-vazirmatn), "Vazirmatn",
+    ui-sans-serif, system-ui, sans-serif;
 }
 
 * {
@@ -18,16 +133,46 @@
 body {
   margin: 0;
   min-height: 100dvh;
-  background-color: #f8fafc;
-  color: #18181b;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
 }
 
-.dark body,
-html.dark body {
-  background-color: #09090b;
-  color: #f4f4f5;
+/* very subtle archival paper grain */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.035'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.dark body::before {
+  opacity: 0.35;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 ::selection {
-  background: rgb(14 165 233 / 0.3);
+  background: rgb(154 160 110 / 0.35);
+}
+
+/* quiet, warm scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--kraft) transparent;
+}
+
+/* number inputs & date fields inherit the warm ink */
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
 }

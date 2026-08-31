@@ -18,7 +18,10 @@ export function formatAmount(amount: number | string, currency: string) {
   return `${toPersianNumber(toFinanceAmount(amount))} ${currency}`;
 }
 
-export function billStatusOf(record: FinanceRecord, now = new Date()): BillStatus | null {
+export function billStatusOf(
+  record: FinanceRecord,
+  now = new Date(),
+): BillStatus | null {
   if (record.record_type !== "BILL") return null;
   return deriveBillStatus(record, now);
 }
@@ -44,5 +47,7 @@ export function memberDisplayName(
   userId: string | null | undefined,
 ) {
   if (!userId) return "کاربر";
-  return members.find((member) => member.userId === userId)?.fullName || "کاربر";
+  return (
+    members.find((member) => member.userId === userId)?.fullName || "کاربر"
+  );
 }

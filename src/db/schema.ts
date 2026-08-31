@@ -56,14 +56,7 @@ export const taskRecurrenceFrequencyEnum = pgEnum("task_recurrence_frequency", [
 ]);
 export const choreRecurrenceFrequencyEnum = pgEnum(
   "chore_recurrence_frequency",
-  [
-    "NONE",
-    "DAILY",
-    "INTERVAL_DAYS",
-    "WEEKLY",
-    "MONTHLY",
-    "YEARLY",
-  ],
+  ["NONE", "DAILY", "INTERVAL_DAYS", "WEEKLY", "MONTHLY", "YEARLY"],
 );
 
 export const eventVisibilityEnum = pgEnum("event_visibility", [
@@ -346,9 +339,7 @@ export const chores = pgTable(
 
     description: text("description"),
 
-    isActive: boolean("is_active")
-      .notNull()
-      .default(true),
+    isActive: boolean("is_active").notNull().default(true),
 
     startDate: date("start_date")
       .notNull()
@@ -385,14 +376,9 @@ export const chores = pgTable(
       name: "chores_default_assignee_id_auth_users_fk",
     }).onDelete("set null"),
 
-    index("chores_household_active_idx").on(
-      table.householdId,
-      table.isActive,
-    ),
+    index("chores_household_active_idx").on(table.householdId, table.isActive),
 
-    index("chores_default_assignee_idx").on(
-      table.defaultAssigneeId,
-    ),
+    index("chores_default_assignee_idx").on(table.defaultAssigneeId),
   ],
 );
 
@@ -432,9 +418,7 @@ export const choreRecurrences = pgTable(
       name: "chore_recurrences_chore_id_chores_fk",
     }).onDelete("cascade"),
 
-    uniqueIndex("chore_recurrences_chore_uniq").on(
-      table.choreId,
-    ),
+    uniqueIndex("chore_recurrences_chore_uniq").on(table.choreId),
   ],
 );
 
@@ -483,9 +467,7 @@ export const choreRotations = pgTable(
       table.position,
     ),
 
-    index("chore_rotations_user_idx").on(
-      table.userId,
-    ),
+    index("chore_rotations_user_idx").on(table.userId),
   ],
 );
 
@@ -538,10 +520,7 @@ export const choreCompletions = pgTable(
       table.forDate,
     ),
 
-    index("chore_completions_chore_date_idx").on(
-      table.choreId,
-      table.forDate,
-    ),
+    index("chore_completions_chore_date_idx").on(table.choreId, table.forDate),
 
     index("chore_completions_assigned_to_date_idx").on(
       table.assignedTo,

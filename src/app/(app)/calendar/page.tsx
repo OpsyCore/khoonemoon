@@ -5,6 +5,7 @@ import type { ChoreFrequency } from "@/features/chores/types";
 import type { TaskRecord } from "@/features/tasks/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/shared/ui/error-state";
+import { PageHeader } from "@/shared/ui/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -152,14 +153,12 @@ export default async function CalendarPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">تقویم مشترک</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          رویدادها، تسک‌ها و کارهای خانه را در نمای جلالی ماهانه، هفتگی و فهرستی
-          ببینید.
-        </p>
-      </section>
+    <div className="space-y-7">
+      <PageHeader
+        kicker="برنامه دونفره"
+        title="تقویم"
+        subtitle="رویدادها، تسک‌ها و کارهای خانه در نمای جلالی."
+      />
 
       <CalendarBoard
         tasks={(tasksResult.data ?? []) as TaskRecord[]}
