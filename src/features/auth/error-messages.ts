@@ -1,3 +1,5 @@
+import { getSupabaseConfigDebugText } from "@/lib/supabase/env";
+
 type AuthErrorLike = {
   message?: string;
   code?: string;
@@ -136,6 +138,11 @@ export function getAuthErrorDebugText(
     e.code ? `code=${e.code}` : null,
     e.message ? `message=${e.message}` : null,
   ].filter(Boolean);
+
+  const configText = getSupabaseConfigDebugText();
+  if (configText) {
+    parts.push(configText);
+  }
 
   const text = parts.join(" | ");
   console.error(`[khoonemoon:auth] ${text}`, error);
