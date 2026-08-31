@@ -27,6 +27,17 @@ export function getAuthErrorKey(error: unknown) {
 export function getPersianAuthErrorMessage(error: unknown) {
   const key = getAuthErrorKey(error);
 
+  // 401 from /auth/v1/* means the API key sent by the app was rejected —
+  // this is a configuration problem, NOT wrong user credentials.
+  if (
+    key.includes("invalid api key") ||
+    key.includes("no api key found") ||
+    key.includes("legacy api keys are disabled") ||
+    key === "status_401"
+  ) {
+    return "پیکربندی اتصال به سرور نادرست است (کلید API نامعتبر). این مشکل از ایمیل یا رمز عبور شما نیست.";
+  }
+
   if (
     key.includes("email not confirmed") ||
     key === "email_not_confirmed" ||
@@ -102,4 +113,31 @@ export function getAuthCallbackErrorCode(error: unknown) {
   }
 
   return "auth_callback_failed";
+}
+
+/**
+ * Development-only diagnostics: surface the real Supabase error
+ * (message/code/status) in the console and as a short UI string, instead of
+ * hiding it behind a generic Persian message. Returns null in production.
+ * Never includes credentials or API keys.
+ */
+export function getAuthErrorDebugText(
+  context: string,
+  error: unknown,
+): string | null {
+  if (process.env.NODE_ENV === "production") {
+    return null;
+  }
+
+  const e = (error ?? {}) as AuthErrorLike;
+  const parts = [
+    `context=${context}`,
+    e.status !== undefined ? `status=${e.status}` : null,
+    e.code ? `code=${e.code}` : null,
+    e.message ? `message=${e.message}` : null,
+  ].filter(Boolean);
+
+  const text = parts.join(" | ");
+  console.error(`[khoonemoon:auth] ${text}`, error);
+  return text;
 }

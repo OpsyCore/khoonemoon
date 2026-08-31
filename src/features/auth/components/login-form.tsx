@@ -6,7 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getPersianAuthErrorMessage } from "@/features/auth/error-messages";
+import {
+  getAuthErrorDebugText,
+  getPersianAuthErrorMessage,
+} from "@/features/auth/error-messages";
 import { loginSchema, type LoginInput } from "@/features/auth/schemas";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -17,6 +20,7 @@ export function LoginForm() {
   const nextPath = searchParams.get("next") ?? "/today";
   const callbackError = searchParams.get("error");
   const [serverError, setServerError] = useState<string | null>(null);
+  const [debugDetail, setDebugDetail] = useState<string | null>(null);
 
   const {
     register,
@@ -32,6 +36,7 @@ export function LoginForm() {
 
   const onSubmit = async (values: LoginInput) => {
     setServerError(null);
+    setDebugDetail(null);
     const supabase = createSupabaseBrowserClient();
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -40,7 +45,8 @@ export function LoginForm() {
     });
 
     if (error) {
-      setServerError("ورود ناموفق بود. ایمیل یا رمز عبور را بررسی کنید.");
+      setServerError(getPersianAuthErrorMessage(error));
+      setDebugDetail(getAuthErrorDebugText("signInWithPassword", error));
       return;
     }
 
@@ -81,6 +87,15 @@ export function LoginForm() {
 
       {serverError ? (
         <p className="text-sm text-danger-ink">{serverError}</p>
+      ) : null}
+
+      {debugDetail ? (
+        <p
+          dir="ltr"
+          className="rounded-field border border-warn-ink/30 bg-sunken p-2 font-mono text-[11px] leading-5 text-warn-ink"
+        >
+          DEV: {debugDetail}
+        </p>
       ) : null}
 
       <Button type="submit" className="w-full" isLoading={isSubmitting}>

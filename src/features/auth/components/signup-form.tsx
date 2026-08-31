@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getPersianAuthErrorMessage } from "@/features/auth/error-messages";
+import {
+  getAuthErrorDebugText,
+  getPersianAuthErrorMessage,
+} from "@/features/auth/error-messages";
 import { signupSchema, type SignupInput } from "@/features/auth/schemas";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -15,6 +18,7 @@ export function SignupForm() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [debugDetail, setDebugDetail] = useState<string | null>(null);
 
   const {
     register,
@@ -32,9 +36,10 @@ export function SignupForm() {
   const onSubmit = async (values: SignupInput) => {
     setServerError(null);
     setSuccessMessage(null);
+    setDebugDetail(null);
     const supabase = createSupabaseBrowserClient();
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
@@ -47,11 +52,32 @@ export function SignupForm() {
 
     if (error) {
       setServerError(getPersianAuthErrorMessage(error));
+      setDebugDetail(getAuthErrorDebugText("signUp", error));
       return;
     }
 
-    setSuccessMessage("ثبت‌نام انجام شد. ایمیل تایید را بررسی کنید.");
-    router.refresh();
+    // When "Confirm email" is OFF in Supabase, signUp returns a live session:
+    // the user is already logged in — go straight to the app.
+    if (data.session) {
+      router.replace("/today");
+      router.refresh();
+      return;
+    }
+
+    // Supabase quirk: signUp with an already-registered, confirmed email
+    // returns a fake "obfuscated" user with no session and no identities
+    // instead of an error. Detect it so the user isn't left waiting for an
+    // email that will never arrive.
+    if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      setServerError("این ایمیل قبلاً ثبت شده است. لطفاً وارد شوید.");
+      return;
+    }
+
+    // Email confirmation is required: no session yet, a confirmation email
+    // has been sent.
+    setSuccessMessage(
+      "ثبت‌نام انجام شد. لینک تایید به ایمیل شما ارسال شد — تا زمانی که آن را باز نکنید، ورود ممکن نیست.",
+    );
   };
 
   return (
@@ -92,6 +118,15 @@ export function SignupForm() {
       ) : null}
       {successMessage ? (
         <p className="text-sm text-olive-ink">{successMessage}</p>
+      ) : null}
+
+      {debugDetail ? (
+        <p
+          dir="ltr"
+          className="rounded-field border border-warn-ink/30 bg-sunken p-2 font-mono text-[11px] leading-5 text-warn-ink"
+        >
+          DEV: {debugDetail}
+        </p>
       ) : null}
 
       <Button type="submit" className="w-full" isLoading={isSubmitting}>

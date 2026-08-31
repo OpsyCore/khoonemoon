@@ -21,6 +21,23 @@ describe("auth error messages", () => {
     expect(message).toContain("نادرست");
   });
 
+  it("maps a rejected API key (401) to a configuration error, not wrong credentials", () => {
+    const byMessage = getPersianAuthErrorMessage({
+      message: "Invalid API key",
+      status: 401,
+    });
+    const byStatusOnly = getPersianAuthErrorMessage({ status: 401 });
+    const legacyDisabled = getPersianAuthErrorMessage({
+      message: "Legacy API keys are disabled",
+      status: 401,
+    });
+
+    for (const message of [byMessage, byStatusOnly, legacyDisabled]) {
+      expect(message).toContain("کلید API");
+      expect(message).not.toContain("رمز عبور نادرست");
+    }
+  });
+
   it("maps already registered error", () => {
     const message = getPersianAuthErrorMessage({
       message: "User already registered",
