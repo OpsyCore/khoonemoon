@@ -46,7 +46,12 @@ export function ForgotPasswordForm() {
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form
+      method="post"
+      className="space-y-4"
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+    >
       <div className="space-y-1">
         <h1 className="text-[22px] font-bold text-ink">بازیابی رمز عبور</h1>
         <p className="text-[13px] leading-6 text-muted">
