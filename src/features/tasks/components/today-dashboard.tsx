@@ -152,33 +152,6 @@ export function TodayDashboard({
 
   return (
     <div className="space-y-7">
-      {/* today at a glance — one quiet paper strip */}
-      <div className="grid grid-cols-3 divide-x divide-x-reverse divide-line rounded-card border border-line bg-card shadow-paper">
-        <div className="px-3 py-4 text-center">
-          <p className="text-[22px] font-bold leading-7 text-ink">
-            {toPersianNumber(derived.todayTasks.length)}
-          </p>
-          <p className="mt-0.5 text-[11px] text-muted">برای امروز</p>
-        </div>
-        <div className="px-3 py-4 text-center">
-          <p
-            className={cn(
-              "text-[22px] font-bold leading-7",
-              derived.overdueTasks.length > 0 ? "text-clay-ink" : "text-ink",
-            )}
-          >
-            {toPersianNumber(derived.overdueTasks.length)}
-          </p>
-          <p className="mt-0.5 text-[11px] text-muted">معوق</p>
-        </div>
-        <div className="px-3 py-4 text-center">
-          <p className="text-[22px] font-bold leading-7 text-olive-ink">
-            {toPersianNumber(derived.upcomingEvents.length)}
-          </p>
-          <p className="mt-0.5 text-[11px] text-muted">رویداد پیش‌رو</p>
-        </div>
-      </div>
-
       {derived.overdueTasks.length > 0 ? (
         <section className="space-y-3">
           <SectionLabel>کارهای معوق</SectionLabel>

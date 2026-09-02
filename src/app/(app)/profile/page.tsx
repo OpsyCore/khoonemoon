@@ -1,6 +1,7 @@
 import {
   Bell,
   ChevronLeft,
+  FileText,
   Globe,
   House,
   Mail,
@@ -200,6 +201,11 @@ export default async function ProfilePage() {
                 href="/home"
                 icon={<UsersRound className="size-4" strokeWidth={1.6} />}
                 label="اعضای خانه"
+              />
+              <LinkRow
+                href="/documents"
+                icon={<FileText className="size-4" strokeWidth={1.6} />}
+                label="مدارک خانه"
               />
             </Card>
           </section>

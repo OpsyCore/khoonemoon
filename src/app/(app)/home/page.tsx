@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, Heart } from "lucide-react";
+import { Bell, CalendarDays, Heart, Search } from "lucide-react";
 import { ChoreManager } from "@/features/chores/components/chore-manager";
 import { HomeFinanceSection } from "@/features/finance/components/home-finance-section";
 import { HouseholdManager } from "@/features/households/components/household-manager";
@@ -225,9 +225,14 @@ export default async function HomePage({
         subtitle="خانه‌ی ما، جای آرامش ماست."
         decor
         action={
-          <HeaderIconLink href="/settings" label="اعلان‌ها و تنظیمات">
-            <Bell className="size-[18px]" strokeWidth={1.6} />
-          </HeaderIconLink>
+          <div className="flex items-center gap-2">
+            <HeaderIconLink href="/search" label="جستجو">
+              <Search className="size-[18px]" strokeWidth={1.6} />
+            </HeaderIconLink>
+            <HeaderIconLink href="/settings" label="اعلان‌ها و تنظیمات">
+              <Bell className="size-[18px]" strokeWidth={1.6} />
+            </HeaderIconLink>
+          </div>
         }
       />
 
