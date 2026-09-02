@@ -7,6 +7,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  ShoppingCart,
   RotateCcw,
   Trash2,
   X,
@@ -407,7 +408,6 @@ export function ShoppingManager() {
   return (
     <div className="space-y-7">
       <PageHeader
-        kicker="دفترچه خرید"
         title="لیست‌ها"
         subtitle="لیست‌های مشترک خانه؛ بنویسید، تیک بزنید و با هم خرید کنید."
         action={
@@ -509,6 +509,9 @@ export function ShoppingManager() {
             return (
               <Card key={list.id} className="space-y-4">
                 <div className="flex items-start justify-between gap-3">
+                  <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-olive-soft text-olive-ink">
+                    <ShoppingCart className="size-4" strokeWidth={1.6} />
+                  </span>
                   <div className="min-w-0 flex-1">
                     {editingListId === list.id ? (
                       <div className="flex gap-2">
@@ -546,66 +549,50 @@ export function ShoppingManager() {
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
-                    onClick={() =>
-                      setExpanded((current) => ({
-                        ...current,
-                        [list.id]: !open,
-                      }))
-                    }
-                    aria-label={open ? "بستن لیست" : "باز کردن لیست"}
-                  >
-                    {open ? (
-                      <ChevronUp className="size-5" />
-                    ) : (
-                      <ChevronDown className="size-5" />
-                    )}
-                  </button>
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    <button
+                      type="button"
+                      disabled={listBusy}
+                      onClick={() => {
+                        setEditingListId(list.id);
+                        setEditingListName(list.name);
+                      }}
+                      className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
+                      aria-label="تغییر نام لیست"
+                    >
+                      <Pencil className="size-4" strokeWidth={1.75} />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={listBusy}
+                      onClick={() => void deleteList(list)}
+                      className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-danger-soft hover:text-danger-ink"
+                      aria-label="حذف لیست"
+                    >
+                      <Trash2 className="size-4" strokeWidth={1.75} />
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-sunken hover:text-ink"
+                      onClick={() =>
+                        setExpanded((current) => ({
+                          ...current,
+                          [list.id]: !open,
+                        }))
+                      }
+                      aria-label={open ? "بستن لیست" : "باز کردن لیست"}
+                    >
+                      {open ? (
+                        <ChevronUp className="size-5" />
+                      ) : (
+                        <ChevronDown className="size-5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {open ? (
                   <>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => {
-                          resetItemForm();
-                          setAddingTo(list.id);
-                        }}
-                      >
-                        <Plus className="size-4" />
-                        افزودن کالا
-                      </Button>
-
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        disabled={listBusy}
-                        onClick={() => {
-                          setEditingListId(list.id);
-                          setEditingListName(list.name);
-                        }}
-                      >
-                        <Pencil className="size-4" />
-                        تغییر نام
-                      </Button>
-
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        disabled={listBusy}
-                        onClick={() => void deleteList(list)}
-                      >
-                        <Trash2 className="size-4 text-danger-ink" />
-                        حذف لیست
-                      </Button>
-                    </div>
-
                     {addingTo === list.id ? (
                       <form
                         className="space-y-3 rounded-field border border-olive/40 bg-olive-soft/40 p-3.5"
@@ -850,6 +837,20 @@ export function ShoppingManager() {
                           })}
                       </ul>
                     )}
+
+                    {addingTo !== list.id ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resetItemForm();
+                          setAddingTo(list.id);
+                        }}
+                        className="flex w-full items-center gap-1.5 px-1 pt-1 text-[13px] font-medium text-olive-ink transition hover:opacity-80"
+                      >
+                        <Plus className="size-4" strokeWidth={2} />
+                        افزودن آیتم
+                      </button>
+                    ) : null}
                   </>
                 ) : null}
               </Card>

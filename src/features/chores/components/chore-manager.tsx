@@ -441,13 +441,16 @@ export function ChoreManager({
 
   return (
     <div id="chores" className="space-y-4">
-      <div className="flex items-center gap-3">
-        <SectionLabel className="min-w-0 flex-1">کارهای خانه</SectionLabel>
-        <Button size="sm" type="button" onClick={toggleFormHeaderButton}>
-          <Plus className="size-4" strokeWidth={2} />
-          {showForm ? "بستن فرم" : "کار جدید"}
-        </Button>
-      </div>
+      <SectionLabel
+        action={
+          <Button size="sm" type="button" onClick={toggleFormHeaderButton}>
+            <Plus className="size-4" strokeWidth={2} />
+            {showForm ? "بستن فرم" : "کار جدید"}
+          </Button>
+        }
+      >
+        کارهای خانه
+      </SectionLabel>
 
       {errorMessage ? (
         <p className="rounded-field border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-danger-ink">

@@ -2,9 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  CalendarDays,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  House,
+  ListTodo,
   Loader2,
   Pencil,
   Trash2,
@@ -388,14 +391,22 @@ export function CalendarBoard({
         className="flex items-start gap-3 px-4 py-3.5"
       >
         <span
-          className={`mt-1.5 inline-block size-2 shrink-0 rounded-full ${
+          className={`flex size-9 shrink-0 items-center justify-center rounded-full ${
             item.type === "CHORE"
-              ? "bg-clay"
+              ? "bg-clay-soft text-clay-ink"
               : item.type === "TASK"
-                ? "bg-kraft"
-                : "bg-olive"
+                ? "bg-sunken text-ink-soft"
+                : "bg-olive-soft text-olive-ink"
           }`}
-        />
+        >
+          {item.type === "CHORE" ? (
+            <House className="size-4" strokeWidth={1.6} />
+          ) : item.type === "TASK" ? (
+            <ListTodo className="size-4" strokeWidth={1.6} />
+          ) : (
+            <CalendarDays className="size-4" strokeWidth={1.6} />
+          )}
+        </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-ink">{item.title}</p>
           <p className="mt-0.5 text-[11px] text-muted">

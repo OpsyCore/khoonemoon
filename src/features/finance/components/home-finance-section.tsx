@@ -6,15 +6,15 @@ import { SectionLabel } from "@/shared/ui/section-label";
 export function HomeFinanceSection() {
   return (
     <section id="finance" className="space-y-3">
-      <div className="flex items-center gap-3">
-        <SectionLabel className="min-w-0 flex-1">مالی</SectionLabel>
-        <Link
-          href="/finance"
-          className="shrink-0 text-[12px] font-medium text-clay-ink transition hover:opacity-80"
-        >
-          مشاهده همه
-        </Link>
-      </div>
+      <SectionLabel
+        action={
+          <Link href="/finance" className="hover:underline">
+            مشاهده همه ‹
+          </Link>
+        }
+      >
+        خلاصه این ماه
+      </SectionLabel>
 
       <Card className="flex min-w-0 flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">

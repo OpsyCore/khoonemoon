@@ -155,7 +155,6 @@ export default async function CalendarPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        kicker="برنامه دونفره"
         title="تقویم"
         subtitle="رویدادها، تسک‌ها و کارهای خانه در نمای جلالی."
       />

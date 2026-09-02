@@ -234,9 +234,9 @@ export default async function TodayPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        kicker={formatJalaliLongDate(new Date())}
-        title="دفتر امروز"
-        subtitle="مرور آرام کارهای معوق، برنامه امروز و رویدادهای پیش‌رو."
+        title="امروز"
+        subtitle={`${formatJalaliLongDate(new Date())} · برنامه و کارهای امروزِ ما`}
+        decor
       />
 
       <TodayDashboard tasks={tasks} events={events} />

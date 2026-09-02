@@ -2,23 +2,27 @@ import type { ReactNode } from "react";
 import { cn } from "@/shared/utils/cn";
 
 /**
- * Small editorial section label with a hairline rule — the quiet way
- * sections are introduced across the journal.
+ * Reference section heading — quiet bold Persian label at the reading
+ * start, with an optional small action (e.g. «مشاهده همه») at the far
+ * side, exactly like the reference's section rows.
  */
 export function SectionLabel({
   children,
+  action,
   className,
 }: {
   children: ReactNode;
+  action?: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-center gap-3", className)}>
-      <span className="inline-block size-1.5 rounded-full bg-olive" />
-      <h2 className="shrink-0 text-[13px] font-semibold tracking-wide text-ink-soft">
-        {children}
-      </h2>
-      <span className="h-px flex-1 bg-line" />
+    <div className={cn("flex items-center justify-between gap-3", className)}>
+      <h2 className="min-w-0 text-[14.5px] font-bold text-ink">{children}</h2>
+      {action ? (
+        <div className="shrink-0 text-[12px] font-medium text-olive-ink">
+          {action}
+        </div>
+      ) : null}
     </div>
   );
 }
