@@ -26,6 +26,7 @@
 | Shopping                  | shared list + quick add + first-list onboarding     | ✅ Completed (M8)  |
 | Realtime                  | scoped sync for shopping items                      | ✅ Completed (M8)  |
 | Finance Lite              | bills/expense/income + due/overdue states           | ✅ Completed (M9)  |
+| Household Settlement      | net balances + suggested transfers per member       | ✅ Completed (M14) |
 | Search                    | cross-domain search with permission filters         | ✅ Completed (M10) |
 | Settings                  | theme/reminders/PWA help/household navigation       | ✅ Completed (M10) |
 | Offline Improvements      | shell cache + offline page (private pages excluded) | ✅ Completed (M10) |
@@ -34,14 +35,14 @@
 
 ## مسیرهای کاربری (Routes)
 
-| مسیر                     | توضیح                                             |
-| ------------------------ | ------------------------------------------------- |
-| `/today`                 | داشبورد امروز: تسک، رویداد، قبض، کار خانه، یادآور |
-| `/calendar`              | تقویم ماه/هفته/فهرست                              |
-| `/home`                  | مدیریت خانه، اعضا و دعوت‌نامه‌ها                  |
-| `/lists`                 | تب‌های خرید / کارهای خانه / مالی                  |
-| `/search`                | جستجوی یکپارچه                                    |
-| `/profile` و `/settings` | پروفایل و تنظیمات                                 |
+| مسیر                     | توضیح                                              |
+| ------------------------ | -------------------------------------------------- |
+| `/today`                 | داشبورد امروز: تسک، رویداد، قبض، کار خانه، یادآور  |
+| `/calendar`              | تقویم ماه/هفته/فهرست                               |
+| `/home`                  | مدیریت خانه، اعضا و دعوت‌نامه‌ها                   |
+| `/lists`                 | تب‌های خرید / کارهای خانه / مالی + تسویه‌حساب خانه |
+| `/search`                | جستجوی یکپارچه                                     |
+| `/profile` و `/settings` | پروفایل و تنظیمات                                  |
 
 ## خارج از MVP (Phase 2+)
 

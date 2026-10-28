@@ -134,6 +134,7 @@ export default async function ListsPage() {
         members={effectiveMembers}
         activeListId={activeListId}
         canShare={Boolean(householdId)}
+        currentUserId={user.id}
       />
     </div>
   );

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ChoreBoard } from "@/features/chores/components/chore-board";
 import type { ChoreRecord } from "@/features/chores/types";
 import { FinanceBoard } from "@/features/finance/components/finance-board";
+import { SettlementCard } from "@/features/finance/components/settlement-card";
 import type { FinancialRecord } from "@/features/finance/types";
 import { ShoppingBoard } from "@/features/shopping/components/shopping-board";
 import type { ShoppingItem, ShoppingList } from "@/features/shopping/types";
@@ -27,6 +28,7 @@ export function ListsTabs({
   members,
   activeListId,
   canShare,
+  currentUserId,
 }: {
   lists: ShoppingList[];
   items: ShoppingItem[];
@@ -35,6 +37,7 @@ export function ListsTabs({
   members: TaskMember[];
   activeListId: string | null;
   canShare: boolean;
+  currentUserId: string;
 }) {
   const [tab, setTab] = useState<TabKey>("shopping");
 
@@ -82,7 +85,17 @@ export function ListsTabs({
       ) : null}
 
       {tab === "finance" ? (
-        <FinanceBoard records={records} canShare={canShare} />
+        <div className="space-y-4">
+          <SettlementCard
+            records={records}
+            members={members.map((member) => ({
+              id: member.user_id,
+              name: member.full_name,
+            }))}
+            currentUserId={currentUserId}
+          />
+          <FinanceBoard records={records} canShare={canShare} />
+        </div>
       ) : null}
     </div>
   );
