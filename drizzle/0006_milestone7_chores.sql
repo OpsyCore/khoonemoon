@@ -147,6 +147,7 @@ declare
   v_next_index integer;
   v_assignee uuid;
   v_completion_id uuid;
+  v_next_due timestamptz;
 begin
   if auth.uid() is null then
     raise exception 'NOT_AUTHENTICATED';
@@ -184,18 +185,22 @@ begin
     where s.chore_id = p_chore_id and s.position = 0;
   end if;
 
+  -- NOTE: `returning next_due_at into ...` would be ambiguous here because the
+  -- returned column shares its name with the function's OUT parameter, so the
+  -- new value is computed first and stored in a local variable.
+  v_next_due := public.calculate_next_chore_due(
+    coalesce(v_chore.next_due_at, now()),
+    v_chore.frequency,
+    v_chore.interval_days,
+    v_chore.weekdays
+  );
+
   update public.chores
   set current_rotation_index = v_next_index,
-      next_due_at = public.calculate_next_chore_due(
-        coalesce(v_chore.next_due_at, now()),
-        v_chore.frequency,
-        v_chore.interval_days,
-        v_chore.weekdays
-      )
-  where id = p_chore_id
-  returning next_due_at into v_chore.next_due_at;
+      next_due_at = v_next_due
+  where id = p_chore_id;
 
-  return query select v_completion_id, v_chore.next_due_at, v_assignee;
+  return query select v_completion_id, v_next_due, v_assignee;
 end;
 $$;
 

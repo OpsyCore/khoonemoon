@@ -103,6 +103,14 @@ RLS را از دید یک کاربر بیرونی بررسی می‌کند و د
 دو باگ واقعی (ترتیب تعریف تابع و نبود `grant`) فقط با اجرای مهاجرت‌ها روی یک دیتابیس خالی
 پیدا می‌شوند؛ برای اینکه دوباره تکرار نشوند یک تست دیتابیس داریم:
 
+سریع‌ترین حالت (بدون نصب Postgres):
+
+```bash
+npm run db:check
+```
+
+با Postgres واقعی (همان مسیر CI):
+
 ```bash
 createdb khoonemoon_check
 DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/khoonemoon_check npm run db:verify
