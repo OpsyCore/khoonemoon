@@ -9,3 +9,7 @@ coverage
 .env.*.local
 .vercel
 .DS_Store
+
+# Next.js generated artifacts
+next-env.d.ts
+*.tsbuildinfo
