@@ -10,6 +10,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   database:
     name: Migrations · RLS
@@ -49,21 +53,34 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/khoonemoon_check
 
-      # Surfaces the failing statement as a PR comment. Helpful because the
-      # sandbox used during development cannot download raw workflow logs.
+      # Surfaces the failing statement as annotations + a PR comment. Helpful
+      # when raw workflow logs are not reachable from the working environment.
       - name: Report database failure
-        if: failure() && github.event_name == 'pull_request'
+        if: failure()
         run: |
-          {
-            echo "### بررسی دیتابیس شکست خورد"
-            echo ""
-            echo '```'
-            tail -60 db-verify.log 2>/dev/null || echo "no log captured"
-            echo '```'
-          } > db-failure.md
-          gh pr comment "${{ github.event.pull_request.number }}" \
-            --repo "${{ github.repository }}" \
-            --body-file db-failure.md
+          if [ ! -f db-verify.log ]; then
+            echo "::error title=db-verify::no log file was produced"
+            exit 0
+          fi
+
+          # Emit every line as an annotation so the failure is visible through
+          # the checks API even without downloading workflow logs.
+          tail -25 db-verify.log | while IFS= read -r line; do
+            [ -n "$line" ] && echo "::error title=db-verify::${line//$'\r'/}"
+          done
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            {
+              echo "### بررسی دیتابیس شکست خورد"
+              echo ""
+              echo '```'
+              tail -60 db-verify.log
+              echo '```'
+            } > db-failure.md
+            gh pr comment "${{ github.event.pull_request.number }}" \
+              --repo "${{ github.repository }}" \
+              --body-file db-failure.md || true
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
