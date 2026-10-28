@@ -97,3 +97,6 @@ using (
   or
   (visibility = 'HOUSEHOLD_SHARED' and public.is_household_member(household_id))
 );
+
+-- Table privileges
+grant select, insert, update, delete on public.events to authenticated;

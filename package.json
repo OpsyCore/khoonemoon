@@ -1,14 +1,23 @@
 {
-  "name": "nextjs-postgresql-template",
+  "name": "khoonemoon",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "smoke": "node scripts/smoke.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run test",
+    "db:verify": "bash scripts/db-verify.sh",
+    "db:check": "node scripts/db-check-local.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/vazirmatn": "^5.3.0",
     "@hookform/resolvers": "^5.9.1",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
@@ -28,6 +37,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.13",
     "@tailwindcss/postcss": "4.1.17",
     "@types/node": "22.19.15",
     "@types/pg": "8.18.0",

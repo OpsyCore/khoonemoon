@@ -9,7 +9,21 @@
 
 ## 2) وضعیت فعلی
 
-- هنوز manifest/service worker/offline route پیاده‌سازی نشده است.
+پیاده‌سازی شده در Milestone 1 و در Milestone 10 بازبینی امنیتی شد:
+
+- `src/app/manifest.ts` — manifest معتبر، `lang=fa-IR`، `dir=rtl`، آیکن‌های ۱۹۲/۵۱۲
+- `public/sw.js` — استراتژی «پوسته عمومی»:
+  - precache: `/offline`، manifest و آیکن‌ها
+  - assetهای `/_next/static` و آیکن‌ها: cache-first
+  - ناوبری‌ها: network-first با fallback به صفحه آفلاین
+  - **هیچ صفحه احراز هویت‌شده‌ای (مثل `/today`) و هیچ درخواست `/api/*` یا Supabase کش نمی‌شود**
+- `src/app/offline/page.tsx` — صفحه fallback
+- `src/shared/layout/connection-status.tsx` — نمایش وضعیت آنلاین/آفلاین
+- `src/shared/providers/pwa-provider.tsx` — ثبت service worker
+
+> نکته امنیتی: نسخه قبلی service worker صفحه `/today` را precache می‌کرد؛ چون آن
+> صفحه داده خصوصی خانه را نشان می‌دهد، این کار روی دستگاه مشترک باعث نشت داده
+> می‌شد. اکنون کش فقط شامل دارایی‌های عمومی است.
 
 ## 3) رویکرد پیشنهادی
 
@@ -57,11 +71,11 @@
 
 ## 6) معیار پذیرش MVP PWA
 
-- manifest معتبر
-- prompt install در مرورگرهای پشتیبان
-- offline route قابل‌دسترسی هنگام قطع اینترنت
-- assets اصلی از cache سرو شوند
-- UI وضعیت اتصال را نشان دهد
+- manifest معتبر ✅
+- قابلیت نصب روی موبایل ✅
+- صفحه آفلاین در دسترس ✅
+- عدم کش‌شدن داده خصوصی ✅
+- ثبت service worker فقط در محیط‌های امن (https/localhost) ✅
 
 ## 7) برنامه تست PWA
 

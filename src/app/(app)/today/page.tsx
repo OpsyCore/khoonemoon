@@ -1,4 +1,8 @@
 import type { EventRecord } from "@/features/calendar/types";
+import { DueChores } from "@/features/chores/components/due-chores";
+import type { ChoreRecord } from "@/features/chores/types";
+import { UpcomingBills } from "@/features/finance/components/upcoming-bills";
+import type { FinancialRecord } from "@/features/finance/types";
 import { calculateUpcomingReminders } from "@/features/reminders/calculations";
 import { UpcomingReminders } from "@/features/reminders/components/upcoming-reminders";
 import type { ReminderRecord } from "@/features/reminders/types";
@@ -25,36 +29,57 @@ export default async function TodayPage() {
     );
   }
 
-  const [membershipResult, tasksResult, eventsResult, remindersResult] =
-    await Promise.all([
-      supabase
-        .from("household_members")
-        .select("household_id")
-        .eq("user_id", user.id)
-        .is("left_at", null)
-        .maybeSingle(),
-      supabase
-        .from("tasks")
-        .select(
-          "id, title, description, creator_id, owner_id, household_id, visibility, status, priority, due_at, completed_at, archived_at, created_at, updated_at, task_assignees(assignee_id), task_recurrences(frequency, interval_days, weekdays)",
-        )
-        .is("archived_at", null)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("events")
-        .select(
-          "id, title, description, creator_id, owner_id, household_id, visibility, start_at, end_at, all_day, location, created_at, updated_at",
-        )
-        .order("start_at", { ascending: true }),
-      supabase
-        .from("reminders")
-        .select(
-          "id, target_type, target_id, user_id, household_id, remind_at, status, snoozed_until, snooze_count, delivered_at, created_at, updated_at",
-        )
-        .eq("user_id", user.id)
-        .in("status", ["PENDING", "SNOOZED"])
-        .order("remind_at", { ascending: true }),
-    ]);
+  const [
+    membershipResult,
+    tasksResult,
+    eventsResult,
+    remindersResult,
+    choresResult,
+    financeResult,
+  ] = await Promise.all([
+    supabase
+      .from("household_members")
+      .select("household_id")
+      .eq("user_id", user.id)
+      .is("left_at", null)
+      .maybeSingle(),
+    supabase
+      .from("tasks")
+      .select(
+        "id, title, description, creator_id, owner_id, household_id, visibility, status, priority, due_at, completed_at, archived_at, created_at, updated_at, task_assignees(assignee_id), task_recurrences(frequency, interval_days, weekdays)",
+      )
+      .is("archived_at", null)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("events")
+      .select(
+        "id, title, description, creator_id, owner_id, household_id, visibility, start_at, end_at, all_day, location, created_at, updated_at",
+      )
+      .order("start_at", { ascending: true }),
+    supabase
+      .from("reminders")
+      .select(
+        "id, target_type, target_id, user_id, household_id, remind_at, status, snoozed_until, snooze_count, delivered_at, created_at, updated_at",
+      )
+      .eq("user_id", user.id)
+      .in("status", ["PENDING", "SNOOZED"])
+      .order("remind_at", { ascending: true }),
+    supabase
+      .from("chores")
+      .select(
+        "id, household_id, title, description, created_by, rotation_mode, current_rotation_index, frequency, interval_days, weekdays, next_due_at, is_active, archived_at, created_at, updated_at, chore_rotation_steps(id, chore_id, position, assignee_id)",
+      )
+      .is("archived_at", null)
+      .order("next_due_at", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("financial_records")
+      .select(
+        "id, household_id, owner_id, created_by, visibility, record_type, title, amount, currency, category, note, occurred_at, due_at, bill_status, is_recurring, recurrence_rule, paid_by, paid_at, archived_at, created_at, updated_at",
+      )
+      .is("archived_at", null)
+      .order("due_at", { ascending: true, nullsFirst: false })
+      .limit(50),
+  ]);
 
   if (
     membershipResult.error ||
@@ -128,6 +153,13 @@ export default async function TodayPage() {
       </section>
 
       <TodayDashboard tasks={tasks} events={events} />
+      <DueChores
+        chores={(choresResult.data ?? []) as ChoreRecord[]}
+        members={effectiveMembers}
+      />
+      <UpcomingBills
+        records={(financeResult.data ?? []) as FinancialRecord[]}
+      />
       <UpcomingReminders reminders={upcomingReminders as ReminderRecord[]} />
 
       <TaskManager

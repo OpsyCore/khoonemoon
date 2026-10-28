@@ -130,76 +130,72 @@
 
 > Note: `event_participants` در Milestone 5 پیاده‌سازی نشده و در فازهای بعدی اضافه می‌شود.
 
-## 6) Shopping Domain
-
-### shopping_lists
-
-- `id` (uuid)
-- `household_id` (fk households.id)
-- `name`
-- `created_by` (fk profiles.id)
-- `archived_at` (nullable)
-- `created_at`, `updated_at`
-
-### shopping_items
-
-- `id` (uuid)
-- `list_id` (fk shopping_lists.id)
-- `name`
-- `quantity` (numeric nullable)
-- `unit` (nullable)
-- `category` (nullable)
-- `note` (nullable)
-- `added_by` (fk profiles.id)
-- `purchased` (bool default false)
-- `purchased_by` (nullable fk profiles.id)
-- `purchased_at` (nullable)
-- `created_at`, `updated_at`
-
-## 7) Chores Domain
+## 6) Chores Domain (Milestone 7 — پیاده‌سازی‌شده)
 
 ### chores
 
 - `id` (uuid)
-- `household_id` (fk households.id)
-- `title`
-- `description` (nullable)
-- `visibility` (default HOUSEHOLD_SHARED)
-- `default_assignee_id` (nullable fk profiles.id)
-- `recurrence_rule` (text nullable)
-- `is_active` (bool)
-- `created_by`, `created_at`, `updated_at`
+- `household_id` (fk households.id, not null)
+- `title`, `description`
+- `created_by` (fk auth.users.id)
+- `rotation_mode` (`chore_rotation_mode`: FIXED | ROTATING)
+- `current_rotation_index` (int, پیش‌فرض 0)
+- `frequency` (`task_recurrence_frequency`) + `interval_days` + `weekdays`
+- `next_due_at` (timestamptz)
+- `is_active`, `archived_at`
+- `created_at`, `updated_at`
 
-### chore_rotations
+### chore_rotation_steps
 
-- `id` (uuid)
-- `chore_id` (fk chores.id)
-- `sequence_order` (int)
-- `assignee_id` (fk profiles.id)
-- unique(`chore_id`,`sequence_order`)
+- `id`, `chore_id`, `position` (int), `assignee_id` (fk auth.users.id)
+- unique(`chore_id`, `position`)
 
-## 8) Finance Domain
+### chore_completions
+
+- `id`, `chore_id`, `completed_by`, `completed_at`, `due_at`, `note`
+- فقط از طریق RPC `complete_chore(p_chore_id)` نوشته می‌شود (بدون policy برای insert مستقیم)
+
+### توابع مرتبط
+
+- `calculate_next_chore_due(from, frequency, interval_days, weekdays)` → timestamptz
+- `complete_chore(chore_id)` → (completion_id, next_due_at, next_assignee_id)
+  - تکمیل را ثبت می‌کند، ایندکس چرخش را جلو می‌برد (mod تعداد مراحل) و `next_due_at` را بازمحاسبه می‌کند
+- `current_user_can_access_chore(chore_id)` — گارد دسترسی برای مراحل/تاریخچه
+
+## 7) Finance Domain (Milestone 9 — پیاده‌سازی‌شده)
 
 ### financial_records
 
 - `id` (uuid)
-- `household_id` (nullable fk)
-- `owner_id` (fk profiles.id)
-- `created_by` (fk profiles.id)
-- `visibility` (visibility_type)
-- `record_type` (EXPENSE | INCOME | BILL | SUBSCRIPTION | INSTALLMENT | DEBT)
-- `title`
-- `amount` (numeric(14,2))
-- `currency` (text default IRR)
-- `category` (text)
-- `occurred_at` (timestamptz)
-- `due_at` (nullable)
-- `bill_status` (nullable)
-- `is_recurring` (bool)
-- `recurrence_rule` (nullable text)
-- `note` (nullable)
-- `paid_by` (nullable fk profiles.id)
-- `created_at`, `updated_at`
+- `household_id` (nullable — برای PRIVATE باید null باشد)
+- `owner_id`, `created_by` (fk auth.users.id)
+- `visibility` (`visibility_type`: PRIVATE | HOUSEHOLD_SHARED)
+- `record_type` (`financial_record_type`: EXPENSE | INCOME | BILL | SUBSCRIPTION | INSTALLMENT | DEBT)
+- `title`, `amount` (numeric(14,2)), `currency` (default IRR), `category`, `note`
+- `occurred_at`, `due_at`
+- `bill_status` (`bill_status`: UPCOMING | DUE | PAID | OVERDUE) — با trigger همگام می‌شود
+- `is_recurring`, `recurrence_rule`
+- `paid_by`, `paid_at`
+- `archived_at`, `created_at`, `updated_at`
+
+قواعد:
+
+- `PRIVATE` ⇔ `household_id is null` و `owner_id = created_by`
+- `HOUSEHOLD_SHARED` ⇒ `household_id` الزامی
+- `bill_status` فقط برای BILL/SUBSCRIPTION/INSTALLMENT معنا دارد و توسط
+  `sync_financial_record_due_status()` محاسبه می‌شود (OVERDUE / DUE تا ۳ روز / UPCOMING / PAID)
+
+## 8) Shopping Domain (Milestone 8 — پیاده‌سازی‌شده)
+
+### shopping_lists
+
+- `id`, `household_id` (not null), `name`, `created_by`, `archived_at`, timestamps
+
+### shopping_items
+
+- `id`, `list_id`, `name`, `quantity`, `unit`, `category`, `note`
+- `added_by`, `purchased`, `purchased_by`, `purchased_at`, `position`
+- جدول‌های `shopping_lists` و `shopping_items` به publication `supabase_realtime` اضافه شده‌اند
 
 ## 9) Shared Support Tables
 
@@ -220,7 +216,15 @@
 
 - endpoint, keys, user_id, device info, revoked_at
 
-## 10) ایندکس‌های کلیدی
+## 10) Search (Milestone 10)
+
+- افزونه `pg_trgm` + ایندکس GIN روی `title`/`name` جداول tasks, events, shopping_items,
+  financial_records, chores
+- تابع `search_workspace(p_query, p_limit)` به‌صورت **security invoker** اجرا می‌شود؛
+  بنابراین RLS هر جدول روی ردیف‌ها اعمال می‌شود و کاربر هرگز داده غیرمجاز نمی‌بیند.
+- خروجی: `kind`, `entity_id`, `title`, `subtitle`, `happened_at`, `status`
+
+## 11) ایندکس‌های کلیدی
 
 - `tasks(owner_id, status, due_at)`
 - `tasks(household_id, visibility, due_at)`
@@ -230,7 +234,7 @@
 - `financial_records(household_id, due_at, bill_status)`
 - `household_invitations(household_id, status, expires_at)`
 
-## 11) RLS Policy Model (خلاصه)
+## 12) RLS Policy Model (خلاصه)
 
 - کاربر فقط پروفایل خودش را می‌خواند/ویرایش می‌کند.
 - household data فقط برای اعضای همان household.
@@ -239,14 +243,14 @@
 - invitation create/cancel: فقط اعضای مجاز household (role-aware)
 - join by invite: فقط invite معتبر + منقضی‌نشده + استفاده‌نشده
 
-## 12) قواعد مهم دیتایی
+## 13) قواعد مهم دیتایی
 
 - PRIVATE record نباید household_id غیرمعتبر داشته باشد.
 - برای HOUSEHOLD_SHARED وجود household_id اجباری است.
 - owner_id همیشه set باشد.
 - delete سخت برای داده اصلی ممنوع؛ soft-delete ترجیحی.
 
-## 13) Recurrence Strategy
+## 14) Recurrence Strategy
 
 - recurrence در `task_recurrences` با `frequency + interval_days + weekdays` ذخیره می‌شود.
 - occurrenceها به صورت lazy/generated در query window محاسبه می‌شوند.
@@ -254,8 +258,26 @@
 - `next_occurrence_at` برای پردازش reminder queue نگهداری می‌شود.
 - reminder records (`reminders`) منبع اصلی برنامه‌ریزی اعلان هستند و قابل استفاده مجدد برای کلاینت‌های Android/iOS آینده می‌باشند.
 
-## 14) Migration Strategy
+## 15) دسترسی‌ها (Grants)
 
-- schema از طریق Drizzle migrations versioned می‌شود.
-- migrationها idempotent و non-destructive خواهند بود.
-- اعمال روی sandbox: `drizzle-kit push` پس از bootstrap محیط.
+Supabase هیچ grant پیش‌فرضی برای جداول ساخته‌شده با SQL خام اضافه نمی‌کند؛ بنابراین هر
+مهاجرت در انتهای خود `grant` لازم برای نقش `authenticated` را دارد:
+
+- `select` برای همه جداول دامنه
+- `insert/update/delete` فقط جایی که mutation مستقیم مجاز است
+- `household_members` و `household_invitations`: فقط `select` (تغییر فقط با RPC)
+- `chore_completions`: فقط `select` (نوشتن فقط با RPC)
+- `execute` روی RPCها (`create_household`, `join_household_with_invitation`,
+  `complete_chore`, `search_workspace`, …)
+
+بدون این grantها همه کوئری‌ها با خطای `permission denied` شکست می‌خورند حتی اگر RLS درست باشد.
+
+## 16) Migration Strategy
+
+- `drizzle/*.sql` منبع حقیقت schema + RLS + RPC + grants است و به ترتیب شماره اعمال می‌شود.
+- migrationها idempotent و non-destructive هستند.
+- `src/db/schema.ts` فقط مرجع تایپ/CQRS برای کوئری‌های سمت سرور است؛ مسیر داده‌ی اپ
+  از Supabase (PostgREST + RLS) می‌گذرد.
+- اعمال روی Supabase: SQL Editor یا `psql` با `DATABASE_URL` (جزئیات در README).
+- وضعیت فعلی پروژه Supabase: جداول نسخه قبلی در schema `legacy_backup`
+  (بدون دسترسی `anon`/`authenticated`) آرشیو شده‌اند و schema جدید از صفر ساخته شده است.

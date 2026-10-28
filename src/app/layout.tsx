@@ -1,14 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Vazirmatn } from "next/font/google";
 import type { ReactNode } from "react";
 import { Providers } from "@/app/providers";
+import "@fontsource-variable/vazirmatn";
 import "./globals.css";
-
-const vazirmatn = Vazirmatn({
-  subsets: ["arabic", "latin"],
-  display: "swap",
-  variable: "--font-vazirmatn",
-});
 
 export const metadata: Metadata = {
   title: "خونه‌مون",
@@ -31,9 +25,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
-      <body
-        className={`${vazirmatn.variable} font-[var(--font-vazirmatn)] antialiased`}
-      >
+      <body className="antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
