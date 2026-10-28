@@ -93,6 +93,8 @@
 - [x] RLS verification scenarios executed directly against Postgres
 - [x] smoke script for end-to-end verification on a live environment
 - [x] integration suite wired into CI (Postgres service + auth shim + RLS assertions)
+- [x] local DB check without a server (`npm run db:check`, PGlite/WASM)
+- [x] CI caught and fixed a real defect (`complete_chore` ambiguous `next_due_at`)
 - [x] reminder dispatch endpoint (cron or signed-in user) + quiet-hours deferral + tests
 - [ ] integration test suite against a disposable Supabase branch (currently: plain Postgres)
 - [ ] e2e critical journeys (browser) — blocked: no browser in this environment

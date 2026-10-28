@@ -76,6 +76,17 @@ commit;
 - [x] برای کاربر بیرونی، جستجوی عبارتی که در خانه دیگری وجود دارد → 0 نتیجه
 - [x] `p_limit` حداکثر 50 تا از بار زیاد جلوگیری شود
 
+## اجرای خودکار در CI
+
+job `Migrations · RLS` در هر push به این ترتیب اجرا می‌شود:
+
+1. `db/local/00_auth_shim.sql` (بازسازی `auth.users` و `auth.uid()` روی Postgres معمولی)
+2. اعمال همه‌ی `drizzle/*.sql`
+3. **اعمال دوباره** برای تضمین idempotent بودن
+4. همه‌ی assertionهای این سند
+
+بدون Postgres هم می‌توانید همان مجموعه را اجرا کنید: `npm run db:check` (PGlite/WASM).
+
 ## تست دود خودکار (e2e)
 
 ```bash
