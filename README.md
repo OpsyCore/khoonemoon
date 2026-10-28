@@ -158,14 +158,41 @@ VAPID_SUBJECT=mailto:you@example.com
 
 ### زمان‌بندی یادآورها
 
+یادآور و Web Push فقط وقتی کار می‌کنند که چیزی واقعاً endpoint را صدا بزند. این
+مخزن یک زمان‌بند آماده دارد که به میزبان وابسته نیست:
+
+`.github/workflows/reminder-dispatch.yml` هر ۱۵ دقیقه اجرا می‌شود و
+`scripts/dispatch-reminders.mjs` را با متغیرهای زیر صدا می‌زند:
+
+| نام            | نوع                     | توضیح                                                 |
+| -------------- | ----------------------- | ----------------------------------------------------- |
+| `APP_BASE_URL` | Repository **variable** | آدرس عمومی اپ، مثلاً `https://khoonemoon.example.com` |
+| `CRON_SECRET`  | Repository **secret**   | همان مقدار `CRON_SECRET` در متغیرهای محیطی اپ         |
+
 ```bash
-curl -X POST https://<app>/api/reminders/dispatch \
-  -H "Authorization: Bearer $CRON_SECRET"
+# تنظیم یک‌باره
+gh variable set APP_BASE_URL --body "https://khoonemoon.example.com"
+gh secret set CRON_SECRET --body "$(openssl rand -hex 32)"   # همین مقدار را در اپ هم بگذارید
+```
+
+اگر این دو تنظیم نشده باشند، workflow سبز می‌ماند ولی هشدار می‌دهد؛ هیچ یادآوری
+گم نمی‌شود، فقط ارسال نمی‌شود. اجرای دستی با آدرس دلخواه (مثلاً preview):
+
+```bash
+gh workflow run reminder-dispatch -f base_url=https://preview.example.com
+```
+
+همان کار به‌صورت دستی یا در cron میزبان:
+
+```bash
+APP_BASE_URL=https://<app> CRON_SECRET=<secret> node scripts/dispatch-reminders.mjs
 ```
 
 - با هدر cron: همه کاربران پردازش می‌شوند (نیازمند `SUPABASE_SERVICE_ROLE_KEY`)
 - بدون هدر و با کوکی نشست: فقط یادآورهای همان کاربر پردازش می‌شود
 - ساعات سکوت (quiet hours) یادآور را **حذف نمی‌کند**، به اجرای بعدی موکول می‌کند
+- اسکریپت فقط روی پاسخ `2xx` با کد ۰ خارج می‌شود، پس خرابی ارسال به‌صورت
+  workflow قرمز دیده می‌شود نه سکوت
 
 ## ساختار پروژه
 

@@ -86,6 +86,14 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 15 - Scheduled Reminders ✅
+
+- [x] workflow `reminder-dispatch` با زمان‌بندی ۱۵ دقیقه‌ای (مستقل از میزبان: Vercel/Netlify/VPS)
+- [x] `scripts/dispatch-reminders.mjs` با مدیریت خطا، timeout و پیام فارسی
+- [x] اجرای دستی با `gh workflow run` و امکان هدف‌گیری preview با `base_url`
+- [x] اگر `APP_BASE_URL`/`CRON_SECRET` تنظیم نشده باشد: هشدار + skip (بدون شکست قرمز بی‌معنی)
+- [x] مستندسازی متغیرها (variable در برابر secret) در README
+
 ## Milestone 14 - Household Settlement ✅
 
 - [x] ماژول خالص `settleHousehold` که خرج‌های مشترک را به تراز هر عضو تبدیل می‌کند
