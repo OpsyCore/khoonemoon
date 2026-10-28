@@ -7,6 +7,7 @@
 | Feature                   | Scope خلاصه                                         | وضعیت              |
 | ------------------------- | --------------------------------------------------- | ------------------ |
 | Foundation UI/RTL/Persian | shell موبایل، RTL، typography (self-hosted)، states | ✅ Completed (M1)  |
+| Quick Add (global)        | ۵ اکشن واقعی از FAB: تسک/رویداد/خرید/قبض/کار خانه   | ✅ Completed (M13) |
 | Theme                     | light/dark/system + persistence                     | ✅ Completed (M1)  |
 | PWA Base                  | manifest + installability + offline fallback        | ✅ Completed (M1)  |
 | Auth                      | signup/login/logout/reset + protected routes        | ✅ Completed (M2)  |

@@ -15,7 +15,7 @@
 ## Milestone 1 - Foundation ✅
 
 - [x] Persian/RTL app shell
-- [x] mobile-first navigation + FAB
+- [x] mobile-first navigation + FAB (تصمیم: در M13 به فرم واقعی متصل شد)
 - [x] theme system (light/dark/system) + settings entry point
 - [x] design primitives
 - [x] PWA manifest/icons
@@ -85,6 +85,17 @@
 - [x] global search baseline (`search_workspace` RPC, RLS-aware)
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
+
+## Milestone 13 - Real Quick Add ✅
+
+- [x] شیت «افزودن سریع» به ۵ اکشن واقعی متصل شد: تسک، رویداد، آیتم خرید، هزینه/قبض، کار خانه
+- [x] هر اکشن به API موجود وصل است (بدون endpoint جدید)
+- [x] انتخاب «مشترک خانه / خصوصی» با غیرفعال‌سازی خودکار وقتی کاربر عضو خانه نیست
+- [x] انتخاب لیست خرید داخل شیت + پیام راهنما وقتی لیستی وجود ندارد
+- [x] پشتیبانی از اعداد فارسی/عربی و جداکننده هزارگان در فیلد مبلغ
+- [x] بازخورد موفقیت/خطا، `router.refresh()` برای به‌روزرسانی صفحه، بستن با Escape
+- [x] دسترسی‌پذیری: `role="dialog"`, `aria-modal`, فوکوس خودکار روی عنوان
+- [x] ۱۶ تست واحد که payloadهای شیت را با schemaهای سرور تطبیق می‌دهند
 
 ## Milestone 12 - Web Push Delivery ✅
 

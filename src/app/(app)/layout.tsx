@@ -19,5 +19,18 @@ export default async function MainAppLayout({
     redirect("/auth/login");
   }
 
-  return <AppShell>{children}</AppShell>;
+  // The quick-add sheet enables household-only actions (chores, shopping,
+  // shared records) based on this flag.
+  const { data: membership } = await supabase
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", user.id)
+    .is("left_at", null)
+    .maybeSingle();
+
+  return (
+    <AppShell hasHousehold={Boolean(membership?.household_id)}>
+      {children}
+    </AppShell>
+  );
 }
