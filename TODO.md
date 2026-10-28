@@ -92,7 +92,9 @@
 - [x] CI (typecheck + lint + test + build)
 - [x] RLS verification scenarios executed directly against Postgres
 - [x] smoke script for end-to-end verification on a live environment
-- [ ] integration test suite wired into CI against a disposable Supabase branch
+- [x] integration suite wired into CI (Postgres service + auth shim + RLS assertions)
+- [x] reminder dispatch endpoint (cron or signed-in user) + quiet-hours deferral + tests
+- [ ] integration test suite against a disposable Supabase branch (currently: plain Postgres)
 - [ ] e2e critical journeys (browser) — blocked: no browser in this environment
 - [ ] performance review (Lighthouse/bundle budget)
 - [ ] production deployment runbook + backups/restore drill

@@ -18,7 +18,7 @@
 | Recurrence                | daily/weekly/custom with rrule-ready model          | ✅ Completed (M4)  |
 | Today Dashboard           | اولویت‌بندی کارهای امروز، معوق، قبض و کار خانه      | ✅ Completed (M5)  |
 | Calendar                  | month/week/agenda + tasks/events aggregation        | ✅ Completed (M5)  |
-| Reminder Foundation       | data model + schedule calculations                  | ✅ Completed (M6)  |
+| Reminder Foundation       | data model + schedule calc + dispatch/snooze/quiet  | ✅ Completed (M6)  |
 | Notification Prefs        | in-app/web push settings                            | ✅ Completed (M6)  |
 | Chores                    | recurring chores + rotation + completion history    | ✅ Completed (M7)  |
 | Shopping                  | shared list + quick add + first-list onboarding     | ✅ Completed (M8)  |

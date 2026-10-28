@@ -11,6 +11,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  database:
+    name: Migrations · RLS
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: khoonemoon_check
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply migrations and run RLS assertions
+        run: npm run db:verify
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/khoonemoon_check
+
   verify:
     name: Typecheck · Lint · Test · Build
     runs-on: ubuntu-latest
