@@ -30,6 +30,31 @@
   2. household membership (if household-scoped)
   3. visibility constraints
 
+## 4.1) Table Grants (M11)
+
+RLS فقط ردیف‌ها را محدود می‌کند؛ دسترسی پایه جدول با `grant` کنترل می‌شود. چون جداول با
+SQL خام ساخته می‌شوند، Supabase هیچ grant پیش‌فرضی اضافه نمی‌کند و هر مهاجرت خودش grantها
+را تنظیم می‌کند:
+
+| جدول                                      | authenticated                              |
+| ----------------------------------------- | ------------------------------------------ |
+| profiles                                  | select, insert, update                     |
+| households                                | select, insert, update                     |
+| household_members / household_invitations | select فقط (mutation با RPC)               |
+| tasks / task_recurrences                  | select, insert, update, delete             |
+| task_assignees                            | select, insert, delete                     |
+| events                                    | select, insert, update, delete             |
+| reminders                                 | select, insert, update, delete             |
+| notification_preferences                  | select, insert, update                     |
+| chores                                    | select, insert, update, delete             |
+| chore_rotation_steps                      | select, insert, delete                     |
+| chore_completions                         | select فقط (نوشتن با RPC `complete_chore`) |
+| shopping_lists / shopping_items           | select, insert, update, delete             |
+| financial_records                         | select, insert, update, delete             |
+
+`anon` هیچ دسترسی‌ای به جداول دامنه ندارد. schema `legacy_backup` (آرشیو نسخه قبلی)
+برای `anon` و `authenticated` صریحاً `revoke` شده است.
+
 ## 5) RLS Core Rules (Implemented in M2/M4)
 
 1. profiles: read/insert/update own profile only ✅
@@ -52,12 +77,32 @@
    - reminders: user can read/update/delete only own reminders ✅
    - reminder insert requires authenticated owner + target access validation ✅
    - notification_preferences: own row only ✅
-9. controlled mutations via `security definer` RPC:
-   - create_household
-   - create_household_invitation
-   - join_household_with_invitation
-   - cancel_household_invitation
-   - leave_current_household
+9. chores (M7):
+   - `chores`: فقط اعضای خانه
+   - `chore_rotation_steps`: دسترسی از طریق `current_user_can_access_chore`
+   - `chore_completions`: فقط select؛ نوشتن صرفاً با `complete_chore` (بررسی عضویت + auth.uid)
+10. shopping (M8):
+
+- `shopping_lists`: فقط اعضای خانه
+- `shopping_items`: از طریق `current_user_can_access_shopping_list` و `added_by = auth.uid()`
+
+11. finance (M9):
+
+- PRIVATE: فقط owner
+- HOUSEHOLD_SHARED: فقط اعضای خانه + الزام `household_id`
+
+12. search (M10):
+
+- `search_workspace` به‌صورت security invoker اجرا می‌شود تا RLS هر جدول اعمال شود
+
+13. controlled mutations via `security definer` RPC:
+
+- create_household
+- create_household_invitation
+- join_household_with_invitation
+- cancel_household_invitation
+- leave_current_household
+- complete_chore
 
 ## 6) Storage Security (Supabase Storage)
 
@@ -93,6 +138,14 @@
 - RLS policy gaps in join conditions
 - replay of expired invite
 - accidental storage object exposure
+
+## 10.1) Robustness
+
+- `getSupabaseEnv()` در صورت نبود پیکربندی خطای فارسی می‌دهد و middleware در نبود
+  اعتبارنامه‌ها کرش نمی‌کند (درخواست عبور می‌کند تا صفحه قابل‌خواندن نمایش داده شود).
+- اتصال مستقیم Postgres (`DATABASE_URL`) به‌صورت lazy ساخته می‌شود تا نبود آن باعث
+  خطای build/runtime نشود.
+- service worker هیچ درخواست `/api/*`، `/auth/*` یا صفحه احراز هویت‌شده‌ای را کش نمی‌کند.
 
 ## 11) Verification Plan
 
