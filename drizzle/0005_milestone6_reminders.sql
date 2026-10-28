@@ -159,3 +159,7 @@ for update
 to authenticated
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
+
+-- Table privileges
+grant select, insert, update, delete on public.reminders to authenticated;
+grant select, insert, update on public.notification_preferences to authenticated;

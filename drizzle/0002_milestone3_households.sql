@@ -397,3 +397,8 @@ grant execute on function public.create_household_invitation(text, timestamptz) 
 grant execute on function public.join_household_with_invitation(text) to authenticated;
 grant execute on function public.cancel_household_invitation(uuid) to authenticated;
 grant execute on function public.leave_current_household() to authenticated;
+
+-- Table privileges (membership/invitation mutations go through the RPCs above)
+grant select on public.households, public.household_members, public.household_invitations to authenticated;
+grant insert on public.households to authenticated;
+grant update on public.households to authenticated;

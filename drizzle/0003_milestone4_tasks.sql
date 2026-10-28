@@ -276,3 +276,8 @@ on public.task_recurrences
 for delete
 to authenticated
 using (public.current_user_can_manage_task(task_id));
+
+-- Table privileges
+grant select, insert, update, delete on public.tasks to authenticated;
+grant select, insert, delete on public.task_assignees to authenticated;
+grant select, insert, update, delete on public.task_recurrences to authenticated;

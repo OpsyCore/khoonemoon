@@ -71,3 +71,6 @@ for update
 to authenticated
 using (id = auth.uid())
 with check (id = auth.uid());
+
+-- Table privileges (RLS still governs every row)
+grant select, insert, update on public.profiles to authenticated;
