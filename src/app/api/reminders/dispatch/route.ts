@@ -1,11 +1,17 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { buildDispatchPlan } from "@/features/reminders/dispatch";
+import { buildPushPayload } from "@/features/reminders/push";
 import type {
   ReminderPreferenceRecord,
   ReminderRecord,
 } from "@/features/reminders/types";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSessionContext, serverError } from "@/lib/api/session";
+import {
+  sendPushNotification,
+  type StoredSubscription,
+} from "@/lib/push/web-push";
 
 const REMINDER_SELECT =
   "id, target_type, target_id, user_id, household_id, remind_at, status, snoozed_until, snooze_count, delivered_at, created_at, updated_at";
@@ -145,18 +151,135 @@ export async function POST(request: Request) {
 
   if (updateError) return serverError("به‌روزرسانی وضعیت یادآورها ناموفق بود.");
 
+  // Web Push delivery for users who enabled it on at least one device.
+  const pushByUser = await deliverPushNotifications({
+    client,
+    reminders: toSend,
+    preferencesByUser,
+    now,
+  });
+
   return NextResponse.json({
     dispatched: toSend.length,
     deferred: deferredCount,
     sentAt: now.toISOString(),
+    push: pushByUser.summary,
     notifications: toSend.map((reminder) => ({
       reminderId: reminder.id,
       userId: reminder.user_id,
       targetType: reminder.target_type,
       targetId: reminder.target_id,
-      inAppEnabled: preferencesByUser.get(reminder.user_id)?.in_app_enabled ?? true,
+      inAppEnabled:
+        preferencesByUser.get(reminder.user_id)?.in_app_enabled ?? true,
       webPushEnabled:
         preferencesByUser.get(reminder.user_id)?.web_push_enabled ?? false,
     })),
   });
+}
+
+type PushOutcome = {
+  sent: number;
+  expired: number;
+  failed: number;
+  skipped: number;
+  summary: { sent: number; expired: number; failed: number; skipped: number };
+};
+
+async function deliverPushNotifications({
+  client,
+  reminders,
+  preferencesByUser,
+  now,
+}: {
+  client: SupabaseClient;
+  reminders: ReminderRecord[];
+  preferencesByUser: Map<string, ReminderPreferenceRecord>;
+  now: Date;
+}): Promise<PushOutcome> {
+  const outcome = { sent: 0, expired: 0, failed: 0, skipped: 0 };
+
+  const pushUsers = [
+    ...new Set(
+      reminders
+        .filter(
+          (reminder) =>
+            preferencesByUser.get(reminder.user_id)?.web_push_enabled,
+        )
+        .map((reminder) => reminder.user_id),
+    ),
+  ];
+
+  if (pushUsers.length === 0) {
+    outcome.skipped = reminders.length;
+    return { ...outcome, summary: { ...outcome } };
+  }
+
+  const { data: subscriptions } = await client
+    .from("push_subscriptions")
+    .select("id, user_id, endpoint, p256dh, auth")
+    .in("user_id", pushUsers)
+    .is("revoked_at", null);
+
+  const subscriptionsByUser = new Map<
+    string,
+    (StoredSubscription & { user_id: string })[]
+  >();
+
+  (
+    (subscriptions ?? []) as (StoredSubscription & { user_id: string })[]
+  ).forEach((subscription) => {
+    const list = subscriptionsByUser.get(subscription.user_id) ?? [];
+    list.push(subscription);
+    subscriptionsByUser.set(subscription.user_id, list);
+  });
+
+  const expiredIds: string[] = [];
+
+  for (const reminder of reminders) {
+    const preference = preferencesByUser.get(reminder.user_id);
+    if (!preference?.web_push_enabled) {
+      outcome.skipped += 1;
+      continue;
+    }
+
+    const devices = subscriptionsByUser.get(reminder.user_id) ?? [];
+
+    if (devices.length === 0) {
+      outcome.skipped += 1;
+      continue;
+    }
+
+    const payload = buildPushPayload({
+      targetType: reminder.target_type,
+      remindAt:
+        reminder.status === "SNOOZED" && reminder.snoozed_until
+          ? reminder.snoozed_until
+          : reminder.remind_at,
+      now,
+    });
+
+    for (const device of devices) {
+      const result = await sendPushNotification({
+        subscription: device,
+        payload,
+      });
+
+      if (result.status === "sent") outcome.sent += 1;
+      if (result.status === "expired") {
+        outcome.expired += 1;
+        expiredIds.push(device.id);
+      }
+      if (result.status === "failed") outcome.failed += 1;
+      if (result.status === "not_configured") outcome.skipped += 1;
+    }
+  }
+
+  if (expiredIds.length > 0) {
+    await client
+      .from("push_subscriptions")
+      .update({ revoked_at: now.toISOString() })
+      .in("id", expiredIds);
+  }
+
+  return { ...outcome, summary: { ...outcome } };
 }

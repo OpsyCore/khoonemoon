@@ -93,6 +93,10 @@ begin
     missing := missing || 'household_members:insert-must-be-denied';
   end if;
 
+  if not has_table_privilege('authenticated', 'public.push_subscriptions', 'insert') then
+    missing := missing || 'push_subscriptions:insert';
+  end if;
+
   if array_length(missing, 1) is not null then
     raise exception 'GRANT FAIL: %', array_to_string(missing, ', ');
   end if;
@@ -200,6 +204,40 @@ begin
 
   if v_touched <> 0 then
     raise exception 'RLS FAIL: outsider modified % shopping items', v_touched;
+  end if;
+end
+$$;
+
+commit;
+
+-- ---------------------------------------------------------------------------
+-- Push subscriptions are private to their owner
+-- ---------------------------------------------------------------------------
+
+insert into public.push_subscriptions (user_id, endpoint, p256dh, auth)
+values (
+  '00000000-0000-4000-8000-00000000000a',
+  'https://push.example.test/device-a',
+  repeat('p', 40),
+  repeat('a', 20)
+);
+
+begin;
+select set_config(
+  'request.jwt.claims',
+  json_build_object('sub', '00000000-0000-4000-8000-00000000000b', 'role', 'authenticated')::text,
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  v_visible integer;
+begin
+  select count(*) into v_visible from public.push_subscriptions;
+
+  if v_visible <> 0 then
+    raise exception 'RLS FAIL: partner can see % push subscriptions of another user', v_visible;
   end if;
 end
 $$;

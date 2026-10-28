@@ -19,7 +19,8 @@
 | Today Dashboard           | اولویت‌بندی کارهای امروز، معوق، قبض و کار خانه      | ✅ Completed (M5)  |
 | Calendar                  | month/week/agenda + tasks/events aggregation        | ✅ Completed (M5)  |
 | Reminder Foundation       | data model + schedule calc + dispatch/snooze/quiet  | ✅ Completed (M6)  |
-| Notification Prefs        | in-app/web push settings                            | ✅ Completed (M6)  |
+| Notification Prefs        | in-app settings + quiet hours                       | ✅ Completed (M6)  |
+| Web Push Delivery         | VAPID + subscriptions + dispatch + SW handlers      | ✅ Completed (M12) |
 | Chores                    | recurring chores + rotation + completion history    | ✅ Completed (M7)  |
 | Shopping                  | shared list + quick add + first-list onboarding     | ✅ Completed (M8)  |
 | Realtime                  | scoped sync for shopping items                      | ✅ Completed (M8)  |

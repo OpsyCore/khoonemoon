@@ -128,6 +128,34 @@ DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/khoonemoon_check npm ru
 > ⚠️ فایل `db/local/00_auth_shim.sql` فقط برای محیط محلی/CI است و هرگز نباید روی
 > پروژه Supabase اجرا شود.
 
+### اعلان‌های Push (Web Push / VAPID)
+
+یادآورها علاوه بر نمایش درون‌برنامه‌ای، روی دستگاه هم به‌صورت اعلان نمایش داده می‌شوند:
+
+```bash
+# ساخت جفت‌کلید VAPID (یک‌بار برای هر محیط)
+node -e "console.log(require('web-push').generateVAPIDKeys())"
+```
+
+```env
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=<public key>
+VAPID_PRIVATE_KEY=<private key>
+VAPID_SUBJECT=mailto:you@example.com
+```
+
+جریان کار:
+
+1. کاربر در «تنظیمات» روی «فعال‌سازی اعلان» می‌زند → مرورگر اجازه می‌گیرد و
+   `push_subscription` در جدول `push_subscriptions` ثبت می‌شود.
+2. `/api/reminders/dispatch` یادآورهای سررسیده را تحویل می‌دهد و برای کاربرانی که
+   `web_push_enabled` دارند، پیام را به همه دستگاه‌های ثبت‌شده می‌فرستد.
+3. اشتراک‌های منقضی (پاسخ 404/410 از سرویس push) خودکار `revoked_at` می‌گیرند.
+4. اگر کلید تنظیم نشده باشد، اپ به‌جای خطا فقط یادآور درون‌برنامه‌ای نشان می‌دهد،
+   و در تنظیمات پیام «کلید VAPID تنظیم نشده» دیده می‌شود.
+
+> نکته: push در حالت نصب‌شده (PWA) و روی `https`/`localhost` کار می‌کند؛ روی iOS
+> نیاز به نصب اپ روی صفحه اصلی دارد.
+
 ### زمان‌بندی یادآورها
 
 ```bash

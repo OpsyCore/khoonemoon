@@ -86,6 +86,17 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 12 - Web Push Delivery ✅
+
+- [x] `push_subscriptions` table + per-user RLS + grants
+- [x] VAPID configuration with graceful degradation when unset
+- [x] `/api/push/subscribe` (register / list / revoke)
+- [x] dispatch sends real push payloads to every registered device
+- [x] expired subscriptions (404/410) auto-revoked
+- [x] service worker `push` + `notificationclick` handlers (RTL, Persian)
+- [x] settings card with enable/disable + unsupported/unconfigured states
+- [x] tests for payload building, schema and expiry handling
+
 ## Milestone 11 - Hardening 🚧
 
 - [x] unit tests (recurrence/date/permissions/finance/chores)
@@ -100,6 +111,7 @@
 - [ ] e2e critical journeys (browser) — blocked: no browser in this environment
 - [ ] performance review (Lighthouse/bundle budget)
 - [ ] production deployment runbook + backups/restore drill
+- [ ] push delivery e2e against a real browser (needs a real device/browser)
 
 ## Quality Gate Checklist (Run each milestone)
 

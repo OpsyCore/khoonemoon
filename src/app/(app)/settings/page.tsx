@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NotificationCapability } from "@/features/reminders/components/notification-capability";
+import { PushSubscriptionCard } from "@/features/reminders/components/push-subscription-card";
 import { ReminderPreferencesForm } from "@/features/reminders/components/reminder-preferences-form";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 import { ThemeToggle } from "@/shared/layout/theme-toggle";
@@ -25,6 +26,7 @@ export default function SettingsPage() {
         <ThemeToggle />
       </Card>
 
+      <PushSubscriptionCard />
       <ReminderPreferencesForm />
       <NotificationCapability />
 
@@ -44,10 +46,10 @@ export default function SettingsPage() {
       <Card className="space-y-2">
         <CardTitle>نصب روی گوشی (PWA)</CardTitle>
         <CardDescription>
-          در مرورگر موبایل از منوی مرورگر گزینه «افزودن به صفحه اصلی» را
-          انتخاب کنید تا برنامه مانند یک اپ نصب شود. صفحه «امروز» به‌صورت
-          آفلاین کش نمی‌شود تا داده خصوصی خانه روی دستگاه مشترک باقی نماند؛
-          فقط پوسته عمومی برنامه و صفحه راهنمای آفلاین در دسترس‌اند.
+          در مرورگر موبایل از منوی مرورگر گزینه «افزودن به صفحه اصلی» را انتخاب
+          کنید تا برنامه مانند یک اپ نصب شود. صفحه «امروز» به‌صورت آفلاین کش
+          نمی‌شود تا داده خصوصی خانه روی دستگاه مشترک باقی نماند؛ فقط پوسته
+          عمومی برنامه و صفحه راهنمای آفلاین در دسترس‌اند.
         </CardDescription>
       </Card>
 
