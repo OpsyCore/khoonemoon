@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { NotificationCapability } from "@/features/reminders/components/notification-capability";
 import { ReminderPreferencesForm } from "@/features/reminders/components/reminder-preferences-form";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
+import { ThemeToggle } from "@/shared/layout/theme-toggle";
 
 export default function SettingsPage() {
   return (
@@ -8,13 +10,46 @@ export default function SettingsPage() {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">تنظیمات</h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          ترجیحات یادآور، اعلان‌ها و رفتارهای fallback در این بخش مدیریت
+          تم، ترجیحات یادآور، اعلان‌ها و دسترسی‌های خانه در این بخش مدیریت
           می‌شوند.
         </p>
       </section>
 
+      <Card className="flex items-center justify-between gap-3">
+        <div className="space-y-1">
+          <CardTitle>ظاهر برنامه</CardTitle>
+          <CardDescription>
+            بین حالت روشن، تاریک و هماهنگ با سیستم جابه‌جا شوید.
+          </CardDescription>
+        </div>
+        <ThemeToggle />
+      </Card>
+
       <ReminderPreferencesForm />
       <NotificationCapability />
+
+      <Card className="space-y-2">
+        <CardTitle>خانه و اعضا</CardTitle>
+        <CardDescription>
+          ساخت خانه، دعوت شریک و مدیریت دسترسی‌ها در صفحه «خونه» انجام می‌شود.
+        </CardDescription>
+        <Link
+          href="/home"
+          className="inline-flex text-sm font-medium text-sky-600 hover:underline dark:text-sky-400"
+        >
+          رفتن به صفحه خانه
+        </Link>
+      </Card>
+
+      <Card className="space-y-2">
+        <CardTitle>نصب روی گوشی (PWA)</CardTitle>
+        <CardDescription>
+          در مرورگر موبایل از منوی مرورگر گزینه «افزودن به صفحه اصلی» را
+          انتخاب کنید تا برنامه مانند یک اپ نصب شود. صفحه «امروز» به‌صورت
+          آفلاین کش نمی‌شود تا داده خصوصی خانه روی دستگاه مشترک باقی نماند؛
+          فقط پوسته عمومی برنامه و صفحه راهنمای آفلاین در دسترس‌اند.
+        </CardDescription>
+      </Card>
 
       <Card>
         <CardTitle>محدودیت‌های پلتفرم وب</CardTitle>
