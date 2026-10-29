@@ -86,6 +86,14 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 18 - Bundle Budget in CI ✅
+
+- [x] `scripts/bundle-budget.mjs`: خواندن حجم واقعی JS هر مسیر از مانیفست‌های Turbopack (gzip)
+- [x] `bundle-budget.json` با سقف پیش‌فرض و سقف مشترک (shared) + امکان سقف جدا برای هر مسیر
+- [x] گام «Bundle budget» در CI بعد از build؛ عبور از سقف = CI قرمز
+- [x] ۲۲ تست برای پارس مانیفست (رشته‌های شامل `{}`، گیومهٔ escape شده، JSON خراب) و منطق بودجه
+- [x] مستندسازی در README با نمونهٔ خروجی و روش به‌روزرسانی سقف
+
 ## Milestone 17 - Finance Charts ✅
 
 - [x] `analytics.ts`: سری ماهانه (درآمد/هزینه) و سهم دسته‌ها روی تقویم **هجری شمسی** (کلید `1405-08`)
@@ -156,7 +164,7 @@
 - [x] reminder dispatch endpoint (cron or signed-in user) + quiet-hours deferral + tests
 - [ ] integration test suite against a disposable Supabase branch (currently: plain Postgres)
 - [ ] e2e critical journeys (browser) — blocked: no browser in this environment
-- [ ] performance review (Lighthouse/bundle budget)
+- [x] bundle budget enforced in CI (M18) — Lighthouse still needs a real browser
 - [ ] production deployment runbook + backups/restore drill
 - [ ] push delivery e2e against a real browser (needs a real device/browser)
 

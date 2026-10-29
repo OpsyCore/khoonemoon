@@ -12,6 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke": "node scripts/smoke.mjs",
+    "budget": "node scripts/bundle-budget.mjs",
+    "dispatch:reminders": "node scripts/dispatch-reminders.mjs",
     "verify": "npm run typecheck && npm run lint && npm run test",
     "db:verify": "bash scripts/db-verify.sh",
     "db:check": "node scripts/db-check-local.mjs"

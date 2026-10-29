@@ -14,6 +14,11 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    include: [
+      "src/**/*.test.ts",
+      "src/**/*.test.tsx",
+      // Operational scripts (bundle budget, dispatch) are tested too.
+      "scripts/**/*.test.mjs",
+    ],
   },
 });

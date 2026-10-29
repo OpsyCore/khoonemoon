@@ -88,6 +88,36 @@ for f in drizzle/000*.sql; do psql "$DATABASE_URL" -f "$f"; done
 | `npm run verify` | typecheck + lint + test (همان چیزی که CI اجرا می‌کند)                            |
 | `npm test`       | تست‌های واحد (Vitest)                                                            |
 | `npm run smoke`  | تست دود end-to-end روی یک محیط در حال اجرا (نیازمند `SUPABASE_SERVICE_ROLE_KEY`) |
+| `npm run budget` | سنجش حجم JS هر مسیر روی خروجی واقعی build و مقایسه با `bundle-budget.json`       |
+
+### بودجهٔ باندل
+
+```bash
+npm run build && npm run budget
+```
+
+خروجی، حجم gzip جاوااسکریپت هر مسیر را از مانیفست‌های واقعی build می‌خواند
+(نه تخمین) و با سقف‌های `bundle-budget.json` مقایسه می‌کند:
+
+```text
+• /today                   211.8 KB  از 234.4 KB
+• /lists                   114.3 KB  از 234.4 KB
+• shared (هر صفحه)         128.9 KB  از 141.6 KB
+```
+
+اگر مسیری از سقفش بگذرد، اسکریپت با کد خطا خارج می‌شود و **CI قرمز می‌شود**.
+دو راه‌حل: import اضافه را حذف کنید، یا اگر رشد آگاهانه و موجه است سقف را در
+`bundle-budget.json` به‌روز کنید (تغییر سقف در PR دیده می‌شود، پس پنهانی نیست).
+
+برای یک مسیر خاص می‌توانید سقف جدا بگذارید:
+
+```json
+{
+  "defaultMaxGzipBytes": 240000,
+  "sharedMaxGzipBytes": 145000,
+  "routes": { "/today": { "maxGzipBytes": 260000 } }
+}
+```
 
 ### تست دود (smoke)
 
