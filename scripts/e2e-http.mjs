@@ -17,10 +17,32 @@
  * Usage: npm run build && npm run e2e:http
  */
 import { spawn } from "node:child_process";
+import path from "node:path";
 
 const PORT = Number(process.env.E2E_PORT ?? 4311);
 const BASE = `http://127.0.0.1:${PORT}`;
-const STARTUP_TIMEOUT_MS = 60_000;
+const STARTUP_TIMEOUT_MS = 45_000;
+
+/**
+ * Hard ceiling for the whole run. In CI a hung `fetch` (a server that accepts the
+ * connection but never answers) would otherwise sit there for the job's lifetime;
+ * the watchdog guarantees a failing exit code instead of a silently stuck step.
+ */
+const HARD_TIMEOUT_MS = 150_000;
+
+/** Per-request ceiling, so one unresponsive route cannot swallow the budget. */
+const REQUEST_TIMEOUT_MS = 10_000;
+
+const watchdog = setTimeout(() => {
+  console.error(
+    `\n✖ اجرای e2e پس از ${HARD_TIMEOUT_MS / 1000} ثانیه متوقف شد (سرور پاسخ نداد).`,
+  );
+  console.error(serverLog.slice(-2000));
+  stopServer();
+  process.exit(1);
+}, HARD_TIMEOUT_MS);
+// Do not keep the process alive just for the watchdog.
+watchdog.unref();
 
 const results = [];
 
@@ -52,6 +74,7 @@ async function expectStatus({ name, path, status, contains, init }) {
   try {
     const response = await fetch(`${BASE}${path}`, {
       redirect: "manual",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       ...init,
     });
     const body = await response.text();
@@ -84,10 +107,27 @@ const guardCases = [
   { path: "/api/reminders", method: "POST" },
 ];
 
+/**
+ * Run Next's own binary, not `npx next`.
+ *
+ * `npx` spawns Next as a grandchild, so killing the handle we hold leaves the
+ * real server orphaned and still bound to the port — the next run then talks to
+ * a stale build, or hangs. `detached` + a negative pid kills the whole group.
+ */
+const NEXT_BIN = path.join(
+  process.cwd(),
+  "node_modules",
+  "next",
+  "dist",
+  "bin",
+  "next",
+);
+
 const server = spawn(
-  process.platform === "win32" ? "npx.cmd" : "npx",
-  ["next", "start", "--port", String(PORT), "--hostname", "127.0.0.1"],
+  process.execPath,
+  [NEXT_BIN, "start", "--port", String(PORT), "--hostname", "127.0.0.1"],
   {
+    detached: process.platform !== "win32",
     stdio: ["ignore", "pipe", "pipe"],
     env: {
       ...process.env,
@@ -106,8 +146,30 @@ let serverLog = "";
 server.stdout.on("data", (chunk) => (serverLog += chunk.toString()));
 server.stderr.on("data", (chunk) => (serverLog += chunk.toString()));
 
+server.on("error", (error) => {
+  console.error(`✖ اجرای سرور ممکن نشد: ${error.message}`);
+  process.exit(1);
+});
+
 function stopServer() {
-  if (!server.killed) server.kill("SIGTERM");
+  if (server.exitCode !== null) return;
+
+  try {
+    // Negative pid = the whole process group, so no orphan keeps the port.
+    if (process.platform !== "win32") process.kill(-server.pid, "SIGTERM");
+    else server.kill("SIGTERM");
+  } catch {
+    server.kill("SIGTERM");
+  }
+
+  setTimeout(() => {
+    try {
+      if (process.platform !== "win32") process.kill(-server.pid, "SIGKILL");
+      else server.kill("SIGKILL");
+    } catch {
+      // already gone
+    }
+  }, 3000).unref();
 }
 
 process.on("exit", stopServer);
@@ -117,11 +179,27 @@ process.on("SIGINT", () => {
 });
 
 try {
+  // A leftover server on this port would make every assertion meaningless, so
+  // refuse to run instead of reporting on someone else's process.
+  try {
+    await fetch(`${BASE}/auth/login`, {
+      redirect: "manual",
+      signal: AbortSignal.timeout(2000),
+    });
+    console.error(
+      `✖ پورت ${PORT} از قبل اشغال است. یک سرور قبلی را ببندید یا E2E_PORT را عوض کنید.`,
+    );
+    process.exit(1);
+  } catch {
+    // nothing listening — what we want
+  }
+
   console.log(`اجرای build روی پورت ${PORT}…`);
 
   if (!(await waitForServer())) {
     console.error("✖ سرور در زمان مقرر بالا نیامد.\n");
     console.error(serverLog.slice(-2000));
+    stopServer();
     process.exit(1);
   }
 
@@ -197,3 +275,6 @@ if (failed.length > 0) {
 }
 
 console.log(`\n✔ همهٔ ${total} بررسی end-to-end موفق بود.`);
+
+// `main` is implicit here (top-level await), so the exit code must be set
+// explicitly: a lingering child process would otherwise keep the step alive.
