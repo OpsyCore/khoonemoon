@@ -86,6 +86,17 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 28 - خلاصهٔ هفته روی صفحهٔ امروز ✅
+
+- [x] `features/summary/weekly-summary.ts`: پنجرهٔ ۷ روزه + هفتهٔ قبل به‌عنوان مبنا
+- [x] هر عدد با مبنای خودش؛ وقتی هفتهٔ قبل خالی است، درصد **نمی‌سازیم** (تقسیم بر صفر = دروغ)
+- [x] پول با `activityDate` (پرداخت‌شده، وگرنه ثبت‌شده) — همان قاعدهٔ دفتر تراکنش‌ها
+- [x] دو فیلتر ساده به‌جای یک `.or()` زیرکانه: ردیف پرداخت‌نشده با `occurred_at`، ردیف پرداخت‌شده با `paid_at`
+- [x] پنجرهٔ نیم‌باز `[from, to)` تا کار روی مرز در دو هفته شمرده نشود
+- [x] کارت **Server Component**: /today سنگین‌ترین مسیر باندل است، حساب‌وکتاب را به مرورگر نمی‌فرستیم (+۱ KB)
+- [x] ۱۸ تست: مرز پنجره، درآمد در برابر خرج، رشتهٔ عددی پستگرس، حالت «هیچ‌کاری نشده»
+- [ ] محدودیت شناخته‌شده: کاری که پس از تکمیل بایگانی شود از شمارش این هفته بیرون می‌رود
+
 ## Milestone 27 - بازخورد خطا در فرم‌ها + پیش‌نمایش Codespaces ✅
 
 - [x] ریشهٔ «دکمه را می‌زنم هیچ اتفاقی نمی‌افتد»: `createSupabaseBrowserClient()` بدون try/catch
@@ -258,7 +269,7 @@
 - [ ] integration test suite against a disposable Supabase branch (currently: plain Postgres)
 - [ ] e2e critical journeys (browser) — blocked: no browser in this environment
 - [x] bundle budget enforced in CI (M18) — Lighthouse still needs a real browser
-- [ ] production deployment runbook + backups/restore drill
+- [x] production deployment runbook + backups/restore drill (M25)
 - [ ] push delivery e2e against a real browser (needs a real device/browser)
 
 ## Quality Gate Checklist (Run each milestone)

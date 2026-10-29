@@ -6,6 +6,8 @@ import { UpcomingBills } from "@/features/finance/components/upcoming-bills";
 import type { FinancialRecord } from "@/features/finance/types";
 import { calculateUpcomingReminders } from "@/features/reminders/calculations";
 import { UpcomingReminders } from "@/features/reminders/components/upcoming-reminders";
+import { WeeklySummaryCard } from "@/features/summary/components/weekly-summary-card";
+import { buildWeeklySummary, DAY_MS } from "@/features/summary/weekly-summary";
 import type { ReminderRecord } from "@/features/reminders/types";
 import { TaskManager } from "@/features/tasks/components/task-manager";
 import { TodayDashboard } from "@/features/tasks/components/today-dashboard";
@@ -30,6 +32,11 @@ export default async function TodayPage() {
     );
   }
 
+  // One clock for the whole request: the weekly window and the queries below
+  // must agree, otherwise a record at the edge counts in neither week.
+  const now = new Date();
+  const summaryCutoff = new Date(now.getTime() - 14 * DAY_MS).toISOString();
+
   const [
     membershipResult,
     tasksResult,
@@ -37,6 +44,9 @@ export default async function TodayPage() {
     remindersResult,
     choresResult,
     financeResult,
+    choreCompletionsResult,
+    financeSinceOccurredResult,
+    financeSincePaidResult,
   ] = await Promise.all([
     supabase
       .from("household_members")
@@ -80,13 +90,36 @@ export default async function TodayPage() {
       .is("archived_at", null)
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(50),
+    // The recap only needs counts, not the rows: chore history is fetched as
+    // timestamps for the last fourteen days (this week plus the baseline).
+    supabase
+      .from("chore_completions")
+      .select("completed_at")
+      .gte("completed_at", summaryCutoff),
+    // "Money that moved" is `paid_at ?? occurred_at`, so it takes two plain
+    // filters rather than one clever `.or()`: unpaid rows land in the first,
+    // paid rows in the second, and the two sets cannot overlap.
+    supabase
+      .from("financial_records")
+      .select("record_type, amount, paid_at, occurred_at")
+      .is("archived_at", null)
+      .is("paid_at", null)
+      .gte("occurred_at", summaryCutoff),
+    supabase
+      .from("financial_records")
+      .select("record_type, amount, paid_at, occurred_at")
+      .is("archived_at", null)
+      .gte("paid_at", summaryCutoff),
   ]);
 
   if (
     membershipResult.error ||
     tasksResult.error ||
     eventsResult.error ||
-    remindersResult.error
+    remindersResult.error ||
+    choreCompletionsResult.error ||
+    financeSinceOccurredResult.error ||
+    financeSincePaidResult.error
   ) {
     return (
       <ErrorState
@@ -137,6 +170,18 @@ export default async function TodayPage() {
 
   const tasks = (tasksResult.data ?? []) as TaskRecord[];
   const events = (eventsResult.data ?? []) as EventRecord[];
+  const weeklySummary = buildWeeklySummary({
+    tasks: tasks.map((task) => ({ completed_at: task.completed_at })),
+    chores: (choreCompletionsResult.data ?? []) as {
+      completed_at: string;
+    }[],
+    finance: [
+      ...(financeSinceOccurredResult.data ?? []),
+      ...(financeSincePaidResult.data ?? []),
+    ] as Parameters<typeof buildWeeklySummary>[0]["finance"],
+    now,
+  });
+
   const upcomingReminders = calculateUpcomingReminders({
     reminders: (remindersResult.data ?? []) as ReminderRecord[],
     now: new Date(),
@@ -153,6 +198,7 @@ export default async function TodayPage() {
         </p>
       </section>
 
+      <WeeklySummaryCard summary={weeklySummary} />
       <TodayDashboard tasks={tasks} events={events} />
       <DueChores
         chores={(choresResult.data ?? []) as ChoreRecord[]}
