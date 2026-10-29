@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ChoreBoard } from "@/features/chores/components/chore-board";
 import type { ChoreCompletion, ChoreRecord } from "@/features/chores/types";
 import { FinanceBoard } from "@/features/finance/components/finance-board";
+import { FinanceCharts } from "@/features/finance/components/finance-charts";
 import { SettlementCard } from "@/features/finance/components/settlement-card";
 import type { FinancialRecord } from "@/features/finance/types";
 import { ShoppingBoard } from "@/features/shopping/components/shopping-board";
@@ -101,6 +102,7 @@ export function ListsTabs({
             }))}
             currentUserId={currentUserId}
           />
+          <FinanceCharts records={records} now={new Date()} />
           <FinanceBoard records={records} canShare={canShare} />
         </div>
       ) : null}

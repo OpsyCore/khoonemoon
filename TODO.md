@@ -86,6 +86,15 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 17 - Finance Charts ✅
+
+- [x] `analytics.ts`: سری ماهانه (درآمد/هزینه) و سهم دسته‌ها روی تقویم **هجری شمسی** (کلید `1405-08`)
+- [x] ماه‌ها با پیمایش روزبه‌روز ساخته می‌شوند، نه جمع تقریبی ۳۰ روزه (طول ماه‌های شمسی متفاوت است)
+- [x] تاریخ پول = `paid_at` → `due_at` → `occurred_at`؛ پس قبضی که مهر صادر و آبان پرداخت شده در آبان حساب می‌شود
+- [x] نمودار SVG دستی (بدون recharts/d3) با نوار درآمد/هزینه و مقیاس بر اساس بیشترین ماه
+- [x] فهرست سهم دسته‌ها با درصد؛ دستهٔ خالی → «بدون دسته»
+- [x] ۱۹ تست (۱۶ منطق + ۳ رندر)
+
 ## Milestone 16 - Chore History ✅
 
 - [x] ماژول `history.ts`: ساخت ورودی‌ها، گروه‌بندی روزانه (تقویم هجری شمسی) و خلاصهٔ سهم هر عضو
