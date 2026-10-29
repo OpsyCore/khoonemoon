@@ -34,6 +34,7 @@
 | Search                    | cross-domain search with permission filters         | ✅ Completed (M10) |
 | Search Filters            | kind chips + time range, filtered client-side       | ✅ Completed (M20) |
 | Finance Corrections       | edit amount/category, archive records (min patch)   | ✅ Completed (M21) |
+| Chore Corrections         | edit title/frequency/rotation, archive (min patch)  | ✅ Completed (M22) |
 | Settings                  | theme/reminders/PWA help/household navigation       | ✅ Completed (M10) |
 | Offline Improvements      | shell cache + offline page (private pages excluded) | ✅ Completed (M10) |
 | Test Hardening            | unit tests + CI + DB-level RLS verification         | 🚧 M11             |

@@ -3,6 +3,7 @@
 import { Check, Plus, Repeat, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { ChoreActions } from "@/features/chores/components/chore-actions";
 import { ChoreHistory } from "@/features/chores/components/chore-history";
 import {
   getChoreState,
@@ -280,6 +281,12 @@ export function ChoreBoard({
                       {chore.is_active ? "توقف" : "فعال‌سازی"}
                     </Button>
                   </div>
+
+                  <ChoreActions
+                    chore={chore}
+                    memberCount={members.length}
+                    canManage={canManage}
+                  />
                 </Card>
               </li>
             );

@@ -86,6 +86,16 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 22 - Correcting Chores ✅
+
+- [x] `corrections.ts`: ساخت کمترین patch معتبر برای کار خانه (عنوان، تکرار، حالت نوبت)
+- [x] مقایسهٔ معنادار عنوان (فاصله‌های اضافی تغییر نیست)
+- [x] رد کردن نوبت‌بندی چرخشی در خانهٔ یک‌نفره با پیام فارسی، به‌جای ساختن نوبتی که هرگز نمی‌چرخد
+- [x] بازگشت از چرخشی به ثابت در هر اندازه‌ای از خانه مجاز است
+- [x] دکمهٔ «اصلاح» و «بایگانی» روی هر کار خانه (فقط برای کسی که اجازهٔ مدیریت دارد)
+- [x] بایگانی با تأیید و متن صادقانه: تاریخچهٔ انجام‌شدن‌ها می‌ماند
+- [x] ۱۲ تست
+
 ## Milestone 21 - Correcting Financial Records ✅
 
 - [x] `corrections.ts`: تبدیل فرم ویرایش به **کمترین patch معتبر** (فقط فیلدهای تغییرکرده)
