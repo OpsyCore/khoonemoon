@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { openSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getPersianAuthErrorMessage } from "@/features/auth/error-messages";
 import {
   updatePasswordSchema,
@@ -32,7 +32,14 @@ export function UpdatePasswordForm() {
   const onSubmit = async (values: UpdatePasswordInput) => {
     setServerError(null);
 
-    const supabase = createSupabaseBrowserClient();
+    const opened = openSupabaseBrowserClient();
+
+    if ("error" in opened) {
+      setServerError(opened.error);
+      return;
+    }
+
+    const supabase = opened.client;
     const { error } = await supabase.auth.updateUser({
       password: values.password,
     });

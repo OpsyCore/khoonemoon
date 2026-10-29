@@ -7,11 +7,11 @@
 
 ## ۱. پیش‌نیازها
 
-| مورد | چرا لازم است |
-| --- | --- |
-| پروژهٔ Supabase | دیتابیس، احراز هویت و Realtime |
-| میزبان Next.js (Vercel / Netlify / VPS) | اجرای اپ |
-| دامنهٔ HTTPS | PWA و Web Push بدون `https` کار نمی‌کنند |
+| مورد                                    | چرا لازم است                             |
+| --------------------------------------- | ---------------------------------------- |
+| پروژهٔ Supabase                         | دیتابیس، احراز هویت و Realtime           |
+| میزبان Next.js (Vercel / Netlify / VPS) | اجرای اپ                                 |
+| دامنهٔ HTTPS                            | PWA و Web Push بدون `https` کار نمی‌کنند |
 
 مخزن: <https://github.com/OpsyCore/khoonemoon>
 پروژهٔ Supabase تولید: `isfzuxrkzeeeggvfcoah`
@@ -32,14 +32,14 @@ NEXT_PUBLIC_APP_URL=https://<domain>
 
 ### اختیاری ولی لازم برای قابلیت‌های مشخص
 
-| متغیر | قابلیت | اگر نباشد چه می‌شود |
-| --- | --- | --- |
-| `SUPABASE_SERVICE_ROLE_KEY` | ارسال زمان‌بندی‌شدهٔ یادآور برای **همهٔ** کاربران | فقط یادآورهای کاربر جاری پردازش می‌شود؛ `/api/reminders/dispatch` در حالت cron خطای ۵۰۰ می‌دهد |
-| `CRON_SECRET` | احراز هویت زمان‌بند | زمان‌بند نمی‌تواند endpoint را صدا بزند (۴۰۱) |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push | فقط یادآور درون‌برنامه‌ای؛ در تنظیمات پیام «کلید VAPID تنظیم نشده» |
-| `VAPID_PRIVATE_KEY` | امضای push | همان بالا |
-| `VAPID_SUBJECT` | تماس سرویس push | همان بالا |
-| `DATABASE_URL` | بررسی اتصال مستقیم در `/api/health` | `/api/health` فقط وضعیت Supabase را می‌سنجد |
+| متغیر                          | قابلیت                                            | اگر نباشد چه می‌شود                                                                            |
+| ------------------------------ | ------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `SUPABASE_SERVICE_ROLE_KEY`    | ارسال زمان‌بندی‌شدهٔ یادآور برای **همهٔ** کاربران | فقط یادآورهای کاربر جاری پردازش می‌شود؛ `/api/reminders/dispatch` در حالت cron خطای ۵۰۰ می‌دهد |
+| `CRON_SECRET`                  | احراز هویت زمان‌بند                               | زمان‌بند نمی‌تواند endpoint را صدا بزند (۴۰۱)                                                  |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push                                          | فقط یادآور درون‌برنامه‌ای؛ در تنظیمات پیام «کلید VAPID تنظیم نشده»                             |
+| `VAPID_PRIVATE_KEY`            | امضای push                                        | همان بالا                                                                                      |
+| `VAPID_SUBJECT`                | تماس سرویس push                                   | همان بالا                                                                                      |
+| `DATABASE_URL`                 | بررسی اتصال مستقیم در `/api/health`               | `/api/health` فقط وضعیت Supabase را می‌سنجد                                                    |
 
 > `SUPABASE_SERVICE_ROLE_KEY` کلید حساس است: فقط در متغیرهای محیطی میزبان، هرگز
 > در کلاینت و هرگز در `NEXT_PUBLIC_*`.
@@ -59,14 +59,26 @@ Supabase برقرار نیست.
 ## ۳. پیکربندی Supabase
 
 1. **مهاجرت‌ها**: فایل‌های `drizzle/0001…0010` به ترتیب روی دیتابیس اجرا می‌شوند.
+
    ```bash
    psql "$DATABASE_URL" -f drizzle/0001_....sql   # و به همین ترتیب
    ```
+
    یا در CI: job «Migrations · RLS» همین کار را روی Postgres تازه انجام می‌دهد.
 
 2. **آدرس‌ها**: در Authentication → URL Configuration
    - `Site URL`: دامنهٔ تولید
-   - `Redirect URLs`: `https://<domain>/**` و برای توسعه `http://localhost:3000/**`
+   - `Redirect URLs`: `https://<domain>/**`، برای توسعه `http://localhost:3000/**`،
+     و برای پیش‌نمایش Codespaces `https://*.app.github.dev/**`
+
+   وضعیت فعلی پروژه (بررسی‌شده):
+
+   ```
+   Site URL      = https://khoonemoon.netlify.app
+   Redirect URLs = http://localhost:3000/** , http://127.0.0.1:3000/** ,
+                   https://khoonemoon.netlify.app/** , https://*.app.github.dev/** ,
+                   https://*.e2b.app/**
+   ```
 
 3. **کلیدهای API**: `anon` برای کلاینت، `service_role` فقط برای سرور.
 
@@ -173,7 +185,39 @@ npm run verify && npm run build && npm run budget   # همان گیت‌های C
 
 ---
 
-## ۸. چک‌لیست قبل از اعلام «آماده»
+## ۸. گزینه‌های میزبانی و پیش‌نمایش روی GitHub
+
+| گزینه                        | Next.js با کد سرور | هزینه                       | برای چه                                                      |
+| ---------------------------- | ------------------ | --------------------------- | ------------------------------------------------------------ |
+| **GitHub Pages**             | ❌ غیرممکن         | —                           | فقط سایت استاتیک؛ این پروژه middleware احراز هویت و API دارد |
+| **GitHub Actions**           | ❌ غیرممکن         | —                           | هر job حداکثر ۶ ساعت عمر دارد؛ سرور دائمی نیست               |
+| **GitHub Codespaces**        | ✅ کامل            | ۱۲۰ ساعت‌هسته در ماه رایگان | **پیش‌نمایش** از موبایل تا وقتی پروژه تمام نشده              |
+| **Netlify / Vercel (Hobby)** | ✅ کامل            | پلن رایگان                  | میزبان نهایی                                                 |
+| **Cloudflare Workers**       | ✅ با OpenNext     | پلن رایگان                  | جایگزین اگر آن دو محدود شدند                                 |
+
+نکتهٔ مهم: GitHub خودش سرویس میزبانی Node ندارد. تنها راه «روی گیت‌هاب»، Codespaces است و آن هم یک ماشین توسعه است، نه میزبان تولید: با بی‌کاری متوقف می‌شود و آدرسش فقط تا زمانی که روشن است زنده می‌ماند.
+
+### پیش‌نمایش با Codespaces
+
+۱. در صفحهٔ مخزن: **Code ▾ → Codespaces → Create codespace on main**.
+۲. دو راز را یک بار اضافه کنید: `github.com/settings/codespaces` → **New secret**
+
+- `NEXT_PUBLIC_SUPABASE_URL` = `https://<ref>.supabase.co`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` = کلید anon (از Supabase → Settings → API)
+  سپس در تنظیمات Codespace این دو را به مخزن اختصاص دهید.
+  ۳. Codespace که باز شد، `.devcontainer` وابستگی‌ها را نصب و `npm run dev:public` را اجرا می‌کند.
+  ۴. تب **Ports** → آدرس `https://<name>-3000.app.github.dev` را باز کنید.
+  ۵. برای اینکه ورود/ثبت‌نام از این آدرس کار کند، الگوی `https://*.app.github.dev/**` باید در
+  **Supabase → Authentication → URL Configuration** باشد (این مورد در بخش ۳ آمده است).
+  ۶. وقتی کارتان تمام شد Codespace را **Stop** کنید؛ در غیر این صورت سهمیهٔ ماهانه مصرف می‌شود.
+
+محدودیت‌ها که باید بدانید:
+
+- اگر Codespace بخوابد، آدرس بالا نمی‌آید (برخلاف Netlify).
+- onAutoForward فقط داخل خود Codespace کار می‌کند؛ باز کردن آدرس در مرورگر موبایل نیاز به `visibility: public` دارد که در `devcontainer.json` تنظیم شده است.
+- PWA و push notification روی این آدرس را جدی نگیرید؛ دامنهٔ موقت است و service worker آن را دور می‌زند.
+
+## ۹. چک‌لیست قبل از اعلام «آماده»
 
 - [ ] `/api/health` → `200`
 - [ ] ثبت‌نام و ورود با ایمیل واقعی

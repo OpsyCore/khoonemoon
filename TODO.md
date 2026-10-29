@@ -86,6 +86,17 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 27 - بازخورد خطا در فرم‌ها + پیش‌نمایش Codespaces ✅
+
+- [x] ریشهٔ «دکمه را می‌زنم هیچ اتفاقی نمی‌افتد»: `createSupabaseBrowserClient()` بدون try/catch
+      صدا زده می‌شد؛ خطای پیکربندی داخل submit گم می‌شد و UI ساکت می‌ماند
+- [x] `openSupabaseBrowserClient()`: خطا را به‌جای پرتاب‌کردن برمی‌گرداند؛ ۴ فرم ورود/ثبت‌نام/بازیابی/تغییر رمز
+      پیام فارسی نشان می‌دهند
+- [x] تست: نبودِ env نباید throw کند و پیام باید نام دو متغیر را بگوید
+- [x] `.devcontainer/devcontainer.json` + `npm run dev:public` برای اجرای اپ روی Codespaces از موبایل
+- [x] `https://*.app.github.dev/**` به allow list سوپابیس اضافه شد
+- [x] صادقانه: GitHub Pages و Actions نمی‌توانند این اپ را میزبانی کنند (نیاز به پروسهٔ Node)
+
 ## Milestone 26 - End-to-End (HTTP) ✅
 
 - [x] `scripts/e2e-http.mjs`: بالا آوردن build واقعی و بررسی رفتار، نه پیاده‌سازی
