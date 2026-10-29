@@ -38,6 +38,7 @@
 | Due Reminder Badge        | due-reminder count on the nav, capped with a11y text  | ✅ Completed (M23) |
 | Financial Ledger          | all records with type/paid/range filters (URL-driven) | ✅ Completed (M24) |
 | Deployment Runbook        | env checklist + real backup/restore drill             | ✅ Completed (M25) |
+| End-to-End (HTTP)         | real build: pages, redirects, API guards in CI        | ✅ Completed (M26) |
 | Settings                  | theme/reminders/PWA help/household navigation         | ✅ Completed (M10) |
 | Offline Improvements      | shell cache + offline page (private pages excluded)   | ✅ Completed (M10) |
 | Test Hardening            | unit tests + CI + DB-level RLS verification           | 🚧 M11             |
