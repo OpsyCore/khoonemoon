@@ -86,6 +86,14 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 23 - Due Reminder Badge ✅
+
+- [x] شمارش یادآورهای رسیده (`PENDING`/`SNOOZED` با `remind_at <= now`) در layout و پاس دادن به نوار پایین
+- [x] نشان قرمز روی آیتم «امروز»؛ بالای ۹ به `۹+` خلاصه می‌شود تا نوار شلوغ نشود
+- [x] متن پنهان برای صفحه‌خوان با **عدد واقعی** («۴۲ یادآور رسیده»)، نه نسخهٔ خلاصه‌شده
+- [x] `formatBadgeCount`/`describeBadge` جدا و تست‌شده (صفر و منفی چیزی نشان نمی‌دهند)
+- [x] ۱۲ تست (۸ منطق + ۴ رندر با mock کردن `usePathname`)
+
 ## Milestone 22 - Correcting Chores ✅
 
 - [x] `corrections.ts`: ساخت کمترین patch معتبر برای کار خانه (عنوان، تکرار، حالت نوبت)

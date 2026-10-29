@@ -6,9 +6,11 @@ import { TopBar } from "@/shared/layout/top-bar";
 export function AppShell({
   children,
   hasHousehold = false,
+  dueReminderCount = 0,
 }: {
   children: ReactNode;
   hasHousehold?: boolean;
+  dueReminderCount?: number;
 }) {
   return (
     <div className="min-h-dvh bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
@@ -17,7 +19,7 @@ export function AppShell({
         {children}
       </main>
       <QuickAddFab hasHousehold={hasHousehold} />
-      <BottomNav />
+      <BottomNav dueReminderCount={dueReminderCount} />
     </div>
   );
 }
