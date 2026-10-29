@@ -81,13 +81,46 @@ for f in drizzle/000*.sql; do psql "$DATABASE_URL" -f "$f"; done
 
 ## اسکریپت‌ها
 
-| اسکریپت          | کار                                                                              |
-| ---------------- | -------------------------------------------------------------------------------- |
-| `npm run dev`    | اجرای محیط توسعه                                                                 |
-| `npm run build`  | بیلد پروداکشن                                                                    |
-| `npm run verify` | typecheck + lint + test (همان چیزی که CI اجرا می‌کند)                            |
-| `npm test`       | تست‌های واحد (Vitest)                                                            |
-| `npm run smoke`  | تست دود end-to-end روی یک محیط در حال اجرا (نیازمند `SUPABASE_SERVICE_ROLE_KEY`) |
+| اسکریپت                 | کار                                                                              |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| `npm run dev`           | اجرای محیط توسعه                                                                 |
+| `npm run build`         | بیلد پروداکشن                                                                    |
+| `npm run verify`        | typecheck + lint + test (همان چیزی که CI اجرا می‌کند)                            |
+| `npm test`              | تست‌های واحد (Vitest)                                                            |
+| `npm run smoke`         | تست دود end-to-end روی یک محیط در حال اجرا (نیازمند `SUPABASE_SERVICE_ROLE_KEY`) |
+| `npm run budget`        | سنجش حجم JS هر مسیر روی خروجی واقعی build و مقایسه با `bundle-budget.json`       |
+| `npm run deploy:check`  | بررسی متغیرهای محیطی استقرار (بدون چاپ مقدار کلیدها)                             |
+| `npm run drill:restore` | تمرین واقعی پشتیبان‌گیری و بازگردانی روی PGlite                                  |
+| `npm run e2e:http`      | بالا آوردن build واقعی و بررسی صفحه‌ها، هدایت و گاردهای API (بدون مرورگر)        |
+
+### بودجهٔ باندل
+
+```bash
+npm run build && npm run budget
+```
+
+خروجی، حجم gzip جاوااسکریپت هر مسیر را از مانیفست‌های واقعی build می‌خواند
+(نه تخمین) و با سقف‌های `bundle-budget.json` مقایسه می‌کند:
+
+```text
+• /today                   211.8 KB  از 234.4 KB
+• /lists                   114.3 KB  از 234.4 KB
+• shared (هر صفحه)         128.9 KB  از 141.6 KB
+```
+
+اگر مسیری از سقفش بگذرد، اسکریپت با کد خطا خارج می‌شود و **CI قرمز می‌شود**.
+دو راه‌حل: import اضافه را حذف کنید، یا اگر رشد آگاهانه و موجه است سقف را در
+`bundle-budget.json` به‌روز کنید (تغییر سقف در PR دیده می‌شود، پس پنهانی نیست).
+
+برای یک مسیر خاص می‌توانید سقف جدا بگذارید:
+
+```json
+{
+  "defaultMaxGzipBytes": 240000,
+  "sharedMaxGzipBytes": 145000,
+  "routes": { "/today": { "maxGzipBytes": 260000 } }
+}
+```
 
 ### تست دود (smoke)
 
@@ -158,14 +191,41 @@ VAPID_SUBJECT=mailto:you@example.com
 
 ### زمان‌بندی یادآورها
 
+یادآور و Web Push فقط وقتی کار می‌کنند که چیزی واقعاً endpoint را صدا بزند. این
+مخزن یک زمان‌بند آماده دارد که به میزبان وابسته نیست:
+
+`.github/workflows/reminder-dispatch.yml` هر ۱۵ دقیقه اجرا می‌شود و
+`scripts/dispatch-reminders.mjs` را با متغیرهای زیر صدا می‌زند:
+
+| نام            | نوع                     | توضیح                                                 |
+| -------------- | ----------------------- | ----------------------------------------------------- |
+| `APP_BASE_URL` | Repository **variable** | آدرس عمومی اپ، مثلاً `https://khoonemoon.example.com` |
+| `CRON_SECRET`  | Repository **secret**   | همان مقدار `CRON_SECRET` در متغیرهای محیطی اپ         |
+
 ```bash
-curl -X POST https://<app>/api/reminders/dispatch \
-  -H "Authorization: Bearer $CRON_SECRET"
+# تنظیم یک‌باره
+gh variable set APP_BASE_URL --body "https://khoonemoon.example.com"
+gh secret set CRON_SECRET --body "$(openssl rand -hex 32)"   # همین مقدار را در اپ هم بگذارید
+```
+
+اگر این دو تنظیم نشده باشند، workflow سبز می‌ماند ولی هشدار می‌دهد؛ هیچ یادآوری
+گم نمی‌شود، فقط ارسال نمی‌شود. اجرای دستی با آدرس دلخواه (مثلاً preview):
+
+```bash
+gh workflow run reminder-dispatch -f base_url=https://preview.example.com
+```
+
+همان کار به‌صورت دستی یا در cron میزبان:
+
+```bash
+APP_BASE_URL=https://<app> CRON_SECRET=<secret> node scripts/dispatch-reminders.mjs
 ```
 
 - با هدر cron: همه کاربران پردازش می‌شوند (نیازمند `SUPABASE_SERVICE_ROLE_KEY`)
 - بدون هدر و با کوکی نشست: فقط یادآورهای همان کاربر پردازش می‌شود
 - ساعات سکوت (quiet hours) یادآور را **حذف نمی‌کند**، به اجرای بعدی موکول می‌کند
+- اسکریپت فقط روی پاسخ `2xx` با کد ۰ خارج می‌شود، پس خرابی ارسال به‌صورت
+  workflow قرمز دیده می‌شود نه سکوت
 
 ## ساختار پروژه
 
@@ -185,6 +245,16 @@ scripts/          # ابزارهای اپراتوری (smoke test)
 [`DATABASE.md`](./DATABASE.md) و [`SECURITY.md`](./SECURITY.md).
 
 ## استقرار
+
+راهنمای کامل و چک‌لیست انتشار در [`DEPLOYMENT.md`](./DEPLOYMENT.md) است: متغیرهای
+محیطی، پیکربندی Supabase، زمان‌بندی یادآورها، نسخهٔ پشتیبان و تمرین بازگردانی.
+
+```bash
+npm run deploy:check     # چه چیزی تنظیم نشده؟
+npm run drill:restore    # آیا نسخهٔ پشتیبان واقعاً برمی‌گردد؟
+```
+
+خلاصهٔ مراحل:
 
 1. مخزن را به Vercel (یا هر میزبان Next.js) وصل کنید.
 2. متغیرهای محیطی بالا را تنظیم کنید (`NEXT_PUBLIC_*` فقط در کلاینت در دسترس‌اند).

@@ -1,5 +1,5 @@
 import { ListsTabs } from "@/features/lists/components/lists-tabs";
-import type { ChoreRecord } from "@/features/chores/types";
+import type { ChoreCompletion, ChoreRecord } from "@/features/chores/types";
 import type { FinancialRecord } from "@/features/finance/types";
 import type { ShoppingItem, ShoppingList } from "@/features/shopping/types";
 import type { TaskMember } from "@/features/tasks/types";
@@ -61,6 +61,14 @@ export default async function ListsPage() {
       .is("archived_at", null)
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(100),
+    householdId
+      ? supabase
+          .from("chore_completions")
+          .select("id, chore_id, completed_by, completed_at, due_at, note")
+          .eq("household_id", householdId)
+          .order("completed_at", { ascending: false })
+          .limit(50)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   if (listsResult.error || choresResult.error || recordsResult.error) {
@@ -68,6 +76,31 @@ export default async function ListsPage() {
       <ErrorState
         title="خطا در بارگذاری لیست‌ها"
         description="اطلاعات خرید، کارهای خانه یا مالی قابل دریافت نیست. لطفاً دوباره تلاش کنید."
+      />
+    );
+  }
+
+  const chores = (choresResult.data ?? []) as ChoreRecord[];
+
+  // `chore_completions` has no household column (RLS scopes it through the chore),
+  // so the history is narrowed to this household's chores here.
+  const completionsResult = chores.length
+    ? await supabase
+        .from("chore_completions")
+        .select("id, chore_id, completed_by, completed_at, due_at, note")
+        .in(
+          "chore_id",
+          chores.map((chore) => chore.id),
+        )
+        .order("completed_at", { ascending: false })
+        .limit(50)
+    : { data: [], error: null };
+
+  if (completionsResult.error) {
+    return (
+      <ErrorState
+        title="خطا در بارگذاری تاریخچه"
+        description="تاریخچه کارهای خانه قابل دریافت نیست. لطفاً دوباره تلاش کنید."
       />
     );
   }
@@ -129,11 +162,13 @@ export default async function ListsPage() {
       <ListsTabs
         lists={lists}
         items={(itemsResult.data ?? []) as ShoppingItem[]}
-        chores={(choresResult.data ?? []) as ChoreRecord[]}
+        chores={chores}
+        completions={(completionsResult.data ?? []) as ChoreCompletion[]}
         records={(recordsResult.data ?? []) as FinancialRecord[]}
         members={effectiveMembers}
         activeListId={activeListId}
         canShare={Boolean(householdId)}
+        currentUserId={user.id}
       />
     </div>
   );

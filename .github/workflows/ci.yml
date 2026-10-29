@@ -87,6 +87,9 @@ jobs:
   verify:
     name: Typecheck · Lint · Test · Build
     runs-on: ubuntu-latest
+    # A hung step (for example the end-to-end server never answering) must fail
+    # in minutes, not sit pending for the job's six-hour default.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -112,6 +115,24 @@ jobs:
         env:
           # Build must succeed without real credentials: the DB/env accessors are lazy
           # and the font is self-hosted, so no network calls are required.
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-time-placeholder
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+      - name: End-to-end (HTTP)
+        # Boots the real production build and checks pages, redirects and API
+        # guards. No browser needed, so this runs everywhere.
+        run: npm run e2e:http
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-time-placeholder
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+      - name: Bundle budget
+        # Measures the real build output; fails when a route ships more JS than
+        # bundle-budget.json allows, so bundle growth cannot slip in silently.
+        run: npm run budget
+        env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: build-time-placeholder
           NEXT_PUBLIC_APP_URL: http://localhost:3000

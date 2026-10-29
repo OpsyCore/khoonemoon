@@ -1,0 +1,124 @@
+import { HandCoins, Scale } from "lucide-react";
+import { formatAmount } from "@/features/finance/bills";
+import {
+  settleHousehold,
+  type SettlementMember,
+} from "@/features/finance/settlement";
+import type { FinancialRecord } from "@/features/finance/types";
+import { Badge } from "@/shared/ui/badge";
+import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
+
+/**
+ * Shows who owes whom after the shared expenses of the household are netted.
+ * Rendering-only: all the math lives in `settleHousehold` so it stays testable.
+ */
+export function SettlementCard({
+  records,
+  members,
+  currentUserId,
+}: {
+  records: FinancialRecord[];
+  members: SettlementMember[];
+  currentUserId: string;
+}) {
+  const settlement = settleHousehold({ records, members });
+
+  if (settlement.total === 0) {
+    return (
+      <Card className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Scale className="size-4 text-zinc-500" />
+          <CardTitle>تسویه‌حساب خانه</CardTitle>
+        </div>
+        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          هنوز خرج مشترکی که پرداخت‌شده باشد ثبت نشده است. وقتی هزینه‌ای را
+          «مشترک خانه» ثبت کنید و پرداختش را علامت بزنید، سهم هر نفر همین‌جا
+          محاسبه می‌شود.
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Scale className="size-4 text-zinc-500" />
+          <CardTitle>تسویه‌حساب خانه</CardTitle>
+        </div>
+        <Badge tone="neutral">مجموع {formatAmount(settlement.total)}</Badge>
+      </div>
+
+      <CardDescription>
+        خرج‌های مشترک بین {settlement.balances.length} عضو مساوی تقسیم شده است.
+      </CardDescription>
+
+      <ul className="space-y-1.5">
+        {settlement.balances.map((entry) => {
+          const isCurrentUser = entry.memberId === currentUserId;
+          const tone =
+            entry.balance > 0
+              ? ("success" as const)
+              : entry.balance < 0
+                ? ("danger" as const)
+                : ("neutral" as const);
+          const label =
+            entry.balance > 0
+              ? "طلبکار"
+              : entry.balance < 0
+                ? "بدهکار"
+                : "تسویه";
+
+          return (
+            <li
+              key={entry.memberId}
+              className="flex items-center justify-between gap-2 rounded-xl bg-zinc-50 px-3 py-2 text-sm dark:bg-zinc-950/40"
+            >
+              <span className="truncate">
+                {entry.name}
+                {isCurrentUser ? (
+                  <span className="text-xs text-zinc-500"> (شما)</span>
+                ) : null}
+              </span>
+              <span className="flex shrink-0 items-center gap-2">
+                <Badge tone={tone}>{label}</Badge>
+                <span className="tabular-nums text-zinc-700 dark:text-zinc-200">
+                  {formatAmount(Math.abs(entry.balance))}
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <HandCoins className="size-4 text-zinc-500" />
+          {settlement.isSettled ? "همه‌چیز تسویه است" : "پیشنهاد تسویه"}
+        </div>
+
+        {settlement.isSettled ? (
+          <p className="text-sm text-emerald-700 dark:text-emerald-300">
+            کسی به کسی بدهکار نیست. 🎉
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {settlement.transfers.map((transfer) => (
+              <li
+                key={`${transfer.fromId}-${transfer.toId}`}
+                className="rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:bg-sky-950/40 dark:text-sky-200"
+              >
+                <span className="font-medium">{transfer.fromName}</span> به{" "}
+                <span className="font-medium">{transfer.toName}</span> مبلغ{" "}
+                <span className="tabular-nums">
+                  {formatAmount(transfer.amount)}
+                </span>{" "}
+                بدهکار است.
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Card>
+  );
+}

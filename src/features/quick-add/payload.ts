@@ -1,5 +1,9 @@
 export type QuickAddKind = "task" | "event" | "shopping" | "bill" | "chore";
 
+import { parseAmount } from "@/shared/utils/amount";
+
+export { parseAmount };
+
 export type QuickVisibility = "PRIVATE" | "HOUSEHOLD_SHARED";
 
 export type QuickAddResult = {
@@ -40,20 +44,6 @@ export function defaultEventWindow(now: Date): { start: Date; end: Date } {
  * Accepts Persian/Arabic digits, thousands separators and stray spaces so the
  * amount field works with a Persian keyboard.
  */
-export function parseAmount(input: string): number | null {
-  const normalized = input
-    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
-    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
-    .replace(/[,٬\s]/g, "");
-
-  if (!normalized) return null;
-
-  const value = Number(normalized);
-  if (!Number.isFinite(value) || value < 0) return null;
-
-  return value;
-}
-
 export function buildQuickTaskPayload({
   title,
   visibility,

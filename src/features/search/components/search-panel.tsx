@@ -1,22 +1,31 @@
 "use client";
 
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import {
+  ALL_KINDS,
+  DEFAULT_FILTERS,
+  RANGE_LABELS,
+  countByKind,
+  filterResults,
+  hasActiveFilters,
+  toggleKind,
+  type SearchFilters,
+  type SearchKind,
+  type SearchResult,
+  type TimeRange,
+} from "@/features/search/filters";
 import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Input } from "@/shared/ui/input";
+import { toPersianNumber } from "@/shared/utils/locale";
 
-type SearchResult = {
-  kind: "task" | "event" | "shopping_item" | "finance" | "chore";
-  entity_id: string;
-  title: string;
-  subtitle: string | null;
-  happened_at: string | null;
-  status: string | null;
-};
-
-const KIND_LABELS: Record<SearchResult["kind"], { label: string; tone: "neutral" | "success" | "warning" | "danger" }> = {
+const KIND_LABELS: Record<
+  SearchKind,
+  { label: string; tone: "neutral" | "success" | "warning" | "danger" }
+> = {
   task: { label: "تسک", tone: "neutral" },
   event: { label: "رویداد", tone: "warning" },
   shopping_item: { label: "خرید", tone: "success" },
@@ -24,9 +33,12 @@ const KIND_LABELS: Record<SearchResult["kind"], { label: string; tone: "neutral"
   chore: { label: "کار خانه", tone: "neutral" },
 };
 
+const RANGES: TimeRange[] = ["ANY", "WEEK", "MONTH", "YEAR"];
+
 export function SearchPanel() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -68,6 +80,11 @@ export function SearchPanel() {
     };
   }, [trimmedQuery]);
 
+  const now = new Date();
+  const visible = filterResults({ results, filters, now });
+  const counts = countByKind({ results, filters, now });
+  const isFiltered = hasActiveFilters(filters);
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -87,6 +104,78 @@ export function SearchPanel() {
         />
       </div>
 
+      {results.length > 0 ? (
+        <div className="space-y-2">
+          <div
+            className="flex flex-wrap gap-1.5"
+            role="group"
+            aria-label="فیلتر نوع نتیجه"
+          >
+            {ALL_KINDS.map((kind) => {
+              const isActive = filters.kinds.includes(kind);
+              const count = counts[kind];
+
+              return (
+                <button
+                  key={kind}
+                  type="button"
+                  aria-pressed={isActive}
+                  disabled={count === 0 && !isActive}
+                  onClick={() =>
+                    setFilters((current) =>
+                      toggleKind({ filters: current, kind }),
+                    )
+                  }
+                  className={`rounded-full border px-2.5 py-1 text-xs font-medium transition disabled:opacity-40 ${
+                    isActive
+                      ? "border-sky-500 bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200"
+                      : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                  }`}
+                >
+                  {KIND_LABELS[kind].label} ({toPersianNumber(count)})
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              بازه:
+            </span>
+            {RANGES.map((range) => (
+              <Button
+                key={range}
+                size="sm"
+                variant={filters.range === range ? "secondary" : "ghost"}
+                aria-pressed={filters.range === range}
+                onClick={() => setFilters((current) => ({ ...current, range }))}
+              >
+                {RANGE_LABELS[range]}
+              </Button>
+            ))}
+
+            {isFiltered ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setFilters(DEFAULT_FILTERS)}
+              >
+                <X className="size-3" />
+                پاک‌کردن فیلترها
+              </Button>
+            ) : null}
+          </div>
+
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {isFiltered
+              ? `${toPersianNumber(visible.length)} از ${toPersianNumber(
+                  results.length,
+                )} نتیجه با فیلترهای فعلی`
+              : `${toPersianNumber(results.length)} نتیجه`}
+          </p>
+        </div>
+      ) : null}
+
       {isLoading ? (
         <p className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
           <Loader2 className="size-4 animate-spin" />
@@ -95,7 +184,9 @@ export function SearchPanel() {
       ) : null}
 
       {errorMessage ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">{errorMessage}</p>
+        <p className="text-sm text-rose-600 dark:text-rose-400">
+          {errorMessage}
+        </p>
       ) : null}
 
       {!isLoading && trimmedQuery.length >= 2 && results.length === 0 ? (
@@ -105,9 +196,16 @@ export function SearchPanel() {
         />
       ) : null}
 
-      {results.length > 0 ? (
+      {results.length > 0 && visible.length === 0 ? (
+        <EmptyState
+          title="با این فیلترها چیزی نیست"
+          description="فیلترها را پاک کنید یا بازهٔ زمانی را بازتر کنید تا بقیهٔ نتایج دیده شوند."
+        />
+      ) : null}
+
+      {visible.length > 0 ? (
         <ul className="space-y-2">
-          {results.map((result) => {
+          {visible.map((result) => {
             const kind = KIND_LABELS[result.kind];
 
             return (

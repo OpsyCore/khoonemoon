@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { describeBadge, formatBadgeCount } from "@/shared/utils/badge-count";
 import { cn } from "@/shared/utils/cn";
 
 const navItems = [
@@ -19,8 +20,13 @@ const navItems = [
   { href: "/profile", label: "پروفایل", icon: UserRound },
 ] as const;
 
-export function BottomNav() {
+export function BottomNav({
+  dueReminderCount = 0,
+}: {
+  dueReminderCount?: number;
+}) {
   const pathname = usePathname();
+  const badge = formatBadgeCount(dueReminderCount);
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 md:hidden">
@@ -42,8 +48,23 @@ export function BottomNav() {
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
-                <Icon className="size-4" />
+                <span className="relative">
+                  <Icon className="size-4" />
+                  {item.href === "/today" && badge ? (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -top-1.5 -left-2.5 flex min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-4 text-white"
+                    >
+                      {badge}
+                    </span>
+                  ) : null}
+                </span>
                 <span>{item.label}</span>
+                {item.href === "/today" && badge ? (
+                  <span className="sr-only">
+                    {describeBadge(dueReminderCount)}
+                  </span>
+                ) : null}
               </Link>
             </li>
           );

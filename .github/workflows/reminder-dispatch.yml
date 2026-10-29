@@ -1,0 +1,61 @@
+name: Reminder dispatch
+
+# Reminders and Web Push only fire when something actually calls the endpoint.
+# This schedule is host-agnostic on purpose: it works on Vercel, Netlify or a
+# plain VPS, because the runner calls the public URL over HTTPS.
+on:
+  schedule:
+    # GitHub may delay scheduled runs under load; 15 minutes is the practical
+    # floor for a free public repository.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL to dispatch against (defaults to the APP_BASE_URL variable)"
+        required: false
+        type: string
+
+concurrency:
+  group: reminder-dispatch
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    name: Deliver due reminders
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # An explicit run input wins, so a manually triggered run can be pointed at
+      # a preview deployment.
+      APP_BASE_URL: ${{ inputs.base_url || vars.APP_BASE_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check configuration
+        id: config
+        run: |
+          if [ -z "$APP_BASE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::warning::APP_BASE_URL یا CRON_SECRET تنظیم نشده است؛ زمان‌بندی غیرفعال می‌ماند."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dispatch
+        if: steps.config.outputs.ready == 'true'
+        run: node scripts/dispatch-reminders.mjs
+
+      - name: Skipped (no configuration)
+        if: steps.config.outputs.ready != 'true'
+        run: |
+          echo "تنظیمات لازم برای ارسال یادآور موجود نیست:"
+          echo "- variable: APP_BASE_URL (مثلاً https://khoonemoon.example.com)"
+          echo "- secret:   CRON_SECRET (همان مقدار در متغیرهای محیطی اپ)"

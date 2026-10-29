@@ -28,8 +28,20 @@ export default async function MainAppLayout({
     .is("left_at", null)
     .maybeSingle();
 
+  // How many reminders have already come due: shown as a badge on the nav so a
+  // missed reminder is visible from any page, not only from /today.
+  const { count: dueReminderCount } = await supabase
+    .from("reminders")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .in("status", ["PENDING", "SNOOZED"])
+    .lte("remind_at", new Date().toISOString());
+
   return (
-    <AppShell hasHousehold={Boolean(membership?.household_id)}>
+    <AppShell
+      hasHousehold={Boolean(membership?.household_id)}
+      dueReminderCount={dueReminderCount ?? 0}
+    >
       {children}
     </AppShell>
   );

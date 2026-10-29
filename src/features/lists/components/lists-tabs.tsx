@@ -1,10 +1,13 @@
 "use client";
 
 import { Home, Receipt, ShoppingBasket } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { ChoreBoard } from "@/features/chores/components/chore-board";
-import type { ChoreRecord } from "@/features/chores/types";
+import type { ChoreCompletion, ChoreRecord } from "@/features/chores/types";
 import { FinanceBoard } from "@/features/finance/components/finance-board";
+import { FinanceCharts } from "@/features/finance/components/finance-charts";
+import { SettlementCard } from "@/features/finance/components/settlement-card";
 import type { FinancialRecord } from "@/features/finance/types";
 import { ShoppingBoard } from "@/features/shopping/components/shopping-board";
 import type { ShoppingItem, ShoppingList } from "@/features/shopping/types";
@@ -23,18 +26,22 @@ export function ListsTabs({
   lists,
   items,
   chores,
+  completions,
   records,
   members,
   activeListId,
   canShare,
+  currentUserId,
 }: {
   lists: ShoppingList[];
   items: ShoppingItem[];
   chores: ChoreRecord[];
+  completions: ChoreCompletion[];
   records: FinancialRecord[];
   members: TaskMember[];
   activeListId: string | null;
   canShare: boolean;
+  currentUserId: string;
 }) {
   const [tab, setTab] = useState<TabKey>("shopping");
 
@@ -78,11 +85,33 @@ export function ListsTabs({
       ) : null}
 
       {tab === "chores" ? (
-        <ChoreBoard chores={chores} members={members} canManage={canShare} />
+        <ChoreBoard
+          chores={chores}
+          completions={completions}
+          members={members}
+          canManage={canShare}
+        />
       ) : null}
 
       {tab === "finance" ? (
-        <FinanceBoard records={records} canShare={canShare} />
+        <div className="space-y-4">
+          <SettlementCard
+            records={records}
+            members={members.map((member) => ({
+              id: member.user_id,
+              name: member.full_name,
+            }))}
+            currentUserId={currentUserId}
+          />
+          <Link
+            href="/finance"
+            className="block rounded-2xl border border-zinc-200 bg-white p-3 text-center text-sm font-medium text-sky-700 shadow-sm transition hover:bg-sky-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-sky-300 dark:hover:bg-sky-950/30"
+          >
+            دفتر تراکنش‌ها — همهٔ رکوردها با فیلتر
+          </Link>
+          <FinanceCharts records={records} now={new Date()} />
+          <FinanceBoard records={records} canShare={canShare} />
+        </div>
       ) : null}
     </div>
   );
