@@ -9,9 +9,13 @@ import {
   isBillRecord,
   summarizeFinance,
 } from "@/features/finance/bills";
-import type { FinancialRecord, FinancialRecordType } from "@/features/finance/types";
+import type {
+  FinancialRecord,
+  FinancialRecordType,
+} from "@/features/finance/types";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
+import { FinanceRecordActions } from "@/features/finance/components/finance-record-actions";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Input } from "@/shared/ui/input";
@@ -49,7 +53,10 @@ export function FinanceBoard({
   const [message, setMessage] = useState<string | null>(null);
 
   const now = new Date();
-  const summary = useMemo(() => summarizeFinance(records, new Date()), [records]);
+  const summary = useMemo(
+    () => summarizeFinance(records, new Date()),
+    [records],
+  );
 
   const createRecord = async () => {
     const parsedAmount = Number(amount.replace(/[,٬\s]/g, ""));
@@ -246,6 +253,10 @@ export function FinanceBoard({
                     ) : null}
                   </div>
                 </Card>
+
+                <div className="mt-1 px-1">
+                  <FinanceRecordActions record={record} />
+                </div>
               </li>
             );
           })}
