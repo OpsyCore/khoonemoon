@@ -86,6 +86,16 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 26 - End-to-End (HTTP) ✅
+
+- [x] `scripts/e2e-http.mjs`: بالا آوردن build واقعی و بررسی رفتار، نه پیاده‌سازی
+- [x] صفحات عمومی: ورود/ثبت‌نام/آفلاین با متن فارسی واقعی در پاسخ (۲۰۰ نه‌فقط کد)
+- [x] مسیرهای محافظت‌شده بدون نشست: هدایت ۳۰۷ (نه ۵۰۰، نه ۲۰۰ خالی)
+- [x] گاردهای نوشتن برای ۶ endpoint بدون نشست → ۴۰۱ (رگرسیون در گارد = نشت امنیتی)
+- [x] توکن جعلی روی dispatch یادآور → ۴۰۱
+- [x] اجرا در CI بعد از build؛ ۱۳ بررسی، حدود ۲۰ ثانیه
+- [x] صادقانه: تعامل مرورگری (کلیک/فرم) پوشش داده نمی‌شود؛ در این محیط مرورگری وجود ندارد
+
 ## Milestone 25 - Deployment Runbook + Restore Drill ✅
 
 - [x] `DEPLOYMENT.md`: متغیرهای محیطی (لازم/اختیاری و پیامد نبودشان)، پیکربندی Supabase، زمان‌بندی، انتشار و rollback، چک‌لیست

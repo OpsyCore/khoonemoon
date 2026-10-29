@@ -91,6 +91,7 @@ for f in drizzle/000*.sql; do psql "$DATABASE_URL" -f "$f"; done
 | `npm run budget`        | سنجش حجم JS هر مسیر روی خروجی واقعی build و مقایسه با `bundle-budget.json`       |
 | `npm run deploy:check`  | بررسی متغیرهای محیطی استقرار (بدون چاپ مقدار کلیدها)                             |
 | `npm run drill:restore` | تمرین واقعی پشتیبان‌گیری و بازگردانی روی PGlite                                  |
+| `npm run e2e:http`      | بالا آوردن build واقعی و بررسی صفحه‌ها، هدایت و گاردهای API (بدون مرورگر)        |
 
 ### بودجهٔ باندل
 

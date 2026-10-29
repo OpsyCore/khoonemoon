@@ -116,6 +116,15 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: build-time-placeholder
           NEXT_PUBLIC_APP_URL: http://localhost:3000
 
+      - name: End-to-end (HTTP)
+        # Boots the real production build and checks pages, redirects and API
+        # guards. No browser needed, so this runs everywhere.
+        run: npm run e2e:http
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-time-placeholder
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+
       - name: Bundle budget
         # Measures the real build output; fails when a route ships more JS than
         # bundle-budget.json allows, so bundle growth cannot slip in silently.
