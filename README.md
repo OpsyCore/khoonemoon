@@ -92,6 +92,7 @@ for f in drizzle/000*.sql; do psql "$DATABASE_URL" -f "$f"; done
 | `npm run deploy:check`  | بررسی متغیرهای محیطی استقرار (بدون چاپ مقدار کلیدها)                             |
 | `npm run drill:restore` | تمرین واقعی پشتیبان‌گیری و بازگردانی روی PGlite                                  |
 | `npm run e2e:http`      | بالا آوردن build واقعی و بررسی صفحه‌ها، هدایت و گاردهای API (بدون مرورگر)        |
+| `npm run dev:public`    | اجرای dev روی `0.0.0.0:3000` برای پیش‌نمایش Codespaces                           |
 
 ### بودجهٔ باندل
 

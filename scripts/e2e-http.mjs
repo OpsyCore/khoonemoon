@@ -13,6 +13,7 @@
  *   public pages      → 200 and Persian content actually present
  *   protected pages   → redirect to the login page (not a 500, not a blank 200)
  *   write endpoints   → 401 without a session (a guard regression is a breach)
+ *   the export route  → 401 too: it returns every visible row in one request
  *
  * Usage: npm run build && npm run e2e:http
  */
@@ -105,6 +106,9 @@ const guardCases = [
   { path: "/api/finance", method: "POST" },
   { path: "/api/chores", method: "POST" },
   { path: "/api/reminders", method: "POST" },
+  // The export hands out every row the caller can see; a missing guard here is
+  // a bulk data leak, not a cosmetic 500.
+  { path: "/api/export", method: "GET" },
 ];
 
 /**
@@ -241,11 +245,14 @@ try {
       name: `${testCase.method} ${testCase.path}`,
       path: testCase.path,
       status: 401,
-      init: {
-        method: testCase.method,
-        headers: { "content-type": "application/json" },
-        body: "{}",
-      },
+      init:
+        testCase.method === "GET"
+          ? { method: "GET" }
+          : {
+              method: testCase.method,
+              headers: { "content-type": "application/json" },
+              body: "{}",
+            },
     });
   }
 

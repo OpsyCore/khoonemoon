@@ -86,6 +86,39 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 29 - خروجی گرفتن از داده‌ها ✅
+
+- [x] `GET /api/export` → آرشیو JSON از همهٔ جدول‌های دیده‌شدنی + مانیفست تعداد ردیف
+- [x] `GET /api/export?format=csv` → تراکنش‌های مالی برای اکسل
+- [x] مجوزدهی **دوباره‌نویسی نشد**: کوئری‌ها با نشست خود کاربر اجرا می‌شوند، پس RLS تصمیم می‌گیرد
+- [x] BOM یونیکد در ابتدای CSV (بدون آن، اکسل فارسی را پنچر‌نویسی نشان می‌دهد)
+- [x] فرار دادن کاما/گیومه/خط جدید در CSV — یک توضیح با کاما کل ستون‌ها را جابه‌جا می‌کند
+- [x] نام فایل ASCII و تاریخ‌دار تا هیچ سروری مجبور به کدگذاری هدر نشود
+- [x] دو دکمه در تنظیمات با `<a download>` — بدون جاوااسکریپت
+- [x] گارد ۴۰۱ در e2e ثبت شد (نبودِ آن = نشت انبوه داده، نه یک خطای ظاهری)
+
+## Milestone 28 - خلاصهٔ هفته روی صفحهٔ امروز ✅
+
+- [x] `features/summary/weekly-summary.ts`: پنجرهٔ ۷ روزه + هفتهٔ قبل به‌عنوان مبنا
+- [x] هر عدد با مبنای خودش؛ وقتی هفتهٔ قبل خالی است، درصد **نمی‌سازیم** (تقسیم بر صفر = دروغ)
+- [x] پول با `activityDate` (پرداخت‌شده، وگرنه ثبت‌شده) — همان قاعدهٔ دفتر تراکنش‌ها
+- [x] دو فیلتر ساده به‌جای یک `.or()` زیرکانه: ردیف پرداخت‌نشده با `occurred_at`، ردیف پرداخت‌شده با `paid_at`
+- [x] پنجرهٔ نیم‌باز `[from, to)` تا کار روی مرز در دو هفته شمرده نشود
+- [x] کارت **Server Component**: /today سنگین‌ترین مسیر باندل است، حساب‌وکتاب را به مرورگر نمی‌فرستیم (+۱ KB)
+- [x] ۱۸ تست: مرز پنجره، درآمد در برابر خرج، رشتهٔ عددی پستگرس، حالت «هیچ‌کاری نشده»
+- [ ] محدودیت شناخته‌شده: کاری که پس از تکمیل بایگانی شود از شمارش این هفته بیرون می‌رود
+
+## Milestone 27 - بازخورد خطا در فرم‌ها + پیش‌نمایش Codespaces ✅
+
+- [x] ریشهٔ «دکمه را می‌زنم هیچ اتفاقی نمی‌افتد»: `createSupabaseBrowserClient()` بدون try/catch
+      صدا زده می‌شد؛ خطای پیکربندی داخل submit گم می‌شد و UI ساکت می‌ماند
+- [x] `openSupabaseBrowserClient()`: خطا را به‌جای پرتاب‌کردن برمی‌گرداند؛ ۴ فرم ورود/ثبت‌نام/بازیابی/تغییر رمز
+      پیام فارسی نشان می‌دهند
+- [x] تست: نبودِ env نباید throw کند و پیام باید نام دو متغیر را بگوید
+- [x] `.devcontainer/devcontainer.json` + `npm run dev:public` برای اجرای اپ روی Codespaces از موبایل
+- [x] `https://*.app.github.dev/**` به allow list سوپابیس اضافه شد
+- [x] صادقانه: GitHub Pages و Actions نمی‌توانند این اپ را میزبانی کنند (نیاز به پروسهٔ Node)
+
 ## Milestone 26 - End-to-End (HTTP) ✅
 
 - [x] `scripts/e2e-http.mjs`: بالا آوردن build واقعی و بررسی رفتار، نه پیاده‌سازی
@@ -247,7 +280,7 @@
 - [ ] integration test suite against a disposable Supabase branch (currently: plain Postgres)
 - [ ] e2e critical journeys (browser) — blocked: no browser in this environment
 - [x] bundle budget enforced in CI (M18) — Lighthouse still needs a real browser
-- [ ] production deployment runbook + backups/restore drill
+- [x] production deployment runbook + backups/restore drill (M25)
 - [ ] push delivery e2e against a real browser (needs a real device/browser)
 
 ## Quality Gate Checklist (Run each milestone)

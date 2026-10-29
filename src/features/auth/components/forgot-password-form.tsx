@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { openSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getPersianAuthErrorMessage } from "@/features/auth/error-messages";
 import {
   forgotPasswordSchema,
@@ -31,7 +31,15 @@ export function ForgotPasswordForm() {
   const onSubmit = async (values: ForgotPasswordInput) => {
     setServerError(null);
     setSuccessMessage(null);
-    const supabase = createSupabaseBrowserClient();
+
+    const opened = openSupabaseBrowserClient();
+
+    if ("error" in opened) {
+      setServerError(opened.error);
+      return;
+    }
+
+    const supabase = opened.client;
 
     const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
       redirectTo: `${window.location.origin}/api/auth/callback?next=/auth/update-password`,

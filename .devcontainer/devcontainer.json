@@ -1,0 +1,35 @@
+{
+  // A working environment for the app on GitHub's own infrastructure.
+  //
+  // GitHub Pages cannot host this project: it is a Next.js app with server
+  // components, auth middleware and thirteen API route groups, so it needs a
+  // Node process, not a folder of static files. Codespaces does give us that
+  // Node process, with a public HTTPS URL while it runs — enough to click
+  // through the app from a phone before committing to a paid host.
+  "name": "خونه‌مون",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "postCreateCommand": "npm ci --legacy-peer-deps --no-audit --no-fund",
+  "postAttachCommand": {
+    "app": "npm run dev:public"
+  },
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "خونه‌مون",
+      "onAutoForward": "openPreview",
+      "visibility": "public"
+    }
+  },
+  "containerEnv": {
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "NEXT_PUBLIC_APP_URL": "http://localhost:3000"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+    }
+  },
+  "hostRequirements": {
+    "cpus": 2
+  }
+}

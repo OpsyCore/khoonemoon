@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { openSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getPersianAuthErrorMessage } from "@/features/auth/error-messages";
 import { signupSchema, type SignupInput } from "@/features/auth/schemas";
 import { Button } from "@/shared/ui/button";
@@ -32,7 +32,15 @@ export function SignupForm() {
   const onSubmit = async (values: SignupInput) => {
     setServerError(null);
     setSuccessMessage(null);
-    const supabase = createSupabaseBrowserClient();
+
+    const opened = openSupabaseBrowserClient();
+
+    if ("error" in opened) {
+      setServerError(opened.error);
+      return;
+    }
+
+    const supabase = opened.client;
 
     const { error } = await supabase.auth.signUp({
       email: values.email,
