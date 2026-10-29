@@ -86,6 +86,15 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 25 - Deployment Runbook + Restore Drill ✅
+
+- [x] `DEPLOYMENT.md`: متغیرهای محیطی (لازم/اختیاری و پیامد نبودشان)، پیکربندی Supabase، زمان‌بندی، انتشار و rollback، چک‌لیست
+- [x] `scripts/deploy-check.mjs` با تابع خالص `validateEnv`: تفکیک «تنظیم نشده» از «تنظیم شدهٔ اشتباه»، هرگز چاپ نکردن مقدار کلید
+- [x] `scripts/restore-drill.mjs`: چرخهٔ کامل پشتیبان‌گیری/بازگردانی روی PGlite با مقایسهٔ ردیف‌به‌ردیف
+- [x] تمرین یک باگ واقعی را لو داد: بازگردانی جدول‌های دامنه بدون `auth.users` روی کلید خارجی می‌شکند
+- [x] `npm run deploy:check` و `npm run drill:restore` در README و runbook
+- [x] ۹ تست برای `validateEnv`
+
 ## Milestone 24 - Financial Ledger ✅
 
 - [x] `ledger.ts`: فیلتر نوع، وضعیت پرداخت، بازهٔ زمانی و جست‌وجوی متنی روی عنوان/دسته/یادداشت

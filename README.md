@@ -81,14 +81,16 @@ for f in drizzle/000*.sql; do psql "$DATABASE_URL" -f "$f"; done
 
 ## اسکریپت‌ها
 
-| اسکریپت          | کار                                                                              |
-| ---------------- | -------------------------------------------------------------------------------- |
-| `npm run dev`    | اجرای محیط توسعه                                                                 |
-| `npm run build`  | بیلد پروداکشن                                                                    |
-| `npm run verify` | typecheck + lint + test (همان چیزی که CI اجرا می‌کند)                            |
-| `npm test`       | تست‌های واحد (Vitest)                                                            |
-| `npm run smoke`  | تست دود end-to-end روی یک محیط در حال اجرا (نیازمند `SUPABASE_SERVICE_ROLE_KEY`) |
-| `npm run budget` | سنجش حجم JS هر مسیر روی خروجی واقعی build و مقایسه با `bundle-budget.json`       |
+| اسکریپت                 | کار                                                                              |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| `npm run dev`           | اجرای محیط توسعه                                                                 |
+| `npm run build`         | بیلد پروداکشن                                                                    |
+| `npm run verify`        | typecheck + lint + test (همان چیزی که CI اجرا می‌کند)                            |
+| `npm test`              | تست‌های واحد (Vitest)                                                            |
+| `npm run smoke`         | تست دود end-to-end روی یک محیط در حال اجرا (نیازمند `SUPABASE_SERVICE_ROLE_KEY`) |
+| `npm run budget`        | سنجش حجم JS هر مسیر روی خروجی واقعی build و مقایسه با `bundle-budget.json`       |
+| `npm run deploy:check`  | بررسی متغیرهای محیطی استقرار (بدون چاپ مقدار کلیدها)                             |
+| `npm run drill:restore` | تمرین واقعی پشتیبان‌گیری و بازگردانی روی PGlite                                  |
 
 ### بودجهٔ باندل
 
@@ -242,6 +244,16 @@ scripts/          # ابزارهای اپراتوری (smoke test)
 [`DATABASE.md`](./DATABASE.md) و [`SECURITY.md`](./SECURITY.md).
 
 ## استقرار
+
+راهنمای کامل و چک‌لیست انتشار در [`DEPLOYMENT.md`](./DEPLOYMENT.md) است: متغیرهای
+محیطی، پیکربندی Supabase، زمان‌بندی یادآورها، نسخهٔ پشتیبان و تمرین بازگردانی.
+
+```bash
+npm run deploy:check     # چه چیزی تنظیم نشده؟
+npm run drill:restore    # آیا نسخهٔ پشتیبان واقعاً برمی‌گردد؟
+```
+
+خلاصهٔ مراحل:
 
 1. مخزن را به Vercel (یا هر میزبان Next.js) وصل کنید.
 2. متغیرهای محیطی بالا را تنظیم کنید (`NEXT_PUBLIC_*` فقط در کلاینت در دسترس‌اند).
