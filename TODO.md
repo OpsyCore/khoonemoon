@@ -86,6 +86,16 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 24 - Financial Ledger ✅
+
+- [x] `ledger.ts`: فیلتر نوع، وضعیت پرداخت، بازهٔ زمانی و جست‌وجوی متنی روی عنوان/دسته/یادداشت
+- [x] فیلتر از `searchParams` در سرور انجام می‌شود: هر نمای فیلترشده یک لینک قابل اشتراک است و صفحه هیچ جاوااسکریپت فیلتر اضافه نمی‌کند
+- [x] تاریخ فیلتر (`paid_at`→`due_at`→`occurred_at`) از تاریخ مرتب‌سازی (`paid_at`→`occurred_at`) جدا شد، وگرنه قبضی با سررسید ماه آینده بالای دفتر می‌نشست
+- [x] رکورد بایگانی‌شده همیشه پنهان؛ رکورد بی‌تاریخ در نمای بازه‌دار حذف می‌شود ولی در نمای کامل می‌ماند
+- [x] خلاصهٔ همان فیلتر: درآمد، هزینه، قبض پرداخت‌نشده
+- [x] صفحهٔ `/finance` با همان دکمه‌های اصلاح/بایگانی M21 و لینک از تب مالی
+- [x] ۲۳ تست
+
 ## Milestone 23 - Due Reminder Badge ✅
 
 - [x] شمارش یادآورهای رسیده (`PENDING`/`SNOOZED` با `remind_at <= now`) در layout و پاس دادن به نوار پایین

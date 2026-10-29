@@ -1,6 +1,7 @@
 "use client";
 
 import { Home, Receipt, ShoppingBasket } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { ChoreBoard } from "@/features/chores/components/chore-board";
 import type { ChoreCompletion, ChoreRecord } from "@/features/chores/types";
@@ -102,6 +103,12 @@ export function ListsTabs({
             }))}
             currentUserId={currentUserId}
           />
+          <Link
+            href="/finance"
+            className="block rounded-2xl border border-zinc-200 bg-white p-3 text-center text-sm font-medium text-sky-700 shadow-sm transition hover:bg-sky-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-sky-300 dark:hover:bg-sky-950/30"
+          >
+            دفتر تراکنش‌ها — همهٔ رکوردها با فیلتر
+          </Link>
           <FinanceCharts records={records} now={new Date()} />
           <FinanceBoard records={records} canShare={canShare} />
         </div>

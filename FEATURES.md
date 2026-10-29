@@ -4,42 +4,43 @@
 
 ## Phase 1 (MVP) Feature Matrix
 
-| Feature                   | Scope خلاصه                                          | وضعیت              |
-| ------------------------- | ---------------------------------------------------- | ------------------ |
-| Foundation UI/RTL/Persian | shell موبایل، RTL، typography (self-hosted)، states  | ✅ Completed (M1)  |
-| Quick Add (global)        | ۵ اکشن واقعی از FAB: تسک/رویداد/خرید/قبض/کار خانه    | ✅ Completed (M13) |
-| Theme                     | light/dark/system + persistence                      | ✅ Completed (M1)  |
-| PWA Base                  | manifest + installability + offline fallback         | ✅ Completed (M1)  |
-| Auth                      | signup/login/logout/reset + protected routes         | ✅ Completed (M2)  |
-| Profile                   | ویرایش پروفایل، timezone، locale                     | ✅ Completed (M2)  |
-| Household                 | create/join/leave + owner/member roles               | ✅ Completed (M3)  |
-| Invitations               | invite link/code + expiration + cancel               | ✅ Completed (M3)  |
-| RLS Core                  | private/shared isolation + membership checks         | ✅ Completed (M3)  |
-| Tasks                     | CRUD + status + priority + visibility + assignment   | ✅ Completed (M4)  |
-| Recurrence                | daily/weekly/custom with rrule-ready model           | ✅ Completed (M4)  |
-| Today Dashboard           | اولویت‌بندی کارهای امروز، معوق، قبض و کار خانه       | ✅ Completed (M5)  |
-| Calendar                  | month/week/agenda + tasks/events aggregation         | ✅ Completed (M5)  |
-| Reminder Foundation       | data model + schedule calc + dispatch/snooze/quiet   | ✅ Completed (M6)  |
-| Notification Prefs        | in-app settings + quiet hours                        | ✅ Completed (M6)  |
-| Web Push Delivery         | VAPID + subscriptions + dispatch + SW handlers       | ✅ Completed (M12) |
-| Chores                    | recurring chores + rotation + completion history     | ✅ Completed (M7)  |
-| Shopping                  | shared list + quick add + first-list onboarding      | ✅ Completed (M8)  |
-| Realtime                  | scoped sync for shopping items                       | ✅ Completed (M8)  |
-| Finance Lite              | bills/expense/income + due/overdue states            | ✅ Completed (M9)  |
-| Household Settlement      | net balances + suggested transfers per member        | ✅ Completed (M14) |
-| Chore History             | per-member workload + who did what and when          | ✅ Completed (M16) |
-| Finance Charts            | 6-month Jalali trend + category shares (plain SVG)   | ✅ Completed (M17) |
-| Bundle Budget             | real per-route gzip measurement enforced in CI       | ✅ Completed (M18) |
-| Reminder Inbox            | every reminder incl. delivered/canceled + actions    | ✅ Completed (M19) |
-| Search                    | cross-domain search with permission filters          | ✅ Completed (M10) |
-| Search Filters            | kind chips + time range, filtered client-side        | ✅ Completed (M20) |
-| Finance Corrections       | edit amount/category, archive records (min patch)    | ✅ Completed (M21) |
-| Chore Corrections         | edit title/frequency/rotation, archive (min patch)   | ✅ Completed (M22) |
-| Due Reminder Badge        | due-reminder count on the nav, capped with a11y text | ✅ Completed (M23) |
-| Settings                  | theme/reminders/PWA help/household navigation        | ✅ Completed (M10) |
-| Offline Improvements      | shell cache + offline page (private pages excluded)  | ✅ Completed (M10) |
-| Test Hardening            | unit tests + CI + DB-level RLS verification          | 🚧 M11             |
-| Security Review           | RLS verification + grants + auth audit               | 🚧 M11             |
+| Feature                   | Scope خلاصه                                           | وضعیت              |
+| ------------------------- | ----------------------------------------------------- | ------------------ |
+| Foundation UI/RTL/Persian | shell موبایل، RTL، typography (self-hosted)، states   | ✅ Completed (M1)  |
+| Quick Add (global)        | ۵ اکشن واقعی از FAB: تسک/رویداد/خرید/قبض/کار خانه     | ✅ Completed (M13) |
+| Theme                     | light/dark/system + persistence                       | ✅ Completed (M1)  |
+| PWA Base                  | manifest + installability + offline fallback          | ✅ Completed (M1)  |
+| Auth                      | signup/login/logout/reset + protected routes          | ✅ Completed (M2)  |
+| Profile                   | ویرایش پروفایل، timezone، locale                      | ✅ Completed (M2)  |
+| Household                 | create/join/leave + owner/member roles                | ✅ Completed (M3)  |
+| Invitations               | invite link/code + expiration + cancel                | ✅ Completed (M3)  |
+| RLS Core                  | private/shared isolation + membership checks          | ✅ Completed (M3)  |
+| Tasks                     | CRUD + status + priority + visibility + assignment    | ✅ Completed (M4)  |
+| Recurrence                | daily/weekly/custom with rrule-ready model            | ✅ Completed (M4)  |
+| Today Dashboard           | اولویت‌بندی کارهای امروز، معوق، قبض و کار خانه        | ✅ Completed (M5)  |
+| Calendar                  | month/week/agenda + tasks/events aggregation          | ✅ Completed (M5)  |
+| Reminder Foundation       | data model + schedule calc + dispatch/snooze/quiet    | ✅ Completed (M6)  |
+| Notification Prefs        | in-app settings + quiet hours                         | ✅ Completed (M6)  |
+| Web Push Delivery         | VAPID + subscriptions + dispatch + SW handlers        | ✅ Completed (M12) |
+| Chores                    | recurring chores + rotation + completion history      | ✅ Completed (M7)  |
+| Shopping                  | shared list + quick add + first-list onboarding       | ✅ Completed (M8)  |
+| Realtime                  | scoped sync for shopping items                        | ✅ Completed (M8)  |
+| Finance Lite              | bills/expense/income + due/overdue states             | ✅ Completed (M9)  |
+| Household Settlement      | net balances + suggested transfers per member         | ✅ Completed (M14) |
+| Chore History             | per-member workload + who did what and when           | ✅ Completed (M16) |
+| Finance Charts            | 6-month Jalali trend + category shares (plain SVG)    | ✅ Completed (M17) |
+| Bundle Budget             | real per-route gzip measurement enforced in CI        | ✅ Completed (M18) |
+| Reminder Inbox            | every reminder incl. delivered/canceled + actions     | ✅ Completed (M19) |
+| Search                    | cross-domain search with permission filters           | ✅ Completed (M10) |
+| Search Filters            | kind chips + time range, filtered client-side         | ✅ Completed (M20) |
+| Finance Corrections       | edit amount/category, archive records (min patch)     | ✅ Completed (M21) |
+| Chore Corrections         | edit title/frequency/rotation, archive (min patch)    | ✅ Completed (M22) |
+| Due Reminder Badge        | due-reminder count on the nav, capped with a11y text  | ✅ Completed (M23) |
+| Financial Ledger          | all records with type/paid/range filters (URL-driven) | ✅ Completed (M24) |
+| Settings                  | theme/reminders/PWA help/household navigation         | ✅ Completed (M10) |
+| Offline Improvements      | shell cache + offline page (private pages excluded)   | ✅ Completed (M10) |
+| Test Hardening            | unit tests + CI + DB-level RLS verification           | 🚧 M11             |
+| Security Review           | RLS verification + grants + auth audit                | 🚧 M11             |
 
 ## مسیرهای کاربری (Routes)
 
@@ -49,6 +50,7 @@
 | `/calendar`              | تقویم ماه/هفته/فهرست                                 |
 | `/home`                  | مدیریت خانه، اعضا و دعوت‌نامه‌ها                     |
 | `/lists`                 | تب‌های خرید / کارهای خانه / مالی + تسویه‌حساب خانه   |
+| `/finance`               | دفتر تراکنش‌ها با فیلتر نوع/پرداخت/بازه              |
 | `/reminders`             | صندوق یادآورها: رسیده/امروز/پیش‌رو/تحویل‌شده/لغو‌شده |
 | `/search`                | جستجوی یکپارچه                                       |
 | `/profile` و `/settings` | پروفایل و تنظیمات                                    |
