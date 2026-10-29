@@ -50,6 +50,31 @@ export default function SettingsPage() {
         </Link>
       </Card>
 
+      <Card className="space-y-3">
+        <CardTitle>خروجی گرفتن از داده‌ها</CardTitle>
+        <CardDescription>
+          همهٔ چیزهایی که حساب شما اجازهٔ دیدنشان را دارد، در یک فایل. فایل JSON
+          برای نگه‌داشتن نسخهٔ پشتیبان یا انتقال به ابزار دیگر است و فایل CSV
+          فقط تراکنش‌های مالی را برای باز کردن در اکسل می‌دهد.
+        </CardDescription>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href="/api/export"
+            download
+            className="rounded-2xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            دریافت همهٔ داده‌ها (JSON)
+          </a>
+          <a
+            href="/api/export?format=csv"
+            download
+            className="rounded-2xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            تراکنش‌های مالی (CSV)
+          </a>
+        </div>
+      </Card>
+
       <Card className="space-y-2">
         <CardTitle>نصب روی گوشی (PWA)</CardTitle>
         <CardDescription>

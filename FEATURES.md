@@ -41,6 +41,7 @@
 | End-to-End (HTTP)         | real build: pages, redirects, API guards in CI        | ✅ Completed (M26) |
 | Setup Error Feedback      | a misconfigured backend says so, never a dead button  | ✅ Completed (M27) |
 | Weekly Recap              | tasks/chores/spend vs last week, server-rendered      | ✅ Completed (M28) |
+| Data Export               | JSON archive + ledger CSV, RLS-authorised             | ✅ Completed (M29) |
 | Settings                  | theme/reminders/PWA help/household navigation         | ✅ Completed (M10) |
 | Offline Improvements      | shell cache + offline page (private pages excluded)   | ✅ Completed (M10) |
 | Test Hardening            | unit tests + CI + DB-level RLS verification           | 🚧 M11             |
