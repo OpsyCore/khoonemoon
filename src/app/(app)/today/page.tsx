@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { EventRecord } from "@/features/calendar/types";
 import { DueChores } from "@/features/chores/components/due-chores";
 import type { ChoreRecord } from "@/features/chores/types";
@@ -161,6 +162,13 @@ export default async function TodayPage() {
         records={(financeResult.data ?? []) as FinancialRecord[]}
       />
       <UpcomingReminders reminders={upcomingReminders as ReminderRecord[]} />
+
+      <Link
+        href="/reminders"
+        className="block rounded-3xl border border-zinc-200 bg-white p-4 text-center text-sm font-medium text-sky-700 shadow-sm transition hover:bg-sky-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-sky-300 dark:hover:bg-sky-950/30"
+      >
+        همهٔ یادآورها — شامل تحویل‌شده‌ها و لغو‌شده‌ها
+      </Link>
 
       <TaskManager
         tasks={tasks}

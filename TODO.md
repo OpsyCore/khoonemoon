@@ -86,6 +86,18 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 19 - Reminder Inbox ✅
+
+- [x] `inbox.ts`: طبقه‌بندی هر یادآور به رسیده / امروز / پیش‌رو / تحویل‌شده / لغو‌شده
+- [x] وضعیت‌های پایانی بر اساس `status` و `delivered_at` (اگر status کهنه باشد، `delivered_at` برنده است)
+- [x] تاریخ نامعتبر به‌جای ناپدید شدن، «رسیده» نمایش داده می‌شود
+- [x] عنوان واقعی تسک/رویداد از روی شناسه‌ها؛ هدف حذف‌شده → «تسک حذف‌شده»/«رویداد حذف‌شده»
+- [x] شمارش هر وضعیت + `nextAt` (نزدیک‌ترین یادآور باز) و نشان «چند بار تعویق»
+- [x] صفحهٔ `/reminders` با اقدام‌های تعویق ۱۰ دقیقه / ۱ ساعت / لغو برای موارد رسیده و امروز
+- [x] جداسازی نمایش خالص (`reminder-inbox-view`) از منطق کلاینت، برای تست‌پذیری بدون router
+- [x] لینک به صندوق از «امروز» و «تنظیمات»
+- [x] ۲۶ تست (۲۱ منطق + ۵ رندر)
+
 ## Milestone 18 - Bundle Budget in CI ✅
 
 - [x] `scripts/bundle-budget.mjs`: خواندن حجم واقعی JS هر مسیر از مانیفست‌های Turbopack (gzip)
