@@ -86,6 +86,15 @@
 - [x] settings page (theme, reminder prefs, PWA help, household link)
 - [x] offline UX (shell caching + offline page, private pages excluded)
 
+## Milestone 16 - Chore History ✅
+
+- [x] ماژول `history.ts`: ساخت ورودی‌ها، گروه‌بندی روزانه (تقویم هجری شمسی) و خلاصهٔ سهم هر عضو
+- [x] فقط ۳۰ روز گذشته در خلاصه؛ زمان‌های آینده (اختلاف ساعت دستگاه) نادیده گرفته می‌شوند
+- [x] برچسب صادقانه برای کار حذف‌شده و عضوی که از خانه رفته («کار حذف‌شده» / «عضو سابق خانه»)
+- [x] کارت «تاریخچه کارهای خانه» زیر فهرست کارها: نوار سهم هر نفر + ردیف‌های «چه کسی، چه کاری، چه ساعتی»
+- [x] تاریخچه با شناسهٔ کارهای همین خانه محدود می‌شود (جدول `chore_completions` ستون `household_id` ندارد)
+- [x] ۱۶ تست (۱۳ منطق + ۳ رندر)
+
 ## Milestone 15 - Scheduled Reminders ✅
 
 - [x] workflow `reminder-dispatch` با زمان‌بندی ۱۵ دقیقه‌ای (مستقل از میزبان: Vercel/Netlify/VPS)

@@ -3,7 +3,7 @@
 import { Home, Receipt, ShoppingBasket } from "lucide-react";
 import { useState } from "react";
 import { ChoreBoard } from "@/features/chores/components/chore-board";
-import type { ChoreRecord } from "@/features/chores/types";
+import type { ChoreCompletion, ChoreRecord } from "@/features/chores/types";
 import { FinanceBoard } from "@/features/finance/components/finance-board";
 import { SettlementCard } from "@/features/finance/components/settlement-card";
 import type { FinancialRecord } from "@/features/finance/types";
@@ -24,6 +24,7 @@ export function ListsTabs({
   lists,
   items,
   chores,
+  completions,
   records,
   members,
   activeListId,
@@ -33,6 +34,7 @@ export function ListsTabs({
   lists: ShoppingList[];
   items: ShoppingItem[];
   chores: ChoreRecord[];
+  completions: ChoreCompletion[];
   records: FinancialRecord[];
   members: TaskMember[];
   activeListId: string | null;
@@ -81,7 +83,12 @@ export function ListsTabs({
       ) : null}
 
       {tab === "chores" ? (
-        <ChoreBoard chores={chores} members={members} canManage={canShare} />
+        <ChoreBoard
+          chores={chores}
+          completions={completions}
+          members={members}
+          canManage={canShare}
+        />
       ) : null}
 
       {tab === "finance" ? (

@@ -27,6 +27,7 @@
 | Realtime                  | scoped sync for shopping items                      | ✅ Completed (M8)  |
 | Finance Lite              | bills/expense/income + due/overdue states           | ✅ Completed (M9)  |
 | Household Settlement      | net balances + suggested transfers per member       | ✅ Completed (M14) |
+| Chore History             | per-member workload + who did what and when         | ✅ Completed (M16) |
 | Search                    | cross-domain search with permission filters         | ✅ Completed (M10) |
 | Settings                  | theme/reminders/PWA help/household navigation       | ✅ Completed (M10) |
 | Offline Improvements      | shell cache + offline page (private pages excluded) | ✅ Completed (M10) |

@@ -3,8 +3,12 @@
 import { Check, Plus, Repeat, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { getChoreState, resolveCurrentAssignee } from "@/features/chores/rotation";
-import type { ChoreRecord } from "@/features/chores/types";
+import { ChoreHistory } from "@/features/chores/components/chore-history";
+import {
+  getChoreState,
+  resolveCurrentAssignee,
+} from "@/features/chores/rotation";
+import type { ChoreCompletion, ChoreRecord } from "@/features/chores/types";
 import type { TaskMember } from "@/features/tasks/types";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -32,10 +36,12 @@ const FREQUENCY_LABELS: Record<string, string> = {
 
 export function ChoreBoard({
   chores,
+  completions,
   members,
   canManage,
 }: {
   chores: ChoreRecord[];
+  completions: ChoreCompletion[];
   members: TaskMember[];
   canManage: boolean;
 }) {
@@ -57,15 +63,29 @@ export function ChoreBoard({
 
   const sortedChores = useMemo(() => {
     const now = new Date();
-    const order = { OVERDUE: 0, DUE_TODAY: 1, UPCOMING: 2, UNSCHEDULED: 3, PAUSED: 4 };
+    const order = {
+      OVERDUE: 0,
+      DUE_TODAY: 1,
+      UPCOMING: 2,
+      UNSCHEDULED: 3,
+      PAUSED: 4,
+    };
 
     return [...chores].sort(
       (a, b) =>
         order[
-          getChoreState({ nextDueAt: a.next_due_at, isActive: a.is_active, now })
+          getChoreState({
+            nextDueAt: a.next_due_at,
+            isActive: a.is_active,
+            now,
+          })
         ] -
         order[
-          getChoreState({ nextDueAt: b.next_due_at, isActive: b.is_active, now })
+          getChoreState({
+            nextDueAt: b.next_due_at,
+            isActive: b.is_active,
+            now,
+          })
         ],
     );
   }, [chores]);
@@ -192,7 +212,9 @@ export function ChoreBoard({
           </Button>
 
           {message ? (
-            <p className="text-xs text-rose-600 dark:text-rose-400">{message}</p>
+            <p className="text-xs text-rose-600 dark:text-rose-400">
+              {message}
+            </p>
           ) : null}
         </Card>
       ) : null}
@@ -264,6 +286,12 @@ export function ChoreBoard({
           })}
         </ul>
       )}
+
+      <ChoreHistory
+        completions={completions}
+        chores={chores}
+        members={members}
+      />
     </div>
   );
 }
