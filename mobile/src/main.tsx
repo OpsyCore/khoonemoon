@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { directShopping } from "@/features/shopping/direct-client";
 import type { ShoppingItem, ShoppingList } from "@/features/shopping/types";
-import { createHouseholdSchema } from "@/features/households/schemas";
+import { directHousehold } from "@/features/households/direct-client";
 import "./style.css";
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -25,11 +25,14 @@ function App() {
     undefined,
   );
   const [houseName, setHouseName] = useState("");
+  const [joinCode, setJoinCode] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [listId, setListId] = useState("");
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [listName, setListName] = useState("");
   const [itemName, setItemName] = useState("");
+  const houses = useMemo(() => (client ? directHousehold(client) : null), []);
   const shopping = useMemo(() => (client ? directShopping(client) : null), []);
 
   useEffect(() => {
@@ -57,6 +60,8 @@ function App() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHousehold(undefined);
     setLists([]);
+    setInviteCode("");
+    setJoinCode("");
     setListId("");
     setItems([]);
     if (!userId || !client) return;
@@ -141,14 +146,24 @@ function App() {
   function createHouse(event: FormEvent) {
     event.preventDefault();
     void action(async () => {
-      if (!client) throw new Error();
-      const parsed = createHouseholdSchema.parse({ name: houseName });
-      const { data, error } = await client.rpc("create_household", {
-        p_name: parsed.name,
-      });
-      if (error || !data) throw error ?? new Error();
-      setHousehold(data as string);
+      if (!houses) throw new Error();
+      setHousehold(await houses.create(houseName));
       setHouseName("");
+    });
+  }
+  function joinHouse(event: FormEvent) {
+    event.preventDefault();
+    void action(async () => {
+      if (!houses) throw new Error();
+      setHousehold(await houses.join(joinCode));
+      setJoinCode("");
+    });
+  }
+  function createInvite() {
+    void action(async () => {
+      if (!houses) throw new Error();
+      const invite = await houses.invite();
+      setInviteCode(invite.code);
     });
   }
   function createList(event: FormEvent) {
@@ -225,21 +240,53 @@ function App() {
             {household === undefined ? (
               <p>در حال دریافت اطلاعات خانه…</p>
             ) : household ? (
-              <p>خانهٔ شما متصل است.</p>
+              <>
+                <p>خانهٔ شما متصل است.</p>
+                <button disabled={busy} onClick={createInvite}>
+                  ساخت کد دعوت
+                </button>
+                {inviteCode && (
+                  <label>
+                    کد دعوت (تا ۷۲ ساعت معتبر است)
+                    <input
+                      readOnly
+                      dir="ltr"
+                      value={inviteCode}
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </label>
+                )}
+              </>
             ) : (
-              <form onSubmit={createHouse}>
-                <label>
-                  نام خانه
-                  <input
-                    value={houseName}
-                    onChange={(e) => setHouseName(e.target.value)}
-                    required
-                    minLength={2}
-                    maxLength={80}
-                  />
-                </label>
-                <button disabled={busy}>ایجاد خانه</button>
-              </form>
+              <>
+                <form onSubmit={createHouse}>
+                  <label>
+                    نام خانه
+                    <input
+                      value={houseName}
+                      onChange={(e) => setHouseName(e.target.value)}
+                      required
+                      minLength={2}
+                      maxLength={80}
+                    />
+                  </label>
+                  <button disabled={busy}>ایجاد خانه</button>
+                </form>
+                <form onSubmit={joinHouse}>
+                  <label>
+                    کد دعوت
+                    <input
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value)}
+                      minLength={12}
+                      maxLength={128}
+                      required
+                      dir="ltr"
+                    />
+                  </label>
+                  <button disabled={busy}>پیوستن به خانه</button>
+                </form>
+              </>
             )}
           </section>
           {household && (

@@ -3,9 +3,9 @@
 This is a separate, unfinished client-side prototype. It does not load Netlify
 and is **not yet packaged into the Android APK**. The existing Android workflow
 still builds the old remote WebView wrapper; do not distribute it as this app.
-The prototype currently implements sign-in, loading/creating a household and a
+The prototype currently implements sign-in, loading/creating/joining a household, creating an invitation, and a
 shopping list using the current user's Supabase session. Other M1–M29 features,
-account recovery and onboarding, membership/invitations, accessibility, native
+account recovery and onboarding, membership management, accessibility, native
 notifications, and real-device/security tests remain to be ported. Existing
 Next.js code is retained for reference and the web product.
 
