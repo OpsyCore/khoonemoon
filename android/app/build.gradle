@@ -1,0 +1,40 @@
+plugins { id 'com.android.application' }
+
+// This URL is not a secret: it is bundled into the APK. Always use HTTPS.
+def appUrl = System.getenv('ANDROID_WEB_URL') ?: 'https://khonemoon.netlify.app'
+def parsed = new URI(appUrl)
+if (parsed.scheme != 'https' || !parsed.host || parsed.userInfo || parsed.query || parsed.fragment || !(parsed.path in ['', '/'])) {
+    throw new GradleException('ANDROID_WEB_URL must be an HTTPS origin, e.g. https://example.netlify.app')
+}
+def signingFile = System.getenv('ANDROID_KEYSTORE_PATH')
+
+android {
+    namespace 'app.khoonemoon.mobile'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'app.khoonemoon.mobile'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+        buildConfigField 'String', 'WEB_ORIGIN', '"' + appUrl.replaceAll('/$', '') + '"'
+    }
+    buildFeatures { buildConfig true }
+    signingConfigs {
+        if (signingFile) {
+            release {
+                storeFile file(signingFile)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (signingFile) signingConfig signingConfigs.release
+        }
+    }
+}
+

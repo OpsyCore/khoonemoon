@@ -13,3 +13,10 @@ coverage
 # Next.js generated artifacts
 next-env.d.ts
 *.tsbuildinfo
+
+# Android build outputs and signing keys
+android/.gradle/
+android/local.properties
+android/**/build/
+*.jks
+*.keystore
