@@ -158,7 +158,7 @@ export function TodayDashboard({
             {derived.overdueTasks.map((task) => (
               <li
                 key={task.id}
-                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                className="rounded-2xl border border-line p-3"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -212,7 +212,7 @@ export function TodayDashboard({
             {derived.todayTasks.map((task) => (
               <li
                 key={task.id}
-                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                className="rounded-2xl border border-line p-3"
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -266,7 +266,7 @@ export function TodayDashboard({
             {derived.upcomingEvents.map((event) => (
               <li
                 key={event.id}
-                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                className="rounded-2xl border border-line p-3"
               >
                 <p className="text-sm font-semibold">{event.title}</p>
                 <p className="text-xs text-muted">

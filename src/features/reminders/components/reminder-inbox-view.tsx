@@ -142,7 +142,7 @@ export function ReminderInboxView({
                 return (
                   <li
                     key={entry.id}
-                    className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                    className="rounded-2xl border border-line p-3"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 space-y-0.5">

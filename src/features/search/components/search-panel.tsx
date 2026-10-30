@@ -128,8 +128,8 @@ export function SearchPanel() {
                   }
                   className={`rounded-full border px-2.5 py-1 text-xs font-medium transition disabled:opacity-40 ${
                     isActive
-                      ? "border-sky-500 bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200"
-                      : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                      ? "border-olive bg-olive-soft text-olive-ink"
+                      : "border-line bg-card text-ink-soft"
                   }`}
                 >
                   {KIND_LABELS[kind].label} ({toPersianNumber(count)})

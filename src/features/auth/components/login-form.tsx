@@ -104,13 +104,13 @@ export function LoginForm() {
       <div className="flex items-center justify-between gap-3 text-sm">
         <Link
           href="/auth/forgot-password"
-          className="text-sky-600 underline dark:text-sky-400"
+          className="text-olive-ink underline"
         >
           رمز عبور را فراموش کرده‌اید؟
         </Link>
         <Link
           href="/auth/signup"
-          className="text-sky-600 underline dark:text-sky-400"
+          className="text-olive-ink underline"
         >
           ساخت حساب
         </Link>

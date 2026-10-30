@@ -30,7 +30,7 @@ export default function SettingsPage() {
 
       <Link
         href="/reminders"
-        className="block rounded-3xl border border-zinc-200 bg-white p-4 text-sm font-medium text-sky-700 shadow-sm transition hover:bg-sky-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-sky-300 dark:hover:bg-sky-950/30"
+        className="block rounded-3xl border border-line bg-card p-4 text-sm font-medium text-olive-ink shadow-paper transition hover:bg-sunken"
       >
         صندوق یادآورها — همهٔ یادآورها، از جمله تحویل‌شده و لغو‌شده
       </Link>
@@ -42,7 +42,7 @@ export default function SettingsPage() {
         </CardDescription>
         <Link
           href="/home"
-          className="inline-flex text-sm font-medium text-sky-600 hover:underline dark:text-sky-400"
+          className="inline-flex text-sm font-medium text-olive-ink hover:underline"
         >
           رفتن به صفحه خانه
         </Link>
@@ -59,14 +59,14 @@ export default function SettingsPage() {
           <a
             href="/api/export"
             download
-            className="rounded-2xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            className="rounded-2xl border border-line px-4 py-2 text-sm font-medium text-ink-soft transition hover:bg-sunken"
           >
             دریافت داده‌ها (JSON)
           </a>
           <a
             href="/api/export?format=csv"
             download
-            className="rounded-2xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            className="rounded-2xl border border-line px-4 py-2 text-sm font-medium text-ink-soft transition hover:bg-sunken"
           >
             تراکنش‌های مالی (CSV)
           </a>

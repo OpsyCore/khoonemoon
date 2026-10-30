@@ -1,3 +1,4 @@
+import type { CalendarChore } from "@/features/chores/calendar-projection";
 import { PageHeader } from "@/shared/ui/page-header";
 import { CalendarBoard } from "@/features/calendar/components/calendar-board";
 import type { EventRecord } from "@/features/calendar/types";
@@ -57,7 +58,7 @@ export default async function CalendarPage() {
   const choresResult = householdId
     ? await supabase
         .from("chores")
-        .select("id, title, next_due_at")
+        .select("id, title, next_due_at, frequency, interval_days, weekdays")
         .eq("household_id", householdId)
         .eq("is_active", true)
         .is("archived_at", null)
@@ -76,13 +77,7 @@ export default async function CalendarPage() {
         tasks={(tasksResult.data ?? []) as TaskRecord[]}
         events={(eventsResult.data ?? []) as EventRecord[]}
         householdId={householdId}
-        chores={
-          (choresResult.data ?? []) as {
-            id: string;
-            title: string;
-            next_due_at: string;
-          }[]
-        }
+        chores={(choresResult.data ?? []) as CalendarChore[]}
         choresLoadError={Boolean(choresResult.error)}
       />
     </div>

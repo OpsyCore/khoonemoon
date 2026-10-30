@@ -90,7 +90,7 @@ export function ForgotPasswordForm() {
 
       <Link
         href="/auth/login"
-        className="block text-sm text-sky-600 underline dark:text-sky-400"
+        className="block text-sm text-olive-ink underline"
       >
         بازگشت به صفحه ورود
       </Link>

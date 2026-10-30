@@ -246,7 +246,7 @@ export function QuickAddSheet({
       onClick={onClose}
     >
       <section
-        className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl border border-zinc-200 bg-white p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl motion-safe:animate-[sheet-up_160ms_ease-out] dark:border-zinc-800 dark:bg-zinc-900 md:inset-x-auto md:bottom-6 md:left-auto md:right-6 md:w-96 md:rounded-3xl"
+        className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl border border-line bg-card p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-paper-lg motion-safe:animate-[sheet-up_160ms_ease-out] md:inset-x-auto md:bottom-6 md:left-auto md:right-6 md:w-96 md:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between gap-2">
@@ -260,7 +260,7 @@ export function QuickAddSheet({
                   setSuccessText(null);
                 }}
                 aria-label="بازگشت به انتخاب نوع"
-                className="rounded-full p-1.5 text-zinc-500 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="rounded-full p-1.5 text-muted transition hover:bg-sunken"
               >
                 <ChevronRight className="size-4" />
               </button>
@@ -303,8 +303,8 @@ export function QuickAddSheet({
                     className={cn(
                       "flex w-full items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-right transition",
                       disabled
-                        ? "cursor-not-allowed border-zinc-200 opacity-50 dark:border-zinc-800"
-                        : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800",
+                        ? "cursor-not-allowed border-line opacity-50"
+                        : "border-line hover:bg-sunken",
                     )}
                   >
                     <span className="space-y-0.5">

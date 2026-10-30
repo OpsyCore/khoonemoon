@@ -72,7 +72,7 @@ export function UpcomingReminders({
             return (
               <li
                 key={reminder.id}
-                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                className="rounded-2xl border border-line p-3"
               >
                 <p className="text-sm font-semibold">
                   {reminder.target_type === "TASK"

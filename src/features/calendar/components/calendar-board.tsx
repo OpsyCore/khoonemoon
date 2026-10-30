@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  projectChoreDates,
+  type CalendarChore,
+} from "@/features/chores/calendar-projection";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarDays, List, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -36,6 +40,7 @@ type CalendarItem = {
   endAt: Date;
   type: "TASK" | "EVENT" | "CHORE";
   status?: string;
+  projected?: boolean;
 };
 
 function toDateTimeLocal(iso: string) {
@@ -69,7 +74,7 @@ export function CalendarBoard({
   tasks: TaskRecord[];
   events: EventRecord[];
   householdId: string | null;
-  chores: { id: string; title: string; next_due_at: string }[];
+  chores: CalendarChore[];
   choresLoadError: boolean;
 }) {
   const router = useRouter();
@@ -131,20 +136,38 @@ export function CalendarBoard({
       type: "EVENT",
     }));
 
-    const choreItems: CalendarItem[] = chores.map((chore) => {
-      const startAt = new Date(chore.next_due_at);
-      return {
+    // Limit projected occurrences to the displayed month/week, or 90 days in
+    // agenda. Future dates are estimates, never additional completed records.
+    const grid = getMonthGrid(cursorDate);
+    const from =
+      view === "month"
+        ? new Date(grid[0].date)
+        : view === "week"
+          ? new Date(selectedDate)
+          : new Date();
+    if (view === "week")
+      from.setDate(from.getDate() - ((from.getDay() + 1) % 7));
+    if (view === "agenda") from.setDate(from.getDate() - 1);
+    from.setHours(0, 0, 0, 0);
+    const to =
+      view === "month" ? new Date(grid[grid.length - 1].date) : new Date(from);
+    if (view === "month") to.setDate(to.getDate() + 1);
+    else to.setDate(to.getDate() + (view === "week" ? 7 : 91));
+    to.setHours(0, 0, 0, 0);
+    const choreItems: CalendarItem[] = chores.flatMap((chore) =>
+      projectChoreDates(chore, from, to).map(({ due, current }) => ({
         id: chore.id,
         title: chore.title,
-        startAt,
-        endAt: startAt,
-        type: "CHORE",
-      };
-    });
+        startAt: due,
+        endAt: due,
+        type: "CHORE" as const,
+        projected: !current,
+      })),
+    );
     return [...taskItems, ...eventItems, ...choreItems].sort(
       (a, b) => a.startAt.getTime() - b.startAt.getTime(),
     );
-  }, [tasks, events, chores]);
+  }, [tasks, events, chores, cursorDate, selectedDate, view]);
 
   const monthGrid = useMemo(() => getMonthGrid(cursorDate), [cursorDate]);
   const weekLabels = useMemo(() => getPersianWeekdayLabels(), []);
@@ -157,6 +180,7 @@ export function CalendarBoard({
   const weekItems = useMemo(() => {
     const start = new Date(selectedDate);
     start.setDate(selectedDate.getDate() - ((selectedDate.getDay() + 1) % 7));
+    start.setHours(0, 0, 0, 0);
 
     const end = new Date(start);
     end.setDate(start.getDate() + 7);
@@ -279,10 +303,12 @@ export function CalendarBoard({
     item.type === "TASK"
       ? "تسک"
       : item.type === "CHORE"
-        ? "کار خانه"
+        ? item.projected
+          ? "کار خانه · پیش‌بینی"
+          : "کار خانه"
         : "رویداد";
   const choreButton = (item: CalendarItem) =>
-    item.type === "CHORE" ? (
+    item.type === "CHORE" && !item.projected ? (
       <Button
         size="sm"
         variant="soft"
@@ -419,8 +445,8 @@ export function CalendarBoard({
               <ul className="space-y-2">
                 {weekItems.map((item) => (
                   <li
-                    key={`${item.type}-${item.id}`}
-                    className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                    key={`${item.type}-${item.id}-${item.startAt.toISOString()}`}
+                    className="rounded-2xl border border-line p-3"
                   >
                     <p className="text-sm font-medium">{item.title}</p>
                     <p className="text-xs text-muted">
@@ -451,8 +477,8 @@ export function CalendarBoard({
               <ul className="space-y-2">
                 {agendaItems.map((item) => (
                   <li
-                    key={`${item.type}-${item.id}`}
-                    className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                    key={`${item.type}-${item.id}-${item.startAt.toISOString()}`}
+                    className="rounded-2xl border border-line p-3"
                   >
                     <p className="text-sm font-semibold">{item.title}</p>
                     <p className="text-xs text-muted">
@@ -471,13 +497,17 @@ export function CalendarBoard({
         ) : null}
 
         <CardDescription>
-          آیتم‌های روز انتخابی: {selectedItems.length}
+          آیتم‌های روز انتخابی: {selectedItems.length}. تکرارهای آینده
+          پیش‌بینی‌اند؛ ثبت انجام فقط برای سررسید بعدی ممکن است.
+          {view === "agenda"
+            ? " پیش‌بینی کارهای خانه تا ۹۰ روز آینده نمایش داده می‌شود."
+            : ""}
         </CardDescription>
         {view === "month" && selectedItems.length > 0 ? (
           <ul className="space-y-2">
             {selectedItems.map((item) => (
               <li
-                key={`${item.type}-${item.id}`}
+                key={`${item.type}-${item.id}-${item.startAt.toISOString()}`}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-field border border-line p-3"
               >
                 <span className="text-sm text-ink">
@@ -514,7 +544,7 @@ export function CalendarBoard({
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-ink">حریم خصوصی</label>
               <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
                 {...register("visibility")}
               >
                 <option value="PRIVATE">خصوصی</option>
@@ -595,10 +625,7 @@ export function CalendarBoard({
         ) : (
           <ul className="space-y-2">
             {events.map((event) => (
-              <li
-                key={event.id}
-                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
-              >
+              <li key={event.id} className="rounded-2xl border border-line p-3">
                 <p className="text-sm font-semibold">{event.title}</p>
                 <p className="text-xs text-muted">
                   {formatJalaliLongDate(new Date(event.start_at))} -{" "}

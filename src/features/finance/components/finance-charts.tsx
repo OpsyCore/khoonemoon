@@ -124,7 +124,7 @@ export function FinanceCharts({
       </ul>
 
       {analytics.categories.length > 0 ? (
-        <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+        <div className="space-y-2 border-t border-line pt-3">
           <p className="text-sm font-medium">سهم دسته‌ها</p>
           <ul className="space-y-2">
             {analytics.categories.slice(0, 6).map((slice) => (
@@ -141,7 +141,7 @@ export function FinanceCharts({
                   className="h-1.5 w-full overflow-hidden rounded-full bg-sunken"
                 >
                   <div
-                    className="h-full rounded-full bg-sky-500"
+                    className="h-full rounded-full bg-olive"
                     style={{ width: `${slice.share}%` }}
                   />
                 </div>

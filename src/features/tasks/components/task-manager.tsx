@@ -322,7 +322,7 @@ export function TaskManager({
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-ink">حریم خصوصی</label>
               <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
                 {...register("visibility")}
               >
                 <option value="PRIVATE">خصوصی</option>
@@ -335,7 +335,7 @@ export function TaskManager({
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-ink">اولویت</label>
               <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
                 {...register("priority")}
               >
                 <option value="LOW">کم</option>
@@ -350,7 +350,7 @@ export function TaskManager({
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-ink">وضعیت</label>
               <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
                 {...register("status")}
               >
                 <option value="PENDING">در انتظار</option>
@@ -374,7 +374,7 @@ export function TaskManager({
             <label className="text-sm font-medium text-ink">مسئول</label>
             <select
               multiple
-              className="min-h-24 w-full rounded-2xl border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              className="min-h-24 w-full rounded-2xl border border-line-strong bg-paper px-3 py-2 text-sm text-ink"
               {...register("assigneeIds")}
             >
               {visibility === "PRIVATE" ? (
@@ -398,7 +398,7 @@ export function TaskManager({
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-ink">تکرار</label>
               <select
-                className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
                 {...register("recurrence.frequency")}
               >
                 <option value="NONE">بدون تکرار</option>
@@ -580,7 +580,7 @@ export function TaskManager({
                 </div>
 
                 {reschedulingTaskId === task.id ? (
-                  <div className="flex flex-col gap-2 rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700">
+                  <div className="flex flex-col gap-2 rounded-2xl border border-line p-3">
                     <Input
                       label="موعد جدید"
                       type="datetime-local"

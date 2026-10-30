@@ -92,7 +92,7 @@ export function ChoreHistory({
         })}
       </ul>
 
-      <div className="space-y-3 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+      <div className="space-y-3 border-t border-line pt-3">
         {groups.map((group) => (
           <div key={group.key} className="space-y-1.5">
             <p className="text-xs font-medium text-muted">{group.label}</p>
@@ -100,7 +100,7 @@ export function ChoreHistory({
               {group.entries.map((entry) => (
                 <li
                   key={entry.id}
-                  className="flex items-center justify-between gap-2 rounded-xl bg-zinc-50 px-3 py-2 text-sm dark:bg-zinc-950/40"
+                  className="flex items-center justify-between gap-2 rounded-xl bg-sunken px-3 py-2 text-sm"
                 >
                   <span className="min-w-0 truncate">
                     <span className="font-medium">{entry.memberName}</span>

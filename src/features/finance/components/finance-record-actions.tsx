@@ -116,7 +116,7 @@ export function FinanceRecordActions({ record }: { record: FinancialRecord }) {
       ) : null}
 
       {mode === "edit" ? (
-        <div className="space-y-2 rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700">
+        <div className="space-y-2 rounded-2xl border border-line p-3">
           <Input
             label="عنوان"
             value={form.title}

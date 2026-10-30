@@ -117,7 +117,7 @@ export function SignupForm() {
         حساب دارید؟{" "}
         <Link
           href="/auth/login"
-          className="text-sky-600 underline dark:text-sky-400"
+          className="text-olive-ink underline"
         >
           ورود
         </Link>

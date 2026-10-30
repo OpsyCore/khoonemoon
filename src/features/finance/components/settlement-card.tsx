@@ -72,7 +72,7 @@ export function SettlementCard({
           return (
             <li
               key={entry.memberId}
-              className="flex items-center justify-between gap-2 rounded-xl bg-zinc-50 px-3 py-2 text-sm dark:bg-zinc-950/40"
+              className="flex items-center justify-between gap-2 rounded-xl bg-sunken px-3 py-2 text-sm"
             >
               <span className="truncate">
                 {entry.name}
@@ -91,7 +91,7 @@ export function SettlementCard({
         })}
       </ul>
 
-      <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+      <div className="space-y-2 border-t border-line pt-3">
         <div className="flex items-center gap-2 text-sm font-medium">
           <HandCoins className="size-4 text-zinc-500" />
           {settlement.isSettled ? "همه‌چیز تسویه است" : "پیشنهاد تسویه"}
@@ -106,7 +106,7 @@ export function SettlementCard({
             {settlement.transfers.map((transfer) => (
               <li
                 key={`${transfer.fromId}-${transfer.toId}`}
-                className="rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:bg-sky-950/40 dark:text-sky-200"
+                className="rounded-xl bg-olive-soft px-3 py-2 text-sm text-olive-ink"
               >
                 <span className="font-medium">{transfer.fromName}</span> به{" "}
                 <span className="font-medium">{transfer.toName}</span> مبلغ{" "}

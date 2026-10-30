@@ -354,7 +354,7 @@ export function HouseholdManager({
           {members.map((member) => (
             <li
               key={member.id}
-              className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+              className="rounded-2xl border border-line p-3"
             >
               <p className="text-sm font-medium text-ink">
                 {member.profiles?.[0]?.full_name?.trim() || "کاربر بدون نام"}
@@ -391,7 +391,7 @@ export function HouseholdManager({
         )}
 
         {generatedInvite ? (
-          <div className="space-y-2 rounded-2xl border border-sky-200 bg-sky-50 p-3 dark:border-sky-900 dark:bg-sky-950/30">
+          <div className="space-y-2 rounded-2xl border border-line bg-olive-soft p-3">
             <p className="text-xs text-ink-soft">کد دعوت</p>
             <p className="break-all text-sm font-semibold text-olive-ink">
               {generatedInvite.code}
@@ -409,7 +409,7 @@ export function HouseholdManager({
             return (
               <li
                 key={invitation.id}
-                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                className="rounded-2xl border border-line p-3"
               >
                 <p className="text-sm font-medium text-ink">
                   وضعیت: {invitation.status}

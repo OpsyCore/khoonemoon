@@ -59,7 +59,7 @@ export function WeeklySummaryCard({ summary }: { summary: WeeklySummary }) {
         </CardDescription>
       ) : (
         <dl className="grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-2xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
+          <div className="rounded-2xl bg-sunken p-3">
             <dt className="text-xs text-muted">کارها</dt>
             <dd className="mt-1 font-semibold text-ink">
               {toPersianNumber(summary.tasksDone)} انجام‌شده
@@ -73,7 +73,7 @@ export function WeeklySummaryCard({ summary }: { summary: WeeklySummary }) {
             </dd>
           </div>
 
-          <div className="rounded-2xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
+          <div className="rounded-2xl bg-sunken p-3">
             <dt className="text-xs text-muted">کارهای خانه</dt>
             <dd className="mt-1 font-semibold text-ink">
               {toPersianNumber(summary.choresDone)} انجام‌شده
@@ -87,7 +87,7 @@ export function WeeklySummaryCard({ summary }: { summary: WeeklySummary }) {
             </dd>
           </div>
 
-          <div className="rounded-2xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
+          <div className="rounded-2xl bg-sunken p-3">
             <dt className="text-xs text-muted">خرج</dt>
             <dd className="mt-1 font-semibold text-ink">
               {formatAmount(summary.spent)}
@@ -101,7 +101,7 @@ export function WeeklySummaryCard({ summary }: { summary: WeeklySummary }) {
             </dd>
           </div>
 
-          <div className="rounded-2xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
+          <div className="rounded-2xl bg-sunken p-3">
             <dt className="text-xs text-muted">درآمد</dt>
             <dd className="mt-1 font-semibold text-ink">
               {formatAmount(summary.earned)}

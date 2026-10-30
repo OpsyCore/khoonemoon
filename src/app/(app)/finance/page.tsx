@@ -51,8 +51,8 @@ function FilterLink({
       className={cn(
         "rounded-full border px-2.5 py-1 text-xs font-medium transition",
         isActive
-          ? "border-sky-500 bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200"
-          : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
+          ? "border-olive bg-olive-soft text-olive-ink"
+          : "border-line bg-card text-ink-soft",
       )}
     >
       {children}
@@ -181,7 +181,7 @@ export default async function FinanceLedgerPage({
             جست‌وجو برای «{filters.query}» —{" "}
             <Link
               href={buildHref({ q: "" })}
-              className="text-sky-700 underline dark:text-sky-300"
+              className="text-olive-ink underline"
             >
               پاک‌کردن
             </Link>
@@ -191,7 +191,7 @@ export default async function FinanceLedgerPage({
         {isFiltered ? (
           <Link
             href="/finance"
-            className="inline-block text-xs text-sky-700 underline dark:text-sky-300"
+            className="inline-block text-xs text-olive-ink underline"
           >
             پاک‌کردن همهٔ فیلترها
           </Link>
