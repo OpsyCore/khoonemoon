@@ -5,6 +5,10 @@ import { loadHouseholdMembers } from "./members";
 function clientFor(members: unknown[], profiles: unknown[]) {
   const selects: string[] = [];
   const client = {
+    rpc(name: string, args: { target_household_id: string }) {
+      selects.push(`${name}:${args.target_household_id}`);
+      return Promise.resolve({ data: profiles, error: null });
+    },
     from(table: string) {
       const builder = {
         select(value: string) {
@@ -50,7 +54,7 @@ describe("household members", () => {
     expect(result.data[1].profiles).toBeNull();
     expect(selects).toEqual([
       "household_members:id, user_id, role, joined_at, left_at",
-      "profiles:id, full_name",
+      "household_member_names:household",
     ]);
     expect(selects.join(" ")).not.toContain("profiles(");
   });

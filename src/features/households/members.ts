@@ -2,7 +2,8 @@ import type { SupabaseServerClient } from "@/lib/api/session";
 import type { HouseholdMember, HouseholdRole } from "./types";
 
 /** household_members.user_id references auth.users, not profiles: PostgREST
- * cannot embed profiles. Fetch each table under the caller's RLS instead. */
+ * cannot embed profiles. A scoped RPC returns display names without exposing
+ * private profile rows to other household members. */
 export async function loadHouseholdMembers(
   supabase: SupabaseServerClient,
   householdId: string,
@@ -17,17 +18,15 @@ export async function loadHouseholdMembers(
     return { data: [] as HouseholdMember[], error: result.error };
   const rows = result.data ?? [];
   if (!rows.length) return { data: [] as HouseholdMember[], error: null };
-  const profiles = await supabase
-    .from("profiles")
-    .select("id, full_name")
-    .in(
-      "id",
-      rows.map((row) => row.user_id),
-    );
+  const profiles = await supabase.rpc("household_member_names", {
+    target_household_id: householdId,
+  });
   if (profiles.error)
     return { data: [] as HouseholdMember[], error: profiles.error };
   const names = new Map(
-    (profiles.data ?? []).map((profile) => [profile.id, profile.full_name]),
+    ((profiles.data ?? []) as { id: string; full_name: string | null }[]).map(
+      (profile) => [profile.id, profile.full_name] as const,
+    ),
   );
   const data: HouseholdMember[] = rows.map((row) => ({
     id: row.id,

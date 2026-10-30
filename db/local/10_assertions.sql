@@ -396,3 +396,28 @@ begin
   end if;
 end $$;
 commit;
+
+-- Display names are shared only with active members; full profiles stay private.
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+begin
+  if (select count(*) from public.household_member_names('00000000-0000-4000-8000-0000000000f1')) <> 2 then
+    raise exception 'MEMBER NAMES FAIL: member should see both names';
+  end if;
+  if (select count(*) from public.profiles where id = '00000000-0000-4000-8000-00000000000a') <> 0 then
+    raise exception 'MEMBER NAMES FAIL: full private profile exposed';
+  end if;
+end $$;
+commit;
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+begin
+  if (select count(*) from public.household_member_names('00000000-0000-4000-8000-0000000000f1')) <> 0 then
+    raise exception 'MEMBER NAMES FAIL: outsider saw names';
+  end if;
+end $$;
+commit;
