@@ -25,6 +25,7 @@ import {
   getMonthGrid,
   getPersianWeekdayLabels,
   isSameDay,
+  shiftJalaliMonth,
 } from "@/shared/utils/jalali";
 import { formatPersianTime } from "@/shared/utils/locale";
 
@@ -33,7 +34,7 @@ type CalendarItem = {
   title: string;
   startAt: Date;
   endAt: Date;
-  type: "TASK" | "EVENT";
+  type: "TASK" | "EVENT" | "CHORE";
   status?: string;
 };
 
@@ -62,10 +63,14 @@ export function CalendarBoard({
   tasks,
   events,
   householdId,
+  chores,
+  choresLoadError,
 }: {
   tasks: TaskRecord[];
   events: EventRecord[];
   householdId: string | null;
+  chores: { id: string; title: string; next_due_at: string }[];
+  choresLoadError: boolean;
 }) {
   const router = useRouter();
   const [supabase] = useState(() => createSupabaseBrowserClient());
@@ -74,6 +79,7 @@ export function CalendarBoard({
   const [cursorDate, setCursorDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [completingChore, setCompletingChore] = useState<string | null>(null);
   const [editingEvent, setEditingEvent] = useState<EventRecord | null>(null);
   const [defaultEventTimes] = useState(() => buildDefaultEventTimes());
 
@@ -125,10 +131,20 @@ export function CalendarBoard({
       type: "EVENT",
     }));
 
-    return [...taskItems, ...eventItems].sort(
+    const choreItems: CalendarItem[] = chores.map((chore) => {
+      const startAt = new Date(chore.next_due_at);
+      return {
+        id: chore.id,
+        title: chore.title,
+        startAt,
+        endAt: startAt,
+        type: "CHORE",
+      };
+    });
+    return [...taskItems, ...eventItems, ...choreItems].sort(
       (a, b) => a.startAt.getTime() - b.startAt.getTime(),
     );
-  }, [tasks, events]);
+  }, [tasks, events, chores]);
 
   const monthGrid = useMemo(() => getMonthGrid(cursorDate), [cursorDate]);
   const weekLabels = useMemo(() => getPersianWeekdayLabels(), []);
@@ -140,7 +156,7 @@ export function CalendarBoard({
 
   const weekItems = useMemo(() => {
     const start = new Date(selectedDate);
-    start.setDate(selectedDate.getDate() - selectedDate.getDay());
+    start.setDate(selectedDate.getDate() - ((selectedDate.getDay() + 1) % 7));
 
     const end = new Date(start);
     end.setDate(start.getDate() + 7);
@@ -168,6 +184,11 @@ export function CalendarBoard({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tasks" },
+        () => router.refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chores" },
         () => router.refresh(),
       )
       .subscribe();
@@ -237,8 +258,54 @@ export function CalendarBoard({
     router.refresh();
   };
 
+  const completeChore = async (id: string) => {
+    if (completingChore) return;
+    setCompletingChore(id);
+    try {
+      const response = await fetch(`/api/chores/${id}/complete`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("completion failed");
+      setErrorMessage(null);
+      router.refresh();
+    } catch {
+      setErrorMessage("ثبت انجام کار خانه ناموفق بود.");
+    } finally {
+      setCompletingChore(null);
+    }
+  };
+
+  const itemType = (item: CalendarItem) =>
+    item.type === "TASK"
+      ? "تسک"
+      : item.type === "CHORE"
+        ? "کار خانه"
+        : "رویداد";
+  const choreButton = (item: CalendarItem) =>
+    item.type === "CHORE" ? (
+      <Button
+        size="sm"
+        variant="soft"
+        disabled={completingChore !== null}
+        isLoading={completingChore === item.id}
+        onClick={() => void completeChore(item.id)}
+      >
+        ثبت انجام
+      </Button>
+    ) : null;
+
   return (
     <div className="space-y-4">
+      {errorMessage ? (
+        <p role="alert" className="text-sm text-danger-ink">
+          {errorMessage}
+        </p>
+      ) : null}
+      {choresLoadError ? (
+        <p role="alert" className="text-sm text-danger-ink">
+          دریافت کارهای خانه برای تقویم ناموفق بود.
+        </p>
+      ) : null}
       <Card className="space-y-3">
         <div className="flex items-center justify-between">
           <CardTitle>{formatJalaliMonthYear(cursorDate)}</CardTitle>
@@ -274,9 +341,7 @@ export function CalendarBoard({
             variant="ghost"
             size="sm"
             onClick={() => {
-              const date = new Date(cursorDate);
-              date.setMonth(cursorDate.getMonth() - 1);
-              setCursorDate(date);
+              setCursorDate(shiftJalaliMonth(cursorDate, -1));
             }}
           >
             ماه قبل
@@ -296,9 +361,7 @@ export function CalendarBoard({
             variant="ghost"
             size="sm"
             onClick={() => {
-              const date = new Date(cursorDate);
-              date.setMonth(cursorDate.getMonth() + 1);
-              setCursorDate(date);
+              setCursorDate(shiftJalaliMonth(cursorDate, 1));
             }}
           >
             ماه بعد
@@ -326,18 +389,14 @@ export function CalendarBoard({
                     type="button"
                     className={`rounded-xl border p-2 text-center text-sm transition ${
                       selected
-                        ? "border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"
-                        : "border-zinc-200 dark:border-zinc-700"
-                    } ${
-                      day.isCurrentMonth
-                        ? "text-ink"
-                        : "text-zinc-400 dark:text-zinc-600"
-                    }`}
+                        ? "border-olive bg-olive-soft text-olive-ink"
+                        : "border-line"
+                    } ${day.isCurrentMonth ? "text-ink" : "text-faint"}`}
                     onClick={() => setSelectedDate(day.date)}
                   >
                     <div>{formatJalaliDayNumber(day.date)}</div>
                     {hasItem ? (
-                      <div className="mx-auto mt-1 h-1.5 w-1.5 rounded-full bg-sky-500" />
+                      <div className="mx-auto mt-1 h-1.5 w-1.5 rounded-full bg-olive" />
                     ) : null}
                   </button>
                 );
@@ -369,8 +428,11 @@ export function CalendarBoard({
                       {formatPersianTime(item.startAt)}
                     </p>
                     <Badge tone={item.type === "TASK" ? "warning" : "neutral"}>
-                      {item.type === "TASK" ? `تسک (${item.status})` : "رویداد"}
+                      {item.type === "TASK"
+                        ? `تسک (${item.status})`
+                        : itemType(item)}
                     </Badge>
+                    {choreButton(item)}
                   </li>
                 ))}
               </ul>
@@ -398,8 +460,9 @@ export function CalendarBoard({
                       {formatPersianTime(item.startAt)}
                     </p>
                     <Badge tone={item.type === "TASK" ? "warning" : "neutral"}>
-                      {item.type === "TASK" ? "تسک" : "رویداد"}
+                      {itemType(item)}
                     </Badge>
+                    {choreButton(item)}
                   </li>
                 ))}
               </ul>
@@ -410,6 +473,22 @@ export function CalendarBoard({
         <CardDescription>
           آیتم‌های روز انتخابی: {selectedItems.length}
         </CardDescription>
+        {view === "month" && selectedItems.length > 0 ? (
+          <ul className="space-y-2">
+            {selectedItems.map((item) => (
+              <li
+                key={`${item.type}-${item.id}`}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-field border border-line p-3"
+              >
+                <span className="text-sm text-ink">
+                  {item.title}{" "}
+                  <span className="text-xs text-muted">· {itemType(item)}</span>
+                </span>
+                {choreButton(item)}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </Card>
 
       <Card className="space-y-3">

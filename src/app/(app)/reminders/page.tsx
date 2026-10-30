@@ -1,3 +1,4 @@
+import { PageHeader } from "@/shared/ui/page-header";
 import { ReminderInbox } from "@/features/reminders/components/reminder-inbox";
 import type { ReminderTarget } from "@/features/reminders/inbox";
 import type { ReminderRecord } from "@/features/reminders/types";
@@ -77,13 +78,11 @@ export default async function RemindersPage() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">صندوق یادآورها</h2>
-        <p className="text-sm text-ink-soft">
-          همهٔ یادآورهای شما در یک جا: آن‌هایی که رسیده‌اند، امروز سر می‌رسند،
-          در آینده‌اند و آن‌هایی که تحویل داده شده یا لغو شده‌اند.
-        </p>
-      </section>
+      <PageHeader
+        title="صندوق یادآورها"
+        subtitle="یادآورهای رسیده، آینده، تحویل‌داده‌شده و لغوشده در یک جا."
+        decor
+      />
 
       <ReminderInbox
         reminders={reminders}

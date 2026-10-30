@@ -53,6 +53,17 @@ export default async function CalendarPage() {
     );
   }
 
+  const householdId = membershipResult.data?.household_id ?? null;
+  const choresResult = householdId
+    ? await supabase
+        .from("chores")
+        .select("id, title, next_due_at")
+        .eq("household_id", householdId)
+        .eq("is_active", true)
+        .is("archived_at", null)
+        .not("next_due_at", "is", null)
+    : { data: [], error: null };
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -64,7 +75,15 @@ export default async function CalendarPage() {
       <CalendarBoard
         tasks={(tasksResult.data ?? []) as TaskRecord[]}
         events={(eventsResult.data ?? []) as EventRecord[]}
-        householdId={membershipResult.data?.household_id ?? null}
+        householdId={householdId}
+        chores={
+          (choresResult.data ?? []) as {
+            id: string;
+            title: string;
+            next_due_at: string;
+          }[]
+        }
+        choresLoadError={Boolean(choresResult.error)}
       />
     </div>
   );
