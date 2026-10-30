@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { openSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getPersianAuthErrorMessage } from "@/features/auth/error-messages";
+import { safeRedirectPath } from "@/features/auth/safe-redirect";
 import { loginSchema, type LoginInput } from "@/features/auth/schemas";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -14,7 +15,7 @@ import { Input } from "@/shared/ui/input";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") ?? "/today";
+  const nextPath = safeRedirectPath(searchParams.get("next"));
   const callbackError = searchParams.get("error");
   const [serverError, setServerError] = useState<string | null>(null);
 

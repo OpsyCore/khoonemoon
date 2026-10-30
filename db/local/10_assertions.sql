@@ -49,8 +49,9 @@ insert into public.shopping_items (list_id, name, added_by) values
   ('00000000-0000-4000-8000-0000000000d1', 'شیر', '00000000-0000-4000-8000-00000000000a');
 
 insert into public.financial_records (
-  household_id, owner_id, created_by, visibility, record_type, title, amount, due_at
+  id, household_id, owner_id, created_by, visibility, record_type, title, amount, due_at
 ) values (
+  '00000000-0000-4000-8000-0000000000f2',
   '00000000-0000-4000-8000-0000000000f1',
   '00000000-0000-4000-8000-00000000000a',
   '00000000-0000-4000-8000-00000000000a',
@@ -345,3 +346,53 @@ end
 $$;
 
 \echo 'All RLS / grant / integrity assertions passed.'
+
+-- Documents and the storage bucket must share the same privacy boundary.
+insert into public.documents (id, household_id, created_by, title, mime_type, file_size, storage_path, visibility)
+values
+  ('00000000-0000-4000-8000-0000000000e1', null, '00000000-0000-4000-8000-00000000000a', 'private', 'application/pdf', 10, 'user/00000000-0000-4000-8000-00000000000a/doc/file.pdf', 'PRIVATE'),
+  ('00000000-0000-4000-8000-0000000000e2', '00000000-0000-4000-8000-0000000000f1', '00000000-0000-4000-8000-00000000000a', 'shared', 'application/pdf', 10, 'household/00000000-0000-4000-8000-0000000000f1/doc/file.pdf', 'HOUSEHOLD_SHARED');
+insert into storage.objects (bucket_id, name) values
+  ('documents', 'user/00000000-0000-4000-8000-00000000000a/doc/file.pdf'),
+  ('documents', 'household/00000000-0000-4000-8000-0000000000f1/doc/file.pdf');
+insert into public.document_attachments (document_id, entity_type, entity_id, created_by)
+select '00000000-0000-4000-8000-0000000000e2', 'FINANCE_RECORD', id, '00000000-0000-4000-8000-00000000000a'
+from public.financial_records where title = 'قبض برق';
+
+do $$
+begin
+  if has_function_privilege('anon', 'public.current_user_can_access_document_entity(public.document_entity_type,uuid)', 'execute') then
+    raise exception 'DOC FAIL: anon can execute entity access function';
+  end if;
+end $$;
+
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+begin
+  if (select count(*) from public.documents) <> 1 then
+    raise exception 'DOC FAIL: partner should see shared but not private document';
+  end if;
+  if (select count(*) from storage.objects) <> 1 then
+    raise exception 'DOC FAIL: partner should see only shared file';
+  end if;
+  if (select count(*) from public.document_attachments) <> 1 then
+    raise exception 'DOC FAIL: partner cannot see shared finance attachment';
+  end if;
+end $$;
+commit;
+
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+begin
+  if (select count(*) from public.documents) <> 0 or (select count(*) from storage.objects) <> 0 or (select count(*) from public.document_attachments) <> 0 then
+    raise exception 'DOC FAIL: outsider can see a document, attachment or file';
+  end if;
+  if public.current_user_can_access_document_entity('FINANCE_RECORD', '00000000-0000-4000-8000-0000000000f2') then
+    raise exception 'DOC FAIL: outsider can access financial record';
+  end if;
+end $$;
+commit;

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ProfileForm } from "@/features/profile/components/profile-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -34,6 +35,13 @@ export default async function ProfilePage() {
           اطلاعات حساب، منطقه زمانی و زبان پیش‌فرض خود را مدیریت کنید.
         </p>
       </section>
+
+      <Link
+        href="/documents"
+        className="block rounded-card border border-line bg-card p-4 text-sm font-medium text-olive-ink shadow-paper hover:bg-sunken"
+      >
+        مدارک خانه ←
+      </Link>
 
       {error ? (
         <ErrorState

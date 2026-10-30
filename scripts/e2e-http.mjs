@@ -109,6 +109,7 @@ const guardCases = [
   // The export hands out every row the caller can see; a missing guard here is
   // a bulk data leak, not a cosmetic 500.
   { path: "/api/export", method: "GET" },
+  { path: "/api/documents", method: "GET" },
 ];
 
 /**
@@ -249,6 +250,12 @@ try {
   await expectStatus({
     name: "صندوق یادآورها بدون نشست → هدایت",
     path: "/reminders",
+    status: [307, 302],
+  });
+
+  await expectStatus({
+    name: "مدارک بدون نشست → هدایت",
+    path: "/documents",
     status: [307, 302],
   });
 
