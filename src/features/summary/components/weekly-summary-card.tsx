@@ -49,7 +49,7 @@ export function WeeklySummaryCard({ summary }: { summary: WeeklySummary }) {
   return (
     <Card className="space-y-3">
       <div className="flex items-center gap-2">
-        <CalendarCheck className="size-4 text-sky-600 dark:text-sky-400" />
+        <CalendarCheck className="size-4 text-olive-ink" />
         <CardTitle>این هفته</CardTitle>
       </div>
 
@@ -60,11 +60,11 @@ export function WeeklySummaryCard({ summary }: { summary: WeeklySummary }) {
       ) : (
         <dl className="grid grid-cols-2 gap-3 text-sm">
           <div className="rounded-2xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
-            <dt className="text-xs text-zinc-500 dark:text-zinc-400">کارها</dt>
-            <dd className="mt-1 font-semibold text-zinc-900 dark:text-zinc-100">
+            <dt className="text-xs text-muted">کارها</dt>
+            <dd className="mt-1 font-semibold text-ink">
               {toPersianNumber(summary.tasksDone)} انجام‌شده
             </dd>
-            <dd className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <dd className="mt-1 text-xs text-muted">
               {comparisonLine({
                 current: summary.tasksDone,
                 previous: summary.tasksDonePrevious,
@@ -74,13 +74,11 @@ export function WeeklySummaryCard({ summary }: { summary: WeeklySummary }) {
           </div>
 
           <div className="rounded-2xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
-            <dt className="text-xs text-zinc-500 dark:text-zinc-400">
-              کارهای خانه
-            </dt>
-            <dd className="mt-1 font-semibold text-zinc-900 dark:text-zinc-100">
+            <dt className="text-xs text-muted">کارهای خانه</dt>
+            <dd className="mt-1 font-semibold text-ink">
               {toPersianNumber(summary.choresDone)} انجام‌شده
             </dd>
-            <dd className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <dd className="mt-1 text-xs text-muted">
               {comparisonLine({
                 current: summary.choresDone,
                 previous: summary.choresDonePrevious,
@@ -90,11 +88,11 @@ export function WeeklySummaryCard({ summary }: { summary: WeeklySummary }) {
           </div>
 
           <div className="rounded-2xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
-            <dt className="text-xs text-zinc-500 dark:text-zinc-400">خرج</dt>
-            <dd className="mt-1 font-semibold text-zinc-900 dark:text-zinc-100">
+            <dt className="text-xs text-muted">خرج</dt>
+            <dd className="mt-1 font-semibold text-ink">
               {formatAmount(summary.spent)}
             </dd>
-            <dd className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <dd className="mt-1 text-xs text-muted">
               {summary.spentChange === null
                 ? "هفتهٔ قبل خرجی ثبت نشده بود."
                 : summary.spentChange === 0
@@ -104,11 +102,11 @@ export function WeeklySummaryCard({ summary }: { summary: WeeklySummary }) {
           </div>
 
           <div className="rounded-2xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
-            <dt className="text-xs text-zinc-500 dark:text-zinc-400">درآمد</dt>
-            <dd className="mt-1 font-semibold text-zinc-900 dark:text-zinc-100">
+            <dt className="text-xs text-muted">درآمد</dt>
+            <dd className="mt-1 font-semibold text-ink">
               {formatAmount(summary.earned)}
             </dd>
-            <dd className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <dd className="mt-1 text-xs text-muted">
               {summary.earned > 0
                 ? "در هفت روز گذشته ثبت شده است."
                 : "درآمدی در این هفته ثبت نشده."}

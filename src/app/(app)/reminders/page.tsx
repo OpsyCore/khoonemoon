@@ -79,7 +79,7 @@ export default async function RemindersPage() {
     <div className="space-y-4">
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">صندوق یادآورها</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <p className="text-sm text-ink-soft">
           همهٔ یادآورهای شما در یک جا: آن‌هایی که رسیده‌اند، امروز سر می‌رسند،
           در آینده‌اند و آن‌هایی که تحویل داده شده یا لغو شده‌اند.
         </p>

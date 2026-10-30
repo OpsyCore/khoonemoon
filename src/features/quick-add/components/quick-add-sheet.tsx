@@ -265,7 +265,7 @@ export function QuickAddSheet({
                 <ChevronRight className="size-4" />
               </button>
             ) : null}
-            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <h2 className="text-sm font-semibold text-ink">
               {activeAction ? activeAction.label : "افزودن سریع"}
             </h2>
           </div>
@@ -308,14 +308,14 @@ export function QuickAddSheet({
                     )}
                   >
                     <span className="space-y-0.5">
-                      <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-100">
+                      <span className="block text-sm font-medium text-ink">
                         {action.label}
                       </span>
-                      <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                      <span className="block text-xs text-muted">
                         {disabled ? "نیازمند عضویت در یک خانه" : action.hint}
                       </span>
                     </span>
-                    <Icon className="size-4 shrink-0 text-sky-600 dark:text-sky-400" />
+                    <Icon className="size-4 shrink-0 text-olive-ink" />
                   </button>
                 </li>
               );
@@ -355,11 +355,9 @@ export function QuickAddSheet({
 
             {kind === "shopping" ? (
               <div className="space-y-1.5">
-                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                  لیست
-                </p>
+                <p className="text-sm font-medium text-ink">لیست</p>
                 {lists === null ? (
-                  <p className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="flex items-center gap-2 text-xs text-muted">
                     <Loader2 className="size-3 animate-spin" />
                     در حال دریافت لیست‌ها...
                   </p>
@@ -386,9 +384,7 @@ export function QuickAddSheet({
 
             {kind === "chore" ? (
               <div className="space-y-1.5">
-                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                  تکرار
-                </p>
+                <p className="text-sm font-medium text-ink">تکرار</p>
                 <div className="flex flex-wrap gap-2">
                   {(
                     [
@@ -421,9 +417,7 @@ export function QuickAddSheet({
 
             {kind === "task" || kind === "event" || kind === "bill" ? (
               <div className="space-y-1.5">
-                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                  دسترسی
-                </p>
+                <p className="text-sm font-medium text-ink">دسترسی</p>
                 <div className="flex flex-wrap gap-2">
                   {VISIBILITY_OPTIONS.map((option) => {
                     const disabled =
@@ -466,7 +460,7 @@ export function QuickAddSheet({
           </div>
         )}
 
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-3 text-xs text-muted">
           برای گزینه‌های بیشتر (تکرار، مسئول، توضیحات) از صفحه مربوطه استفاده
           کنید.
         </p>

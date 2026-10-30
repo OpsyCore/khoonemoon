@@ -152,7 +152,7 @@ export function FinanceRecordActions({ record }: { record: FinancialRecord }) {
             }
           />
 
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs text-muted">
             {pendingChanges?.ok && pendingChanges.unchanged
               ? "چیزی تغییر نکرده است."
               : pendingChanges?.ok

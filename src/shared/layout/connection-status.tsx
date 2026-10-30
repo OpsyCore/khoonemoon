@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@/shared/ui/badge";
 
-export function ConnectionStatus() {
+export function ConnectionStatus({
+  offlineOnly = false,
+}: {
+  offlineOnly?: boolean;
+}) {
   const [isOnline, setIsOnline] = useState(() => {
     if (typeof navigator === "undefined") return true;
     return navigator.onLine;
@@ -21,6 +25,8 @@ export function ConnectionStatus() {
       window.removeEventListener("offline", onOffline);
     };
   }, []);
+
+  if (isOnline && offlineOnly) return null;
 
   if (isOnline) {
     return <Badge tone="success">آنلاین</Badge>;

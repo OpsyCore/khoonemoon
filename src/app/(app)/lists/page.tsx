@@ -1,3 +1,5 @@
+import { PageHeader } from "@/shared/ui/page-header";
+import { loadHouseholdMembers } from "@/features/households/members";
 import { ListsTabs } from "@/features/lists/components/lists-tabs";
 import type { ChoreCompletion, ChoreRecord } from "@/features/chores/types";
 import type { FinancialRecord } from "@/features/finance/types";
@@ -121,11 +123,7 @@ export default async function ListsPage() {
   }
 
   const membersResult = householdId
-    ? await supabase
-        .from("household_members")
-        .select("user_id, profiles(full_name)")
-        .eq("household_id", householdId)
-        .is("left_at", null)
+    ? await loadHouseholdMembers(supabase, householdId)
     : { data: [], error: null };
 
   const members: TaskMember[] = (
@@ -144,12 +142,11 @@ export default async function ListsPage() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-3xl font-bold text-ink">لیست‌ها</h2>
-        <p className="text-sm leading-7 text-muted">
-          خرید مشترک با هم‌زمان‌سازی زنده، کارهای خانه نوبتی و قبض‌ها در یک جا.
-        </p>
-      </section>
+      <PageHeader
+        title="لیست‌ها"
+        subtitle="خرید مشترک با هم‌زمان‌سازی زنده، کارهای خانه نوبتی و قبض‌ها در یک جا."
+        decor
+      />
 
       <ListsTabs
         lists={lists}

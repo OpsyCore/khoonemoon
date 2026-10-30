@@ -82,7 +82,7 @@ export function ReminderInboxView({
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-2">
         <Card className="space-y-1 p-3">
-          <p className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="flex items-center gap-1 text-xs text-muted">
             <BellRing className="size-3" />
             رسیده
           </p>
@@ -92,7 +92,7 @@ export function ReminderInboxView({
         </Card>
 
         <Card className="space-y-1 p-3">
-          <p className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="flex items-center gap-1 text-xs text-muted">
             <AlarmClock className="size-3" />
             امروز
           </p>
@@ -102,7 +102,7 @@ export function ReminderInboxView({
         </Card>
 
         <Card className="space-y-1 p-3">
-          <p className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="flex items-center gap-1 text-xs text-muted">
             <CheckCheck className="size-3" />
             تحویل‌شده
           </p>
@@ -149,7 +149,7 @@ export function ReminderInboxView({
                         <p className="truncate text-sm font-semibold">
                           {entry.title}
                         </p>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        <p className="text-xs text-muted">
                           {entry.targetType === "TASK" ? "تسک" : "رویداد"}
                           {" · "}
                           {formatJalaliLongDate(date)} —{" "}

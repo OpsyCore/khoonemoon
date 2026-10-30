@@ -1,3 +1,4 @@
+import { loadHouseholdMembers } from "@/features/households/members";
 import { NextResponse } from "next/server";
 import {
   createTaskSchema,
@@ -49,11 +50,7 @@ export async function GET() {
       .is("archived_at", null)
       .order("created_at", { ascending: false }),
     membership?.household_id
-      ? supabase
-          .from("household_members")
-          .select("user_id, profiles(full_name)")
-          .eq("household_id", membership.household_id)
-          .is("left_at", null)
+      ? loadHouseholdMembers(supabase, membership.household_id)
       : Promise.resolve({ data: [], error: null }),
   ]);
 

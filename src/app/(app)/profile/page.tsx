@@ -1,3 +1,4 @@
+import { PageHeader } from "@/shared/ui/page-header";
 import Link from "next/link";
 import { ProfileForm } from "@/features/profile/components/profile-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -29,18 +30,30 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">پروفایل</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          اطلاعات حساب، منطقه زمانی و زبان پیش‌فرض خود را مدیریت کنید.
-        </p>
-      </section>
+      <PageHeader
+        title="پروفایل"
+        subtitle="اطلاعات حساب، منطقه زمانی و زبان پیش‌فرض خود را مدیریت کنید."
+        decor
+      />
 
       <Link
         href="/documents"
         className="block rounded-card border border-line bg-card p-4 text-sm font-medium text-olive-ink shadow-paper hover:bg-sunken"
       >
         مدارک خانه ←
+      </Link>
+
+      <Link
+        href="/settings"
+        className="block rounded-card border border-line bg-card p-4 text-sm font-medium text-olive-ink shadow-paper hover:bg-sunken"
+      >
+        تنظیمات و اعلان‌ها ←
+      </Link>
+      <Link
+        href="/search"
+        className="block rounded-card border border-line bg-card p-4 text-sm font-medium text-olive-ink shadow-paper hover:bg-sunken"
+      >
+        جستجو ←
       </Link>
 
       {error ? (

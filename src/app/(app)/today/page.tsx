@@ -1,3 +1,6 @@
+import { PageHeader } from "@/shared/ui/page-header";
+import { formatPersianDate } from "@/shared/utils/locale";
+import { loadHouseholdMembers } from "@/features/households/members";
 import Link from "next/link";
 import type { EventRecord } from "@/features/calendar/types";
 import { DueChores } from "@/features/chores/components/due-chores";
@@ -132,11 +135,7 @@ export default async function TodayPage() {
   const householdId = membershipResult.data?.household_id ?? null;
 
   const memberListResult = householdId
-    ? await supabase
-        .from("household_members")
-        .select("user_id, profiles(full_name)")
-        .eq("household_id", householdId)
-        .is("left_at", null)
+    ? await loadHouseholdMembers(supabase, householdId)
     : { data: [], error: null };
 
   if (memberListResult.error) {
@@ -190,13 +189,7 @@ export default async function TodayPage() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">امروز چه کارهایی داریم؟</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          مرور سریع کارهای معوق، برنامه امروز و رویدادهای پیش‌رو با امکان اقدام
-          فوری.
-        </p>
-      </section>
+      <PageHeader title="امروز" subtitle={formatPersianDate(now)} decor />
 
       <WeeklySummaryCard summary={weeklySummary} />
       <TodayDashboard tasks={tasks} events={events} />

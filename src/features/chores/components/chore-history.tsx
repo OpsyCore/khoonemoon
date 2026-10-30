@@ -37,7 +37,7 @@ export function ChoreHistory({
           <History className="size-4 text-zinc-500" />
           <CardTitle>تاریخچه کارهای خانه</CardTitle>
         </div>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <p className="text-sm text-ink-soft">
           هنوز کاری در ۳۰ روز گذشته انجام نشده است. با زدن «انجام شد» روی هر
           کار، اینجا ثبت می‌شود که چه کسی و چه زمانی انجامش داده.
         </p>
@@ -74,13 +74,13 @@ export function ChoreHistory({
             <li key={share.memberId} className="space-y-1">
               <div className="flex items-center justify-between text-sm">
                 <span className="truncate">{share.memberName}</span>
-                <span className="tabular-nums text-zinc-600 dark:text-zinc-300">
+                <span className="tabular-nums text-ink-soft">
                   {toPersianNumber(share.count)} مورد
                 </span>
               </div>
               <div
                 role="presentation"
-                className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"
+                className="h-1.5 w-full overflow-hidden rounded-full bg-sunken"
               >
                 <div
                   className="h-full rounded-full bg-emerald-500"
@@ -95,9 +95,7 @@ export function ChoreHistory({
       <div className="space-y-3 border-t border-zinc-200 pt-3 dark:border-zinc-800">
         {groups.map((group) => (
           <div key={group.key} className="space-y-1.5">
-            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              {group.label}
-            </p>
+            <p className="text-xs font-medium text-muted">{group.label}</p>
             <ul className="space-y-1">
               {group.entries.map((entry) => (
                 <li
@@ -106,12 +104,12 @@ export function ChoreHistory({
                 >
                   <span className="min-w-0 truncate">
                     <span className="font-medium">{entry.memberName}</span>
-                    <span className="text-zinc-500 dark:text-zinc-400">
+                    <span className="text-muted">
                       {" · "}
                       {entry.choreTitle}
                     </span>
                   </span>
-                  <span className="shrink-0 tabular-nums text-xs text-zinc-500 dark:text-zinc-400">
+                  <span className="shrink-0 tabular-nums text-xs text-muted">
                     {formatPersianTime(entry.completedAt)}
                   </span>
                 </li>

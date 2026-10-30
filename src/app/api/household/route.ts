@@ -1,3 +1,4 @@
+import { loadHouseholdMembers } from "@/features/households/members";
 import { NextResponse } from "next/server";
 import {
   createHouseholdSchema,
@@ -55,12 +56,10 @@ export async function GET() {
     );
   }
 
-  const { data: members, error: membersError } = await supabase
-    .from("household_members")
-    .select("id, user_id, role, joined_at, left_at, profiles(full_name)")
-    .eq("household_id", membership.household_id)
-    .is("left_at", null)
-    .order("joined_at", { ascending: true });
+  const { data: members, error: membersError } = await loadHouseholdMembers(
+    supabase,
+    membership.household_id,
+  );
 
   if (membersError) {
     return NextResponse.json(

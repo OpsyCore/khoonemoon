@@ -30,7 +30,7 @@ export function SettlementCard({
           <Scale className="size-4 text-zinc-500" />
           <CardTitle>تسویه‌حساب خانه</CardTitle>
         </div>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <p className="text-sm text-ink-soft">
           هنوز خرج مشترکی که پرداخت‌شده باشد ثبت نشده است. وقتی هزینه‌ای را
           «مشترک خانه» ثبت کنید و پرداختش را علامت بزنید، سهم هر نفر همین‌جا
           محاسبه می‌شود.
@@ -82,7 +82,7 @@ export function SettlementCard({
               </span>
               <span className="flex shrink-0 items-center gap-2">
                 <Badge tone={tone}>{label}</Badge>
-                <span className="tabular-nums text-zinc-700 dark:text-zinc-200">
+                <span className="tabular-nums text-ink-soft">
                   {formatAmount(Math.abs(entry.balance))}
                 </span>
               </span>

@@ -41,7 +41,7 @@ export function NotificationCapability() {
         یادآور در پس‌زمینه همیشه تضمین‌شده نیست.
       </CardDescription>
 
-      <ul className="space-y-1 text-sm text-zinc-700 dark:text-zinc-200">
+      <ul className="space-y-1 text-sm text-ink-soft">
         <li>
           Notification API:{" "}
           {support.notifications ? "پشتیبانی می‌شود" : "پشتیبانی نمی‌شود"}

@@ -164,7 +164,7 @@ export function ChoreBoard({
       {canManage ? (
         <Card className="space-y-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="size-4 text-sky-600 dark:text-sky-400" />
+            <Sparkles className="size-4 text-olive-ink" />
             <CardTitle>کار خانه جدید</CardTitle>
           </div>
 
@@ -244,10 +244,10 @@ export function ChoreBoard({
                 <Card className="space-y-3 p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1">
-                      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      <p className="text-sm font-semibold text-ink">
                         {chore.title}
                       </p>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      <p className="text-xs text-muted">
                         {FREQUENCY_LABELS[chore.frequency] ?? chore.frequency}
                         {assigneeId
                           ? ` · نوبت ${memberNames.get(assigneeId) ?? "کاربر"}`

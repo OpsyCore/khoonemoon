@@ -1,3 +1,4 @@
+import { PageHeader } from "@/shared/ui/page-header";
 import { CalendarBoard } from "@/features/calendar/components/calendar-board";
 import type { EventRecord } from "@/features/calendar/types";
 import type { TaskRecord } from "@/features/tasks/types";
@@ -54,12 +55,11 @@ export default async function CalendarPage() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">تقویم مشترک</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          رویدادها و تسک‌ها را در نمای جلالی ماهانه، هفتگی و فهرستی مدیریت کنید.
-        </p>
-      </section>
+      <PageHeader
+        title="تقویم مشترک"
+        subtitle="رویدادها و تسک‌ها را در نمای جلالی ماهانه، هفتگی و فهرستی مدیریت کنید."
+        decor
+      />
 
       <CalendarBoard
         tasks={(tasksResult.data ?? []) as TaskRecord[]}

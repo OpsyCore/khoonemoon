@@ -79,12 +79,10 @@ export function UpcomingReminders({
                     ? "یادآور تسک"
                     : "یادآور رویداد"}
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="text-xs text-muted">
                   {formatJalaliLongDate(d)} - {formatPersianTime(d)}
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  وضعیت: {reminder.status}
-                </p>
+                <p className="text-xs text-muted">وضعیت: {reminder.status}</p>
                 <div className="mt-2 flex gap-2">
                   <Button
                     size="sm"

@@ -116,7 +116,7 @@ export function FinanceBoard({
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-2">
         <Card className="space-y-1 p-3">
-          <p className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="flex items-center gap-1 text-xs text-muted">
             <Wallet className="size-3" />
             درآمد
           </p>
@@ -126,17 +126,17 @@ export function FinanceBoard({
         </Card>
 
         <Card className="space-y-1 p-3">
-          <p className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="flex items-center gap-1 text-xs text-muted">
             <Backpack className="size-3" />
             هزینه
           </p>
-          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          <p className="text-sm font-semibold text-ink">
             {formatAmount(summary.expense)}
           </p>
         </Card>
 
         <Card className="space-y-1 p-3">
-          <p className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="flex items-center gap-1 text-xs text-muted">
             <Receipt className="size-3" />
             مانده قبض
           </p>
@@ -223,10 +223,10 @@ export function FinanceBoard({
               <li key={record.id}>
                 <Card className="flex items-start justify-between gap-3 p-3">
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    <p className="text-sm font-semibold text-ink">
                       {record.title}
                     </p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    <p className="text-xs text-muted">
                       {TYPE_LABELS[record.record_type]} ·{" "}
                       {formatAmount(record.amount, record.currency)}
                       {record.due_at

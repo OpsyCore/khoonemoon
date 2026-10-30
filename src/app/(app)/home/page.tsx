@@ -1,3 +1,11 @@
+import Link from "next/link";
+import { Bell, CalendarDays, Heart, Search } from "lucide-react";
+import { Card } from "@/shared/ui/card";
+import { HeaderIconLink } from "@/shared/ui/page-header";
+import { SectionLabel } from "@/shared/ui/section-label";
+import { formatPersianShortDate, toPersianNumber } from "@/shared/utils/locale";
+import { PageHeader } from "@/shared/ui/page-header";
+import { loadHouseholdMembers } from "@/features/households/members";
 import { HouseholdManager } from "@/features/households/components/household-manager";
 import type {
   HouseholdInvitation,
@@ -51,12 +59,11 @@ export default async function HomePage({
   if (!membership) {
     return (
       <div className="space-y-4">
-        <section className="space-y-2">
-          <h2 className="text-lg font-semibold">خونه</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            برای شروع، یک خانه بسازید یا با دعوت شریک‌تان وارد شوید.
-          </p>
-        </section>
+        <PageHeader
+          title="خونه"
+          subtitle="برای شروع، یک خانه بسازید یا با دعوت شریک‌تان وارد شوید."
+          decor
+        />
 
         <HouseholdManager
           household={null}
@@ -76,12 +83,7 @@ export default async function HomePage({
         .select("id, name, created_by, created_at, updated_at")
         .eq("id", membership.household_id)
         .single(),
-      supabase
-        .from("household_members")
-        .select("id, user_id, role, joined_at, left_at, profiles(full_name)")
-        .eq("household_id", membership.household_id)
-        .is("left_at", null)
-        .order("joined_at", { ascending: true }),
+      loadHouseholdMembers(supabase, membership.household_id),
       supabase
         .from("household_invitations")
         .select("id, status, expires_at, created_at")
@@ -99,6 +101,27 @@ export default async function HomePage({
       />
     );
   }
+
+  // Additional overview queries use the caller's RLS, never fabricated counts.
+  const now = new Date().toISOString();
+  const [openTasks, upcomingEvents, reminders] = await Promise.all([
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .is("archived_at", null)
+      .in("status", ["PENDING", "IN_PROGRESS"]),
+    supabase
+      .from("events")
+      .select("id, title, start_at, all_day")
+      .gte("start_at", now)
+      .order("start_at", { ascending: true })
+      .limit(2),
+    supabase
+      .from("reminders")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .in("status", ["PENDING", "SNOOZED"]),
+  ]);
 
   const normalizedMembers: HouseholdMember[] = (membersResult.data ?? []).map(
     (member) => ({
@@ -122,12 +145,106 @@ export default async function HomePage({
 
   return (
     <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">خونه</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          مدیریت خانه، اعضا، دعوت‌نامه‌ها و دسترسی‌ها در این بخش انجام می‌شود.
+      <PageHeader
+        title="خانه"
+        subtitle="خانه‌ی ما، جای آرامش ماست."
+        decor
+        action={
+          <div className="flex gap-2">
+            <HeaderIconLink href="/search" label="جستجو">
+              <Search className="size-[18px]" />
+            </HeaderIconLink>
+            <HeaderIconLink href="/reminders" label="یادآورها">
+              <Bell className="size-[18px]" />
+            </HeaderIconLink>
+          </div>
+        }
+      />
+
+      <Card className="space-y-3 p-5">
+        <div className="flex items-center justify-center gap-5">
+          {normalizedMembers.slice(0, 2).map((member, index) => {
+            const name = member.profiles?.[0]?.full_name ?? "عضو خانه";
+            return (
+              <div
+                key={member.id}
+                className={
+                  index
+                    ? "order-2 flex flex-col items-center gap-1"
+                    : "flex flex-col items-center gap-1"
+                }
+              >
+                <span className="flex size-14 items-center justify-center rounded-full border border-line bg-clay-soft text-lg font-bold text-clay-ink">
+                  {name.slice(0, 1)}
+                </span>
+                <span className="text-sm font-medium text-ink">{name}</span>
+              </div>
+            );
+          })}
+          <span className="order-1 flex size-9 items-center justify-center rounded-full bg-olive-soft text-olive-ink">
+            <Heart className="size-4" />
+          </span>
+        </div>
+        <p className="text-center text-xs text-muted">
+          {householdResult.data.name} ·{" "}
+          {toPersianNumber(normalizedMembers.length)} عضو
         </p>
+      </Card>
+
+      {!openTasks.error && !reminders.error ? (
+        <section className="space-y-3">
+          <SectionLabel action={<Link href="/today">مشاهده همه ‹</Link>}>
+            امروز مهمه
+          </SectionLabel>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: "کار باز", value: openTasks.count ?? 0 },
+              { label: "یادآور فعال", value: reminders.count ?? 0 },
+            ].map((stat) => (
+              <Card key={stat.label} className="text-center">
+                <p className="text-2xl font-bold text-ink">
+                  {toPersianNumber(stat.value)}
+                </p>
+                <p className="text-xs text-muted">{stat.label}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+      ) : null}
+      <section className="space-y-3">
+        <SectionLabel action={<Link href="/calendar">مشاهده تقویم ‹</Link>}>
+          رویدادهای پیش رو
+        </SectionLabel>
+        {upcomingEvents.error ? (
+          <p className="text-sm text-danger-ink">دریافت رویدادها ناموفق بود.</p>
+        ) : upcomingEvents.data?.length ? (
+          upcomingEvents.data.map((event) => (
+            <Link
+              href="/calendar"
+              key={event.id}
+              className="flex items-center gap-3 rounded-card border border-line bg-card p-4 shadow-paper"
+            >
+              <span className="rounded-full bg-olive-soft p-3 text-olive-ink">
+                <CalendarDays className="size-4" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-ink">
+                  {event.title}
+                </span>
+                <span className="text-xs text-muted">
+                  {formatPersianShortDate(event.start_at)}
+                  {event.all_day ? " · تمام روز" : ""}
+                </span>
+              </span>
+            </Link>
+          ))
+        ) : (
+          <p className="rounded-field border border-dashed border-line-strong p-4 text-center text-sm text-muted">
+            فعلاً رویدادی پیش رو ثبت نشده است.
+          </p>
+        )}
       </section>
+      <SectionLabel>خانه و اعضا</SectionLabel>
 
       <HouseholdManager
         household={householdResult.data as HouseholdSummary}

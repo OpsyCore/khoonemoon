@@ -307,7 +307,7 @@ export function CalendarBoard({
 
         {view === "month" ? (
           <div className="space-y-2">
-            <div className="grid grid-cols-7 gap-1 text-center text-xs text-zinc-500 dark:text-zinc-400">
+            <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted">
               {weekLabels.map((label) => (
                 <div key={label}>{label}</div>
               ))}
@@ -330,7 +330,7 @@ export function CalendarBoard({
                         : "border-zinc-200 dark:border-zinc-700"
                     } ${
                       day.isCurrentMonth
-                        ? "text-zinc-900 dark:text-zinc-100"
+                        ? "text-ink"
                         : "text-zinc-400 dark:text-zinc-600"
                     }`}
                     onClick={() => setSelectedDate(day.date)}
@@ -348,7 +348,7 @@ export function CalendarBoard({
 
         {view === "week" ? (
           <div className="space-y-2">
-            <p className="text-sm text-zinc-600 dark:text-zinc-300">
+            <p className="text-sm text-ink-soft">
               {formatJalaliLongDate(selectedDate)}
             </p>
             {weekItems.length === 0 ? (
@@ -364,7 +364,7 @@ export function CalendarBoard({
                     className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
                   >
                     <p className="text-sm font-medium">{item.title}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    <p className="text-xs text-muted">
                       {formatJalaliLongDate(item.startAt)} -{" "}
                       {formatPersianTime(item.startAt)}
                     </p>
@@ -393,7 +393,7 @@ export function CalendarBoard({
                     className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
                   >
                     <p className="text-sm font-semibold">{item.title}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    <p className="text-xs text-muted">
                       {formatJalaliLongDate(item.startAt)} -{" "}
                       {formatPersianTime(item.startAt)}
                     </p>
@@ -433,9 +433,7 @@ export function CalendarBoard({
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                حریم خصوصی
-              </label>
+              <label className="text-sm font-medium text-ink">حریم خصوصی</label>
               <select
                 className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
                 {...register("visibility")}
@@ -449,10 +447,7 @@ export function CalendarBoard({
 
             <div className="flex items-center gap-2 pt-7">
               <input id="allDay" type="checkbox" {...register("allDay")} />
-              <label
-                htmlFor="allDay"
-                className="text-sm text-zinc-700 dark:text-zinc-200"
-              >
+              <label htmlFor="allDay" className="text-sm text-ink-soft">
                 تمام روز
               </label>
             </div>
@@ -526,7 +521,7 @@ export function CalendarBoard({
                 className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
               >
                 <p className="text-sm font-semibold">{event.title}</p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="text-xs text-muted">
                   {formatJalaliLongDate(new Date(event.start_at))} -{" "}
                   {formatPersianTime(new Date(event.start_at))}
                 </p>

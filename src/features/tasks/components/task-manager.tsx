@@ -320,9 +320,7 @@ export function TaskManager({
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                حریم خصوصی
-              </label>
+              <label className="text-sm font-medium text-ink">حریم خصوصی</label>
               <select
                 className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
                 {...register("visibility")}
@@ -335,9 +333,7 @@ export function TaskManager({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                اولویت
-              </label>
+              <label className="text-sm font-medium text-ink">اولویت</label>
               <select
                 className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
                 {...register("priority")}
@@ -352,9 +348,7 @@ export function TaskManager({
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                وضعیت
-              </label>
+              <label className="text-sm font-medium text-ink">وضعیت</label>
               <select
                 className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
                 {...register("status")}
@@ -377,9 +371,7 @@ export function TaskManager({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-              مسئول
-            </label>
+            <label className="text-sm font-medium text-ink">مسئول</label>
             <select
               multiple
               className="min-h-24 w-full rounded-2xl border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
@@ -404,9 +396,7 @@ export function TaskManager({
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                تکرار
-              </label>
+              <label className="text-sm font-medium text-ink">تکرار</label>
               <select
                 className="h-11 w-full rounded-2xl border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
                 {...register("recurrence.frequency")}
@@ -470,15 +460,15 @@ export function TaskManager({
       <Card className="grid grid-cols-3 gap-2 text-center">
         <div>
           <p className="text-sm font-semibold">{taskCounts.dueToday}</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">امروز</p>
+          <p className="text-xs text-muted">امروز</p>
         </div>
         <div>
           <p className="text-sm font-semibold">{taskCounts.overdue}</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">معوق</p>
+          <p className="text-xs text-muted">معوق</p>
         </div>
         <div>
           <p className="text-sm font-semibold">{taskCounts.completed}</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">تکمیل‌شده</p>
+          <p className="text-xs text-muted">تکمیل‌شده</p>
         </div>
       </Card>
 

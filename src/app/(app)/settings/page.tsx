@@ -1,3 +1,5 @@
+import { LogoutButton } from "@/features/auth/components/logout-button";
+import { PageHeader } from "@/shared/ui/page-header";
 import Link from "next/link";
 import { NotificationCapability } from "@/features/reminders/components/notification-capability";
 import { PushSubscriptionCard } from "@/features/reminders/components/push-subscription-card";
@@ -8,20 +10,16 @@ import { ThemeToggle } from "@/shared/layout/theme-toggle";
 export default function SettingsPage() {
   return (
     <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">تنظیمات</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          تم، ترجیحات یادآور، اعلان‌ها و دسترسی‌های خانه در این بخش مدیریت
-          می‌شوند.
-        </p>
-      </section>
+      <PageHeader
+        title="تنظیمات"
+        subtitle="تم، ترجیحات یادآور، اعلان‌ها و دسترسی‌های خانه در این بخش مدیریت می‌شوند."
+        decor
+      />
 
       <Card className="flex items-center justify-between gap-3">
         <div className="space-y-1">
           <CardTitle>ظاهر برنامه</CardTitle>
-          <CardDescription>
-            بین حالت روشن، تاریک و هماهنگ با سیستم جابه‌جا شوید.
-          </CardDescription>
+          <CardDescription>بین حالت روشن و تاریک جابه‌جا شوید.</CardDescription>
         </div>
         <ThemeToggle />
       </Card>
@@ -83,6 +81,11 @@ export default function SettingsPage() {
           نمی‌شود تا داده خصوصی خانه روی دستگاه مشترک باقی نماند؛ فقط پوسته
           عمومی برنامه و صفحه راهنمای آفلاین در دسترس‌اند.
         </CardDescription>
+      </Card>
+
+      <Card className="flex items-center justify-between gap-3">
+        <CardTitle>حساب کاربری</CardTitle>
+        <LogoutButton showLabel />
       </Card>
 
       <Card>

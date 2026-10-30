@@ -32,7 +32,7 @@ export function FinanceCharts({
           <TrendingUp className="size-4 text-zinc-500" />
           <CardTitle>روند مالی</CardTitle>
         </div>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <p className="text-sm text-ink-soft">
           هنوز داده‌ای برای نمودار نیست. با ثبت هزینه یا درآمد، روند ۶ ماه گذشته
           همین‌جا ساخته می‌شود.
         </p>
@@ -51,7 +51,7 @@ export function FinanceCharts({
           <TrendingUp className="size-4 text-zinc-500" />
           <CardTitle>روند مالی</CardTitle>
         </div>
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+        <span className="text-xs text-muted">
           {toPersianNumber(months)} ماه گذشته
         </span>
       </div>
@@ -115,7 +115,7 @@ export function FinanceCharts({
         })}
       </svg>
 
-      <ul className="grid grid-cols-3 gap-1 text-center text-[11px] text-zinc-500 dark:text-zinc-400">
+      <ul className="grid grid-cols-3 gap-1 text-center text-[11px] text-muted">
         {analytics.months.map((point) => (
           <li key={point.key} className="truncate">
             {point.label}
@@ -131,14 +131,14 @@ export function FinanceCharts({
               <li key={slice.category} className="space-y-1">
                 <div className="flex items-center justify-between gap-2 text-xs">
                   <span className="truncate">{slice.category}</span>
-                  <span className="shrink-0 tabular-nums text-zinc-500 dark:text-zinc-400">
+                  <span className="shrink-0 tabular-nums text-muted">
                     {formatAmount(slice.total)} · {toPersianNumber(slice.share)}
                     ٪
                   </span>
                 </div>
                 <div
                   role="presentation"
-                  className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"
+                  className="h-1.5 w-full overflow-hidden rounded-full bg-sunken"
                 >
                   <div
                     className="h-full rounded-full bg-sky-500"

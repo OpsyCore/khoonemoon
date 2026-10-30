@@ -342,7 +342,7 @@ export function HouseholdManager({
             </Button>
           </form>
         ) : (
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          <p className="text-sm text-ink-soft">
             فقط مالک می‌تواند نام خانه را تغییر دهد.
           </p>
         )}
@@ -356,10 +356,10 @@ export function HouseholdManager({
               key={member.id}
               className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
             >
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+              <p className="text-sm font-medium text-ink">
                 {member.profiles?.[0]?.full_name?.trim() || "کاربر بدون نام"}
               </p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs text-muted">
                 {member.role === "OWNER" ? "مالک" : "عضو"} • عضویت از{" "}
                 {formatPersianDate(new Date(member.joined_at))}
               </p>
@@ -371,7 +371,7 @@ export function HouseholdManager({
       <Card className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           <CardTitle>دعوت شریک</CardTitle>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          <span className="text-xs text-muted">
             دعوت فعال: {activeInvitationCount}
           </span>
         </div>
@@ -385,21 +385,19 @@ export function HouseholdManager({
             ایجاد دعوت‌نامه جدید
           </Button>
         ) : (
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          <p className="text-sm text-ink-soft">
             فقط مالک می‌تواند دعوت‌نامه جدید بسازد.
           </p>
         )}
 
         {generatedInvite ? (
           <div className="space-y-2 rounded-2xl border border-sky-200 bg-sky-50 p-3 dark:border-sky-900 dark:bg-sky-950/30">
-            <p className="text-xs text-zinc-600 dark:text-zinc-300">کد دعوت</p>
-            <p className="break-all text-sm font-semibold text-sky-700 dark:text-sky-300">
+            <p className="text-xs text-ink-soft">کد دعوت</p>
+            <p className="break-all text-sm font-semibold text-olive-ink">
               {generatedInvite.code}
             </p>
-            <p className="text-xs text-zinc-600 dark:text-zinc-300">
-              لینک دعوت
-            </p>
-            <p className="break-all text-xs text-sky-700 dark:text-sky-300">
+            <p className="text-xs text-ink-soft">لینک دعوت</p>
+            <p className="break-all text-xs text-olive-ink">
               {generatedInvite.inviteUrl}
             </p>
           </div>
@@ -413,10 +411,10 @@ export function HouseholdManager({
                 key={invitation.id}
                 className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
               >
-                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
+                <p className="text-sm font-medium text-ink">
                   وضعیت: {invitation.status}
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="text-xs text-muted">
                   انقضا: {formatPersianDate(new Date(invitation.expires_at))} -{" "}
                   {formatPersianTime(new Date(invitation.expires_at))}
                 </p>
