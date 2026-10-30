@@ -50,7 +50,7 @@ export function ListsTabs({
       <div
         role="tablist"
         aria-label="بخش‌های لیست‌ها"
-        className="grid grid-cols-3 gap-1 rounded-2xl bg-zinc-100 p-1 dark:bg-zinc-900"
+        className="grid grid-cols-3 gap-1 rounded-2xl bg-sunken p-1"
       >
         {TABS.map((item) => {
           const Icon = item.icon;
@@ -64,9 +64,7 @@ export function ListsTabs({
               onClick={() => setTab(item.key)}
               className={cn(
                 "flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium transition",
-                isActive
-                  ? "bg-white text-sky-700 shadow-sm dark:bg-zinc-800 dark:text-sky-300"
-                  : "text-zinc-600 dark:text-zinc-300",
+                isActive ? "bg-card text-olive-ink shadow-paper" : "text-muted",
               )}
             >
               <Icon className="size-4" />
@@ -105,7 +103,7 @@ export function ListsTabs({
           />
           <Link
             href="/finance"
-            className="block rounded-2xl border border-zinc-200 bg-white p-3 text-center text-sm font-medium text-sky-700 shadow-sm transition hover:bg-sky-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-sky-300 dark:hover:bg-sky-950/30"
+            className="block rounded-2xl border border-line bg-card p-3 text-center text-sm font-medium text-olive-ink shadow-paper transition hover:bg-sunken"
           >
             دفتر تراکنش‌ها — همهٔ رکوردها با فیلتر
           </Link>

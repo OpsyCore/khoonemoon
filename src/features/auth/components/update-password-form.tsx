@@ -54,12 +54,15 @@ export function UpdatePasswordForm() {
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form
+      method="post"
+      className="space-y-4"
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+    >
       <div className="space-y-1">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-          تنظیم رمز عبور جدید
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <h1 className="text-xl font-semibold text-ink">تنظیم رمز عبور جدید</h1>
+        <p className="text-sm text-ink-soft">
           رمز عبور جدید حساب خود را وارد کنید.
         </p>
       </div>
@@ -81,9 +84,7 @@ export function UpdatePasswordForm() {
       />
 
       {serverError ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
-          {serverError}
-        </p>
+        <p className="text-sm text-danger-ink">{serverError}</p>
       ) : null}
 
       <Button type="submit" className="w-full" isLoading={isSubmitting}>

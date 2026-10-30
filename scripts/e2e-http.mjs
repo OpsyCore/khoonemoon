@@ -222,6 +222,19 @@ try {
   });
   await expectStatus({ name: "صفحهٔ آفلاین", path: "/offline", status: 200 });
 
+  // Native form submission before React hydrates must not expose credentials
+  // in the URL or browser history. POST is a safe fallback, even if it fails.
+  // Login is rendered behind a client-side Suspense boundary; it is tested
+  // separately by rendering LoginForm with a mocked router.
+  for (const route of ["signup", "forgot-password", "update-password"]) {
+    await expectStatus({
+      name: `روش امن فرم ${route}`,
+      path: `/auth/${route}`,
+      status: 200,
+      contains: 'method="post"',
+    });
+  }
+
   console.log("\nمسیرهای محافظت‌شده");
   await expectStatus({
     name: "داشبورد بدون نشست → هدایت",

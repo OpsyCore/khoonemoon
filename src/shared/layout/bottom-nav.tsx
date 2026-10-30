@@ -13,9 +13,9 @@ import { describeBadge, formatBadgeCount } from "@/shared/utils/badge-count";
 import { cn } from "@/shared/utils/cn";
 
 const navItems = [
+  { href: "/home", label: "خانه", icon: House },
   { href: "/today", label: "امروز", icon: SunMedium },
   { href: "/calendar", label: "تقویم", icon: CalendarDays },
-  { href: "/home", label: "خونه", icon: House },
   { href: "/lists", label: "لیست‌ها", icon: ListTodo },
   { href: "/profile", label: "پروفایل", icon: UserRound },
 ] as const;
@@ -29,7 +29,7 @@ export function BottomNav({
   const badge = formatBadgeCount(dueReminderCount);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur md:hidden">
       <ul className="mx-auto grid w-full max-w-md grid-cols-5 gap-1">
         {navItems.map((item) => {
           const isActive =
@@ -41,15 +41,21 @@ export function BottomNav({
               <Link
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[11px] font-medium transition",
+                  "flex flex-col items-center gap-1 px-1 py-2 text-[11px] font-medium transition",
                   isActive
-                    ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
-                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+                    ? "font-semibold text-olive-ink"
+                    : "text-muted hover:text-ink",
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
-                <span className="relative">
-                  <Icon className="size-4" />
+                <span
+                  className={cn(
+                    "relative inline-flex size-9 items-center justify-center rounded-full transition",
+                    isActive &&
+                      "-mt-4 size-11 bg-olive-deep text-cream shadow-paper-lg ring-4 ring-paper dark:text-[#221c14]",
+                  )}
+                >
+                  <Icon className="size-5" />
                   {item.href === "/today" && badge ? (
                     <span
                       aria-hidden="true"

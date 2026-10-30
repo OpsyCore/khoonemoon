@@ -1,6 +1,13 @@
 "use client";
 
-import { Check, Plus, ShoppingBasket, Trash2, Wifi, WifiOff } from "lucide-react";
+import {
+  Check,
+  Plus,
+  ShoppingBasket,
+  Trash2,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -37,17 +44,34 @@ export function ShoppingBoard({
   const [isSyncing, setIsSyncing] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const activeListIdRef = useRef(activeListId);
+  const requestSequence = useRef(0);
+  const [showNewList, setShowNewList] = useState(false);
 
   const loadItems = useCallback(async (listId: string) => {
-    const response = await fetch(`/api/shopping/items?listId=${listId}`);
-    if (!response.ok) return;
-    const payload = (await response.json()) as { items: ShoppingItem[] };
-    setItems(payload.items);
+    const sequence = ++requestSequence.current;
+    try {
+      const response = await fetch(
+        `/api/shopping/items?listId=${encodeURIComponent(listId)}`,
+      );
+      if (!response.ok) throw new Error("load failed");
+      const payload = (await response.json()) as { items: ShoppingItem[] };
+      if (
+        sequence === requestSequence.current &&
+        activeListIdRef.current === listId
+      ) {
+        setItems(payload.items);
+      }
+    } catch {
+      if (sequence === requestSequence.current)
+        setErrorMessage("دریافت آیتم‌های لیست ناموفق بود.");
+    }
   }, []);
 
   const selectList = async (listId: string) => {
     activeListIdRef.current = listId;
     setActiveListId(listId);
+    setItems([]);
+    setErrorMessage(null);
     await loadItems(listId);
   };
 
@@ -188,8 +212,11 @@ export function ShoppingBoard({
 
     const payload = (await response.json()) as { list: ShoppingList };
     setNewListName("");
+    requestSequence.current += 1;
+    activeListIdRef.current = payload.list.id;
     setActiveListId(payload.list.id);
     setItems([]);
+    setShowNewList(false);
     router.refresh();
   };
 
@@ -197,7 +224,7 @@ export function ShoppingBoard({
     return (
       <Card className="space-y-3">
         <div className="flex items-center gap-2">
-          <ShoppingBasket className="size-4 text-sky-600 dark:text-sky-400" />
+          <ShoppingBasket className="size-4 text-olive-ink" />
           <CardTitle>اولین لیست خرید</CardTitle>
         </div>
         <CardDescription>
@@ -229,7 +256,7 @@ export function ShoppingBoard({
       <Card className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <ShoppingBasket className="size-4 text-sky-600 dark:text-sky-400" />
+            <ShoppingBasket className="size-4 text-olive-ink" />
             <CardTitle>خرید مشترک</CardTitle>
           </div>
           <Badge tone={isSyncing ? "warning" : "success"}>
@@ -263,6 +290,35 @@ export function ShoppingBoard({
           </div>
         ) : null}
 
+        <div className="border-t border-line pt-3">
+          {showNewList ? (
+            <div className="flex gap-2">
+              <Input
+                aria-label="نام لیست جدید"
+                placeholder="نام لیست جدید"
+                value={newListName}
+                onChange={(event) => setNewListName(event.target.value)}
+              />
+              <Button
+                onClick={() => void createList()}
+                isLoading={isSubmitting}
+              >
+                ساخت
+              </Button>
+              <Button variant="ghost" onClick={() => setShowNewList(false)}>
+                انصراف
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowNewList(true)}
+            >
+              <Plus className="size-4" /> لیست جدید
+            </Button>
+          )}
+        </div>
         <div className="flex gap-2">
           <Input
             aria-label="نام آیتم جدید"
@@ -308,22 +364,20 @@ export function ShoppingBoard({
                   <span
                     className={`flex size-6 shrink-0 items-center justify-center rounded-full border ${
                       item.purchased
-                        ? "border-emerald-500 bg-emerald-500 text-white"
-                        : "border-zinc-300 dark:border-zinc-600"
+                        ? "border-olive bg-olive text-cream"
+                        : "border-line-strong"
                     }`}
                   >
                     {item.purchased ? <Check className="size-4" /> : null}
                   </span>
                   <span
                     className={`text-sm ${
-                      item.purchased
-                        ? "text-zinc-400 line-through dark:text-zinc-500"
-                        : "text-zinc-900 dark:text-zinc-100"
+                      item.purchased ? "text-faint line-through" : "text-ink"
                     }`}
                   >
                     {item.name}
                     {item.quantity ? (
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                      <span className="text-xs text-muted">
                         {" "}
                         — {Number(item.quantity)}
                         {item.unit ? ` ${item.unit}` : ""}

@@ -1,0 +1,11 @@
+# Integrating the paper redesign
+
+The paper redesign lives on `arena/01a05828-khoonemoon` (tip `0543138`). It diverged from `main`: it is not a newer superset of main. Do not deploy it against the current database as a workaround.
+
+The integration starts from main (`8b72c84`) to retain the later finance, reminders, summaries and export work. Port UI changes incrementally rather than replacing server code wholesale. The shared paper tokens, button, card and input styles are the first slice; retain React 19 ref forwarding and generated input IDs. Screen layouts, navigation, dialogs and accessibility still require integration and browser testing.
+
+## Shopping schema mismatch
+
+Inspection of the live `khoonemoon` database on 2026-10-30 shows `shopping_lists.archived_at` (not `is_active`). Its `shopping_items` columns include `added_by`, `purchased`, `purchased_by`, and `purchased_at`, not the redesigned branch's `created_by`, `is_checked`, `checked_by`, and `checked_at`. The main branch's shopping API uses the live schema. Adding a single `is_active` column would therefore not fix the redesigned branch and could produce conflicting data models. Preserve current data and RLS; do not apply the other branch's shopping migration blindly.
+
+Before release: port remaining screens and any branch-only functionality (including documents), reconcile schemas and migrations, run automated tests and build, then test authenticated journeys against a safe environment and validate mobile UI. Review branch-specific settings and make the eventual Netlify production branch point to the integrated version only after verification.

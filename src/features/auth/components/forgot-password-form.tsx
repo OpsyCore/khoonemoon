@@ -54,12 +54,15 @@ export function ForgotPasswordForm() {
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form
+      method="post"
+      className="space-y-4"
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+    >
       <div className="space-y-1">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-          بازیابی رمز عبور
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <h1 className="text-xl font-semibold text-ink">بازیابی رمز عبور</h1>
+        <p className="text-sm text-ink-soft">
           ایمیل حساب خود را وارد کنید تا لینک بازیابی برایتان ارسال شود.
         </p>
       </div>
@@ -73,9 +76,7 @@ export function ForgotPasswordForm() {
       />
 
       {serverError ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
-          {serverError}
-        </p>
+        <p className="text-sm text-danger-ink">{serverError}</p>
       ) : null}
       {successMessage ? (
         <p className="text-sm text-emerald-600 dark:text-emerald-400">

@@ -57,12 +57,15 @@ export function LoginForm() {
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form
+      method="post"
+      className="space-y-4"
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+    >
       <div className="space-y-1">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-          ورود به خونه‌مون
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <h1 className="text-xl font-semibold text-ink">ورود به خونه‌مون</h1>
+        <p className="text-sm text-ink-soft">
           با حساب خود وارد شوید و کارهای امروزتان را ببینید.
         </p>
       </div>
@@ -84,15 +87,13 @@ export function LoginForm() {
       />
 
       {callbackError ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
+        <p className="text-sm text-danger-ink">
           {getPersianAuthErrorMessage(callbackError)}
         </p>
       ) : null}
 
       {serverError ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
-          {serverError}
-        </p>
+        <p className="text-sm text-danger-ink">{serverError}</p>
       ) : null}
 
       <Button type="submit" className="w-full" isLoading={isSubmitting}>

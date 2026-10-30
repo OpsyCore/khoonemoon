@@ -61,14 +61,6 @@ export default async function ListsPage() {
       .is("archived_at", null)
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(100),
-    householdId
-      ? supabase
-          .from("chore_completions")
-          .select("id, chore_id, completed_by, completed_at, due_at, note")
-          .eq("household_id", householdId)
-          .order("completed_at", { ascending: false })
-          .limit(50)
-      : Promise.resolve({ data: [], error: null }),
   ]);
 
   if (listsResult.error || choresResult.error || recordsResult.error) {
@@ -153,8 +145,8 @@ export default async function ListsPage() {
   return (
     <div className="space-y-4">
       <section className="space-y-2">
-        <h2 className="text-lg font-semibold">لیست‌ها</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <h2 className="text-3xl font-bold text-ink">لیست‌ها</h2>
+        <p className="text-sm leading-7 text-muted">
           خرید مشترک با هم‌زمان‌سازی زنده، کارهای خانه نوبتی و قبض‌ها در یک جا.
         </p>
       </section>

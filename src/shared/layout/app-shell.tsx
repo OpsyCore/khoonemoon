@@ -13,7 +13,7 @@ export function AppShell({
   dueReminderCount?: number;
 }) {
   return (
-    <div className="min-h-dvh bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    <div className="min-h-dvh bg-paper text-ink">
       <TopBar />
       <main className="mx-auto w-full max-w-3xl px-4 pb-28 pt-4 md:pb-8">
         {children}
