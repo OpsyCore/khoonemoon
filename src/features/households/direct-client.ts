@@ -1,5 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createHouseholdSchema, joinHouseholdSchema } from "./schemas";
+import {
+  createHouseholdSchema,
+  joinHouseholdSchema,
+  updateHouseholdSchema,
+} from "./schemas";
+import type {
+  HouseholdInvitation,
+  HouseholdRole,
+  HouseholdSummary,
+} from "./types";
 
 /** Same SHA-256 encoding as the server, without requiring node:crypto. */
 export async function hashInvitationCodeBrowser(code: string): Promise<string> {
@@ -21,6 +30,74 @@ export function generateInvitationCodeBrowser(): string {
 
 export function directHousehold(client: SupabaseClient) {
   return {
+    async details(id: string, userId: string) {
+      const [house, members, names, invitations] = await Promise.all([
+        client
+          .from("households")
+          .select("id, name, created_by, created_at, updated_at")
+          .eq("id", id)
+          .single(),
+        client
+          .from("household_members")
+          .select("user_id, role")
+          .eq("household_id", id)
+          .is("left_at", null)
+          .order("joined_at"),
+        client.rpc("household_member_names", { target_household_id: id }),
+        client
+          .from("household_invitations")
+          .select("id, status, expires_at, created_at")
+          .eq("household_id", id)
+          .order("created_at", { ascending: false })
+          .limit(10),
+      ]);
+      if (
+        house.error ||
+        members.error ||
+        names.error ||
+        invitations.error ||
+        !house.data
+      )
+        throw new Error("دریافت اطلاعات خانه ناموفق بود.");
+      const memberRows = (members.data ?? []) as {
+        user_id: string;
+        role: HouseholdRole;
+      }[];
+      const memberNames = new Map(
+        ((names.data ?? []) as { id: string; full_name: string | null }[]).map(
+          (n) => [n.id, n.full_name],
+        ),
+      );
+      return {
+        house: house.data as HouseholdSummary,
+        role: memberRows.find((m) => m.user_id === userId)?.role ?? null,
+        members: memberRows.map((m) => ({
+          ...m,
+          name: memberNames.get(m.user_id) || "کاربر",
+        })),
+        invitations: (invitations.data ?? []) as HouseholdInvitation[],
+      };
+    },
+    async rename(id: string, name: string): Promise<void> {
+      const parsed = updateHouseholdSchema.parse({ name });
+      const { data, error } = await client
+        .from("households")
+        .update({ name: parsed.name })
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
+      if (error || !data) throw new Error("تغییر نام خانه انجام نشد.");
+    },
+    async cancel(invitationId: string): Promise<void> {
+      const { error } = await client.rpc("cancel_household_invitation", {
+        p_invitation_id: invitationId,
+      });
+      if (error) throw new Error("لغو دعوت‌نامه انجام نشد.");
+    },
+    async leave(): Promise<void> {
+      const { data, error } = await client.rpc("leave_current_household");
+      if (error || data !== true) throw new Error("ترک خانه انجام نشد.");
+    },
     async create(name: string): Promise<string> {
       const parsed = createHouseholdSchema.parse({ name });
       const { data, error } = await client.rpc("create_household", {

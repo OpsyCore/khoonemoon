@@ -5,8 +5,11 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { directShopping } from "@/features/shopping/direct-client";
 import type { ShoppingItem, ShoppingList } from "@/features/shopping/types";
+import { signupSchema } from "@/features/auth/schemas";
 import { directHousehold } from "@/features/households/direct-client";
 import { CalendarEvents } from "./calendar";
+import { Profile } from "./profile";
+import { HouseholdDetails } from "./household-details";
 import "./style.css";
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -19,6 +22,8 @@ function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(!client);
   const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -27,7 +32,6 @@ function App() {
   );
   const [houseName, setHouseName] = useState("");
   const [joinCode, setJoinCode] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [listId, setListId] = useState("");
   const [items, setItems] = useState<ShoppingItem[]>([]);
@@ -61,7 +65,6 @@ function App() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHousehold(undefined);
     setLists([]);
-    setInviteCode("");
     setJoinCode("");
     setListId("");
     setItems([]);
@@ -144,6 +147,22 @@ function App() {
       setPassword("");
     });
   }
+  function signup(event: FormEvent) {
+    event.preventDefault();
+    void action(async () => {
+      if (!client) throw new Error();
+      const input = signupSchema.parse({ fullName, email, password });
+      const { data, error } = await client.auth.signUp({
+        email: input.email,
+        password: input.password,
+        options: { data: { full_name: input.fullName } },
+      });
+      if (error) throw error;
+      setPassword("");
+      if (!data.session)
+        setMessage("ثبت‌نام انجام شد؛ برای ورود تأیید ایمیل لازم است.");
+    });
+  }
   function createHouse(event: FormEvent) {
     event.preventDefault();
     void action(async () => {
@@ -158,13 +177,6 @@ function App() {
       if (!houses) throw new Error();
       setHousehold(await houses.join(joinCode));
       setJoinCode("");
-    });
-  }
-  function createInvite() {
-    void action(async () => {
-      if (!houses) throw new Error();
-      const invite = await houses.invite();
-      setInviteCode(invite.code);
     });
   }
   function createList(event: FormEvent) {
@@ -209,8 +221,20 @@ function App() {
         <p>در حال آماده‌سازی…</p>
       ) : !session ? (
         <section>
-          <h2>ورود</h2>
-          <form onSubmit={login}>
+          <h2>{authMode === "login" ? "ورود" : "ساخت حساب"}</h2>
+          <form onSubmit={authMode === "login" ? login : signup}>
+            {authMode === "signup" && (
+              <label>
+                نام
+                <input
+                  autoComplete="name"
+                  required
+                  minLength={2}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+              </label>
+            )}
             <label>
               ایمیل
               <input
@@ -225,14 +249,29 @@ function App() {
               رمز عبور
               <input
                 type="password"
-                autoComplete="current-password"
+                autoComplete={
+                  authMode === "login" ? "current-password" : "new-password"
+                }
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </label>
-            <button disabled={busy}>ورود</button>
+            <button disabled={busy}>
+              {authMode === "login" ? "ورود" : "ثبت‌نام"}
+            </button>
           </form>
+          <button
+            className="minor"
+            disabled={busy}
+            onClick={() => {
+              setAuthMode(authMode === "login" ? "signup" : "login");
+              setMessage("");
+              setPassword("");
+            }}
+          >
+            {authMode === "login" ? "ساخت حساب جدید" : "بازگشت به ورود"}
+          </button>
         </section>
       ) : (
         <>
@@ -241,23 +280,18 @@ function App() {
             {household === undefined ? (
               <p>در حال دریافت اطلاعات خانه…</p>
             ) : household ? (
-              <>
-                <p>خانهٔ شما متصل است.</p>
-                <button disabled={busy} onClick={createInvite}>
-                  ساخت کد دعوت
-                </button>
-                {inviteCode && (
-                  <label>
-                    کد دعوت (تا ۷۲ ساعت معتبر است)
-                    <input
-                      readOnly
-                      dir="ltr"
-                      value={inviteCode}
-                      onFocus={(e) => e.target.select()}
-                    />
-                  </label>
-                )}
-              </>
+              <HouseholdDetails
+                key={household}
+                client={client}
+                householdId={household}
+                userId={session.user.id}
+                onLeave={() => {
+                  setHousehold(null);
+                  setLists([]);
+                  setListId("");
+                  setItems([]);
+                }}
+              />
             ) : (
               <>
                 <form onSubmit={createHouse}>
@@ -383,6 +417,7 @@ function App() {
               )}
             </section>
           )}
+          <Profile key={session.user.id} client={client} />
           <CalendarEvents
             key={session.user.id}
             client={client}

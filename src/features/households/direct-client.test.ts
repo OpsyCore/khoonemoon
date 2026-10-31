@@ -65,3 +65,38 @@ describe("direct household transport", () => {
     expect(String(fetcher.mock.calls[0][1]?.body)).not.toContain(invite.code);
   });
 });
+
+describe("direct household management", () => {
+  it("uses controlled RPCs to leave and cancel invitations", async () => {
+    const { api, fetcher } = setup();
+    fetcher.mockResolvedValueOnce(
+      new Response("true", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await api.leave();
+    expect(String(fetcher.mock.calls[0][0])).toContain(
+      "leave_current_household",
+    );
+    await api.cancel("invite-1");
+    expect(String(fetcher.mock.calls[1][0])).toContain(
+      "cancel_household_invitation",
+    );
+    expect(JSON.parse(String(fetcher.mock.calls[1][1]?.body))).toEqual({
+      p_invitation_id: "invite-1",
+    });
+  });
+  it("does not report success if RLS prevents renaming", async () => {
+    const { api, fetcher } = setup();
+    fetcher.mockResolvedValueOnce(
+      new Response("null", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await expect(api.rename("house-1", "خانهٔ ما")).rejects.toThrow(
+      "تغییر نام",
+    );
+  });
+});
