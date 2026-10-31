@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { directShopping } from "@/features/shopping/direct-client";
 import type { ShoppingItem, ShoppingList } from "@/features/shopping/types";
 import { directHousehold } from "@/features/households/direct-client";
+import { CalendarEvents } from "./calendar";
 import "./style.css";
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -193,7 +194,7 @@ function App() {
         <p>نسخهٔ اندروید در حال ساخت</p>
       </header>
       <aside>
-        این نسخه کامل نیست؛ فعلاً فقط ورود، ساخت خانه و خرید در حال انتقال‌اند.
+        این نسخه کامل نیست؛ فعلاً ورود، خانه، خرید و رویدادها در حال انتقال‌اند.
       </aside>
       {message && (
         <p role="alert" className="error">
@@ -382,6 +383,11 @@ function App() {
               )}
             </section>
           )}
+          <CalendarEvents
+            key={session.user.id}
+            client={client}
+            hasHousehold={Boolean(household)}
+          />
           <button
             className="minor"
             disabled={busy}
