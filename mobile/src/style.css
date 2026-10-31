@@ -174,3 +174,42 @@ button:focus-visible {
 li {
   flex-wrap: wrap;
 }
+
+/* Separate destinations rather than stacking the whole application on one page. */
+main {
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+}
+.bottom-nav {
+  position: fixed;
+  z-index: 10;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 36rem);
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  padding: 0.45rem 0.25rem calc(0.45rem + env(safe-area-inset-bottom));
+  background: #fcf8ee;
+  border: 1px solid #e2d8c4;
+  border-radius: 1.15rem 1.15rem 0 0;
+  box-shadow: 0 -5px 22px rgba(74, 58, 35, 0.1);
+}
+.bottom-nav button:not(.calendar-day) {
+  min-width: 0;
+  min-height: 3rem;
+  padding: 0.3rem 0;
+  border-radius: 0.8rem;
+  background: transparent;
+  color: #807365;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  font-size: 0.68rem;
+}
+.bottom-nav button[aria-current="page"] {
+  background: #e7ead7;
+  color: #59633a;
+  font-weight: 700;
+}

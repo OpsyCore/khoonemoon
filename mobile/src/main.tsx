@@ -2,6 +2,14 @@
 import "@fontsource-variable/vazirmatn";
 import { createClient, type Session } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  Home,
+  ListTodo,
+  CalendarDays,
+  ShoppingBasket,
+  Wallet,
+  UserRound,
+} from "lucide-react";
 import { createRoot } from "react-dom/client";
 import { Shopping } from "./shopping";
 import { signupSchema } from "@/features/auth/schemas";
@@ -21,6 +29,9 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 const client = url && anonKey ? createClient(url, anonKey) : null;
 
 function App() {
+  const [page, setPage] = useState<
+    "house" | "tasks" | "calendar" | "shopping" | "finance" | "profile"
+  >("tasks");
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(!client);
   const [email, setEmail] = useState("");
@@ -141,9 +152,7 @@ function App() {
         <h1>خونه‌مون</h1>
         <p>نسخهٔ اندروید در حال ساخت</p>
       </header>
-      <aside>
-        این نسخه کامل نیست؛ فعلاً ورود، خانه، خرید و رویدادها در حال انتقال‌اند.
-      </aside>
+
       {message && (
         <p role="alert" className="error">
           {message}
@@ -211,90 +220,135 @@ function App() {
         </section>
       ) : (
         <>
-          <section>
-            <h2>خانه و اعضا</h2>
-            {household === undefined ? (
-              <p>در حال دریافت اطلاعات خانه…</p>
-            ) : household ? (
-              <HouseholdDetails
-                key={household}
-                client={client}
-                householdId={household}
-                userId={session.user.id}
-                onLeave={() => {
-                  setHousehold(null);
-                }}
-              />
-            ) : (
-              <>
-                <form onSubmit={createHouse}>
-                  <label>
-                    نام خانه
-                    <input
-                      value={houseName}
-                      onChange={(e) => setHouseName(e.target.value)}
-                      required
-                      minLength={2}
-                      maxLength={80}
-                    />
-                  </label>
-                  <button disabled={busy}>ایجاد خانه</button>
-                </form>
-                <form onSubmit={joinHouse}>
-                  <label>
-                    کد دعوت
-                    <input
-                      value={joinCode}
-                      onChange={(e) => setJoinCode(e.target.value)}
-                      minLength={12}
-                      maxLength={128}
-                      required
-                      dir="ltr"
-                    />
-                  </label>
-                  <button disabled={busy}>پیوستن به خانه</button>
-                </form>
-              </>
-            )}
-          </section>
-          {household && (
+          {page === "house" && (
+            <section>
+              <h2>خانه و اعضا</h2>
+              {household === undefined ? (
+                <p>در حال دریافت اطلاعات خانه…</p>
+              ) : household ? (
+                <HouseholdDetails
+                  key={household}
+                  client={client}
+                  householdId={household}
+                  userId={session.user.id}
+                  onLeave={() => {
+                    setHousehold(null);
+                  }}
+                />
+              ) : (
+                <>
+                  <form onSubmit={createHouse}>
+                    <label>
+                      نام خانه
+                      <input
+                        value={houseName}
+                        onChange={(e) => setHouseName(e.target.value)}
+                        required
+                        minLength={2}
+                        maxLength={80}
+                      />
+                    </label>
+                    <button disabled={busy}>ایجاد خانه</button>
+                  </form>
+                  <form onSubmit={joinHouse}>
+                    <label>
+                      کد دعوت
+                      <input
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value)}
+                        minLength={12}
+                        maxLength={128}
+                        required
+                        dir="ltr"
+                      />
+                    </label>
+                    <button disabled={busy}>پیوستن به خانه</button>
+                  </form>
+                </>
+              )}
+            </section>
+          )}
+          {page === "shopping" && household && (
             <Shopping
               key={`${session.user.id}:${household}`}
               client={client}
               householdId={household}
             />
           )}
-          <Tasks
-            key={`${session.user.id}:${household ?? "none"}`}
-            client={client}
-            householdId={household ?? null}
-          />
-          {household && (
+          {page === "shopping" && !household && (
+            <section>
+              <p>
+                برای استفاده از لیست خرید ابتدا در بخش خانه یک خانه بسازید یا به
+                آن بپیوندید.
+              </p>
+            </section>
+          )}
+          {page === "tasks" && (
+            <Tasks
+              key={`${session.user.id}:${household ?? "none"}`}
+              client={client}
+              householdId={household ?? null}
+            />
+          )}
+          {page === "tasks" && household && (
             <Chores key={household} client={client} householdId={household} />
           )}
-          <Finance
-            key={`${session.user.id}:${household ?? "none"}`}
-            client={client}
-            householdId={household ?? null}
-          />
-          <Profile key={session.user.id} client={client} />
-          <CalendarEvents
-            key={`${session.user.id}:${household ?? "none"}`}
-            client={client}
-            householdId={household ?? null}
-          />
-          <button
-            className="minor"
-            disabled={busy}
-            onClick={() =>
-              void action(async () => {
-                const { error } = await client.auth.signOut();
-                if (error) throw error;
-              })
-            }
-          >
-            خروج از حساب
-          </button>
+          {page === "finance" && (
+            <Finance
+              key={`${session.user.id}:${household ?? "none"}`}
+              client={client}
+              householdId={household ?? null}
+            />
+          )}
+          {page === "profile" && (
+            <Profile key={session.user.id} client={client} />
+          )}
+          {page === "calendar" && (
+            <CalendarEvents
+              key={`${session.user.id}:${household ?? "none"}`}
+              client={client}
+              householdId={household ?? null}
+            />
+          )}
+          {page === "profile" && (
+            <button
+              className="minor"
+              disabled={busy}
+              onClick={() =>
+                void action(async () => {
+                  const { error } = await client.auth.signOut();
+                  if (error) throw error;
+                })
+              }
+            >
+              خروج از حساب
+            </button>
+          )}
+          <nav className="bottom-nav" aria-label="بخش‌های برنامه">
+            {(
+              [
+                ["tasks", "کارها", ListTodo],
+                ["calendar", "تقویم", CalendarDays],
+                ["shopping", "خرید", ShoppingBasket],
+                ["finance", "مالی", Wallet],
+                ["house", "خانه", Home],
+                ["profile", "حساب", UserRound],
+              ] as const
+            ).map(([id, label, Icon]) => (
+              <button
+                key={id}
+                type="button"
+                aria-current={page === id ? "page" : undefined}
+                onClick={() => {
+                  setPage(id);
+                  window.scrollTo(0, 0);
+                }}
+              >
+                <Icon size={20} aria-hidden="true" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
         </>
       )}
     </main>

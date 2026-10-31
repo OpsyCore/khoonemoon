@@ -1,11 +1,15 @@
 package app.khoonemoon.mobile;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.ValueCallback;
+import android.webkit.JsResult;
+import android.webkit.JsPromptResult;
+import android.widget.EditText;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -67,6 +71,25 @@ public class MainActivity extends Activity {
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
+                if (!isLocal(Uri.parse(url))) { result.cancel(); return true; }
+                new AlertDialog.Builder(MainActivity.this).setMessage(message)
+                    .setPositiveButton("تأیید", (dialog, which) -> result.confirm())
+                    .setNegativeButton("انصراف", (dialog, which) -> result.cancel())
+                    .setOnCancelListener(dialog -> result.cancel()).show();
+                return true;
+            }
+            @Override public boolean onJsPrompt(WebView view, String url, String message, String defaultValue, JsPromptResult result) {
+                if (!isLocal(Uri.parse(url))) { result.cancel(); return true; }
+                EditText input = new EditText(MainActivity.this);
+                input.setSingleLine(true);
+                input.setText(defaultValue);
+                new AlertDialog.Builder(MainActivity.this).setMessage(message).setView(input)
+                    .setPositiveButton("ذخیره", (dialog, which) -> result.confirm(input.getText().toString()))
+                    .setNegativeButton("انصراف", (dialog, which) -> result.cancel())
+                    .setOnCancelListener(dialog -> result.cancel()).show();
+                return true;
+            }
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback;
