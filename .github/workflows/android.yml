@@ -4,6 +4,10 @@ on:
     branches: ["arena/**", "main"]
     paths:
       - "android/**"
+      - "mobile/**"
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
       - ".github/workflows/android.yml"
   workflow_dispatch:
 
@@ -14,10 +18,21 @@ jobs:
   apk:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
-    env:
-      ANDROID_WEB_URL: ${{ vars.ANDROID_WEB_URL || 'https://khonemoon.netlify.app' }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Build standalone app assets
+        env:
+          # These are public client values, protected by database RLS, not secrets.
+          VITE_SUPABASE_URL: https://isfzuxrkzeeeggvfcoah.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_8K19EQ14TIUDZrVlDvIuyQ_0mVaEkjd
+        run: |
+          npm ci --legacy-peer-deps
+          npm run mobile:build
+          test -s dist/mobile/index.html
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -32,6 +47,13 @@ jobs:
       - name: Build installable test APK
         working-directory: android
         run: gradle --no-daemon :app:assembleDebug
+      - name: Verify test APK assets and signature
+        run: |
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          unzip -l "$APK" | grep -E 'assets/index.html$'
+          unzip -l "$APK" | grep -E 'assets/assets/index-.*\.js$'
+          unzip -p "$APK" assets/index.html | grep -F 'Content-Security-Policy'
       - uses: actions/upload-artifact@v4
         with:
           name: khoonemoon-test-apk

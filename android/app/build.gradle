@@ -1,12 +1,9 @@
 plugins { id 'com.android.application' }
 
-// This URL is not a secret: it is bundled into the APK. Always use HTTPS.
-def appUrl = System.getenv('ANDROID_WEB_URL') ?: 'https://khonemoon.netlify.app'
-def parsed = new URI(appUrl)
-if (parsed.scheme != 'https' || !parsed.host || parsed.userInfo || parsed.query || parsed.fragment || !(parsed.path in ['', '/'])) {
-    throw new GradleException('ANDROID_WEB_URL must be an HTTPS origin, e.g. https://example.netlify.app')
-}
 def signingFile = System.getenv('ANDROID_KEYSTORE_PATH')
+if (!file('../../dist/mobile/index.html').isFile()) {
+    throw new GradleException('Build the standalone mobile assets before assembling the APK.')
+}
 
 android {
     namespace 'app.khoonemoon.mobile'
@@ -17,9 +14,8 @@ android {
         targetSdk 35
         versionCode 1
         versionName '0.1.0'
-        buildConfigField 'String', 'WEB_ORIGIN', '"' + appUrl.replaceAll('/$', '') + '"'
     }
-    buildFeatures { buildConfig true }
+    sourceSets { main { assets.srcDir "../../dist/mobile" } }
     signingConfigs {
         if (signingFile) {
             release {
@@ -38,3 +34,6 @@ android {
     }
 }
 
+
+// Serve bundled files from a secure HTTPS origin without exposing file:// access.
+dependencies { implementation "androidx.webkit:webkit:1.12.1" }
