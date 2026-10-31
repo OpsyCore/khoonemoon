@@ -19,4 +19,4 @@ users. Metadata confirms anon cannot execute them. Real two-account and Android
 tests are still outstanding. The standalone mobile prototype is not yet packaged
 into the Android APK. Its task recurrence fields preserve the existing model;
 automatic generation of recurring tasks is not yet implemented. The mobile
-calendar still lacks the web calendar's week/agenda views.
+calendar has month, week and agenda views, pending real-device testing.

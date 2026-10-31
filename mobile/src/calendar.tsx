@@ -20,7 +20,7 @@ import {
   shiftJalaliMonth,
 } from "@/shared/utils/jalali";
 
-/** Monthly view of events, tasks and projected household chores. */
+/** Calendar views of events, tasks and projected household chores. */
 export function CalendarEvents({
   client,
   householdId,
@@ -32,6 +32,7 @@ export function CalendarEvents({
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [chores, setChores] = useState<ChoreRecord[]>([]);
+  const [view, setView] = useState<"month" | "week" | "agenda">("month");
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState(() => new Date());
   const month = useMemo(() => getMonthGrid(cursor), [cursor]);
@@ -92,10 +93,22 @@ export function CalendarEvents({
   }, [client, householdId]);
 
   const calendarItems = useMemo(() => {
-    const first = new Date(month[0].date);
+    const first =
+      view === "month"
+        ? new Date(month[0].date)
+        : view === "week"
+          ? new Date(selected)
+          : new Date();
+    if (view === "week")
+      first.setDate(first.getDate() - ((first.getDay() + 1) % 7));
     first.setHours(0, 0, 0, 0);
-    const end = new Date(month[month.length - 1].date);
-    end.setDate(end.getDate() + 1);
+    const end =
+      view === "month"
+        ? new Date(month[month.length - 1].date)
+        : new Date(first);
+    end.setDate(
+      end.getDate() + (view === "month" ? 1 : view === "week" ? 7 : 90),
+    );
     end.setHours(0, 0, 0, 0);
     const eventItems = events.map((e) => ({
       key: `event-${e.id}`,
@@ -126,8 +139,10 @@ export function CalendarEvents({
           }),
         ),
       );
-    return [...eventItems, ...taskItems, ...choreItems];
-  }, [events, tasks, chores, month]);
+    return [...eventItems, ...taskItems, ...choreItems]
+      .filter((item) => item.date >= first && item.date < end)
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [events, tasks, chores, month, selected, view]);
 
   function create(event: FormEvent) {
     event.preventDefault();
@@ -196,59 +211,133 @@ export function CalendarEvents({
   return (
     <section>
       <h2>تقویم</h2>
-      <p>
-        رویدادها، تسک‌ها و کارهای خانه در نمای ماه. تکرارهای آینده تخمینی‌اند.
-      </p>
-      <div className="month-header">
+      <p>رویدادها، تسک‌ها و کارهای خانه؛ تکرارهای آینده تخمینی‌اند.</p>
+      <div className="month-header" role="group" aria-label="نمای تقویم">
         <button
-          type="button"
           className="minor"
-          onClick={() => setCursor((date) => shiftJalaliMonth(date, -1))}
+          type="button"
+          aria-pressed={view === "month"}
+          onClick={() => setView("month")}
         >
-          ماه قبل
+          ماه
         </button>
-        <strong>{formatJalaliMonthYear(cursor)}</strong>
         <button
-          type="button"
           className="minor"
-          onClick={() => setCursor((date) => shiftJalaliMonth(date, 1))}
+          type="button"
+          aria-pressed={view === "week"}
+          onClick={() => setView("week")}
         >
-          ماه بعد
+          هفته
+        </button>
+        <button
+          className="minor"
+          type="button"
+          aria-pressed={view === "agenda"}
+          onClick={() => setView("agenda")}
+        >
+          فهرست
         </button>
       </div>
-      <div className="calendar-grid">
-        {getPersianWeekdayLabels().map((day, index) => (
-          <span className="weekday" key={index}>
-            {day}
-          </span>
-        ))}
-        {month.map(({ date, isCurrentMonth }) => (
-          <button
-            type="button"
-            key={date.toISOString()}
-            aria-label={formatJalaliLongDate(date)}
-            aria-pressed={isSameDay(date, selected)}
-            className={`calendar-day${isCurrentMonth ? "" : " outside"}`}
-            onClick={() => setSelected(date)}
-          >
-            {formatJalaliDayNumber(date)}
-            {calendarItems.some((item) => isSameDay(item.date, date)) && (
-              <span aria-hidden="true"> •</span>
-            )}
-          </button>
-        ))}
-      </div>
-      <p>{formatJalaliLongDate(selected)}</p>
-      <ul>
-        {calendarItems
-          .filter((item) => isSameDay(item.date, selected))
-          .map((item) => (
+      {view === "month" && (
+        <>
+          <div className="month-header">
+            <button
+              type="button"
+              className="minor"
+              onClick={() => setCursor((date) => shiftJalaliMonth(date, -1))}
+            >
+              ماه قبل
+            </button>
+            <strong>{formatJalaliMonthYear(cursor)}</strong>
+            <button
+              type="button"
+              className="minor"
+              onClick={() => setCursor((date) => shiftJalaliMonth(date, 1))}
+            >
+              ماه بعد
+            </button>
+          </div>
+          <div className="calendar-grid">
+            {getPersianWeekdayLabels().map((day, index) => (
+              <span className="weekday" key={index}>
+                {day}
+              </span>
+            ))}
+            {month.map(({ date, isCurrentMonth }) => (
+              <button
+                type="button"
+                key={date.toISOString()}
+                aria-label={formatJalaliLongDate(date)}
+                aria-pressed={isSameDay(date, selected)}
+                className={`calendar-day${isCurrentMonth ? "" : " outside"}`}
+                onClick={() => setSelected(date)}
+              >
+                {formatJalaliDayNumber(date)}
+                {calendarItems.some((item) => isSameDay(item.date, date)) && (
+                  <span aria-hidden="true"> •</span>
+                )}
+              </button>
+            ))}
+          </div>
+          <p>{formatJalaliLongDate(selected)}</p>
+          <ul>
+            {calendarItems
+              .filter((item) => isSameDay(item.date, selected))
+              .map((item) => (
+                <li key={item.key}>
+                  {item.title} — {item.kind}
+                  {item.projected ? " (تخمینی)" : ""}
+                </li>
+              ))}
+          </ul>
+        </>
+      )}
+      {view === "week" && (
+        <>
+          <div className="month-header">
+            <button
+              type="button"
+              className="minor"
+              onClick={() =>
+                setSelected((d) => {
+                  const next = new Date(d);
+                  next.setDate(next.getDate() - 7);
+                  return next;
+                })
+              }
+            >
+              هفته قبل
+            </button>
+            <strong>{formatJalaliLongDate(selected)}</strong>
+            <button
+              type="button"
+              className="minor"
+              onClick={() =>
+                setSelected((d) => {
+                  const next = new Date(d);
+                  next.setDate(next.getDate() + 7);
+                  return next;
+                })
+              }
+            >
+              هفته بعد
+            </button>
+          </div>
+        </>
+      )}
+      {view !== "month" && (
+        <ul>
+          {calendarItems.map((item) => (
             <li key={item.key}>
-              {item.title} — {item.kind}
-              {item.projected ? " (تخمینی)" : ""}
+              <span>
+                {item.title} — {item.kind}
+                {item.projected ? " (تخمینی)" : ""}
+              </span>
+              <time>{formatJalaliLongDate(item.date)}</time>
             </li>
           ))}
-      </ul>
+        </ul>
+      )}
       <h3>{editing ? "ویرایش رویداد" : "ثبت رویداد"}</h3>
       {message && (
         <p role="alert" className="error">
