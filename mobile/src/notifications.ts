@@ -131,12 +131,44 @@ export function useMobileNotifications(
     void sync();
     document.addEventListener("visibilitychange", visible);
     window.addEventListener("khoonemoon:reminders-changed", visible);
+    // Re-fetch through RLS; do not use event payloads as authorized data.
+    const channel = client
+      .channel(
+        `mobile-notification-sync-${Math.random().toString(36).slice(2)}`,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "reminders",
+          filter: `user_id=eq.${userId}`,
+        },
+        visible,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notification_preferences",
+          filter: `user_id=eq.${userId}`,
+        },
+        visible,
+      )
+      .subscribe((state) => {
+        if (alive && (state === "CHANNEL_ERROR" || state === "TIMED_OUT"))
+          setStatus(
+            "اتصال زنده در دسترس نیست؛ همگام‌سازی هنگام باز بودن برنامه ادامه دارد.",
+          );
+      });
     const interval = window.setInterval(visible, 5 * 60 * 1000);
     return () => {
       alive = false;
       document.removeEventListener("visibilitychange", visible);
       window.removeEventListener("khoonemoon:reminders-changed", visible);
       window.clearInterval(interval);
+      void client.removeChannel(channel);
     };
   }, [client, userId, ready]);
   return status;

@@ -72,4 +72,34 @@ describe("direct reminders", () => {
       }),
     ).rejects.toThrow("دسترسی");
   });
+  it("saves notification preferences for the authenticated account", async () => {
+    const { api, fetcher } = setup();
+    await api.savePreferences({
+      inAppEnabled: true,
+      webPushEnabled: false,
+      quietHoursEnabled: true,
+      quietHoursStart: "22:00",
+      quietHoursEnd: "08:00",
+      user_id: "forged",
+    });
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({
+      user_id: "me",
+      in_app_enabled: true,
+      web_push_enabled: false,
+      quiet_hours_start: "22:00",
+    });
+  });
+  it("rejects invalid quiet hours before database writes", async () => {
+    const { api, fetcher } = setup();
+    await expect(
+      api.savePreferences({
+        inAppEnabled: true,
+        webPushEnabled: false,
+        quietHoursEnabled: true,
+        quietHoursStart: "24:00",
+        quietHoursEnd: "08:00",
+      }),
+    ).rejects.toThrow();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
 });
