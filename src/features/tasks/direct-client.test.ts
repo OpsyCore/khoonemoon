@@ -50,3 +50,25 @@ describe("direct task transport", () => {
     });
   });
 });
+
+describe("task edits and archive", () => {
+  it("validates title before making requests and writes a trimmed title", async () => {
+    const { api, fetcher } = setup();
+    await expect(api.rename("task-1", " ")).rejects.toThrow();
+    expect(fetcher).not.toHaveBeenCalled();
+    await api.rename("task-1", "  کار جدید  ");
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      title: "کار جدید",
+    });
+  });
+  it("archives without claiming success for inaccessible rows", async () => {
+    const { api, fetcher } = setup();
+    fetcher.mockResolvedValueOnce(
+      new Response("null", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await expect(api.archive("task-1")).rejects.toThrow("بایگانی");
+  });
+});

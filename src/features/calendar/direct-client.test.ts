@@ -73,3 +73,30 @@ describe("direct calendar transport", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("direct calendar editing", () => {
+  it("does not allow ownership fields in a patch", async () => {
+    const { api, fetcher } = setup();
+    await api.update("event-1", {
+      ...event,
+      owner_id: "forged",
+      creator_id: "forged",
+    });
+    const body = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
+    expect(body.owner_id).toBeUndefined();
+    expect(body.creator_id).toBeUndefined();
+    expect(body.title).toBe("قرار");
+  });
+  it("fails when update is blocked or the row is missing", async () => {
+    const { api, fetcher } = setup();
+    fetcher.mockResolvedValueOnce(
+      new Response("null", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await expect(api.update("event-1", event)).rejects.toThrow(
+      "ویرایش رویداد ناموفق بود",
+    );
+  });
+});

@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { directCalendar } from "@/features/calendar/direct-client";
+import { directTasks } from "@/features/tasks/direct-client";
+import { directChores } from "@/features/chores/direct-client";
+import {
+  projectChoreDates,
+  type CalendarChore,
+} from "@/features/chores/calendar-projection";
+import type { TaskRecord } from "@/features/tasks/types";
+import type { ChoreRecord } from "@/features/chores/types";
 import type { EventRecord } from "@/features/calendar/types";
 import {
   formatJalaliDayNumber,
@@ -12,19 +20,22 @@ import {
   shiftJalaliMonth,
 } from "@/shared/utils/jalali";
 
-/** Month view currently includes events only; tasks and chores are still being integrated. */
+/** Monthly view of events, tasks and projected household chores. */
 export function CalendarEvents({
   client,
-  hasHousehold,
+  householdId,
 }: {
   client: SupabaseClient;
-  hasHousehold: boolean;
+  householdId: string | null;
 }) {
   const api = useMemo(() => directCalendar(client), [client]);
   const [events, setEvents] = useState<EventRecord[]>([]);
+  const [tasks, setTasks] = useState<TaskRecord[]>([]);
+  const [chores, setChores] = useState<ChoreRecord[]>([]);
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState(() => new Date());
   const month = useMemo(() => getMonthGrid(cursor), [cursor]);
+  const [editing, setEditing] = useState<EventRecord | null>(null);
   const [title, setTitle] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -50,13 +61,81 @@ export function CalendarEvents({
     };
   }, [api]);
 
+  useEffect(() => {
+    let active = true;
+    const load = () => {
+      void directTasks(client)
+        .list()
+        .then((rows) => {
+          if (active) setTasks(rows);
+        })
+        .catch(() => {
+          if (active) setMessage("دریافت تسک‌های تقویم ناموفق بود.");
+        });
+      if (householdId)
+        void directChores(client)
+          .list(householdId)
+          .then((rows) => {
+            if (active) setChores(rows);
+          })
+          .catch(() => {
+            if (active) setMessage("دریافت کارهای خانه برای تقویم ناموفق بود.");
+          });
+      else setChores([]);
+    };
+    load();
+    window.addEventListener("khoonemoon:schedule-changed", load);
+    return () => {
+      active = false;
+      window.removeEventListener("khoonemoon:schedule-changed", load);
+    };
+  }, [client, householdId]);
+
+  const calendarItems = useMemo(() => {
+    const first = new Date(month[0].date);
+    first.setHours(0, 0, 0, 0);
+    const end = new Date(month[month.length - 1].date);
+    end.setDate(end.getDate() + 1);
+    end.setHours(0, 0, 0, 0);
+    const eventItems = events.map((e) => ({
+      key: `event-${e.id}`,
+      title: e.title,
+      date: new Date(e.start_at),
+      kind: "رویداد",
+      projected: false,
+    }));
+    const taskItems = tasks
+      .filter((t) => t.due_at && t.status !== "ARCHIVED")
+      .map((t) => ({
+        key: `task-${t.id}`,
+        title: t.title,
+        date: new Date(t.due_at!),
+        kind: "تسک",
+        projected: false,
+      }));
+    const choreItems = chores
+      .filter((c) => c.is_active && c.next_due_at)
+      .flatMap((c) =>
+        projectChoreDates(c as CalendarChore, first, end).map(
+          ({ due, current }) => ({
+            key: `chore-${c.id}-${due.toISOString()}`,
+            title: c.title,
+            date: due,
+            kind: "کار خانه",
+            projected: !current,
+          }),
+        ),
+      );
+    return [...eventItems, ...taskItems, ...choreItems];
+  }, [events, tasks, chores, month]);
+
   function create(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     setMessage("");
     void (async () => {
       try {
-        const item = await api.create({
+        const payload = {
           title,
           startAt: new Date(start).toISOString(),
           endAt: new Date(end).toISOString(),
@@ -64,10 +143,13 @@ export function CalendarEvents({
           location,
           allDay,
           visibility: shared ? "HOUSEHOLD_SHARED" : "PRIVATE",
-        });
+        };
+        const item = editing
+          ? await api.update(editing.id, payload)
+          : await api.create(payload);
         setEvents((previous) =>
-          [...previous, item].sort((a, b) =>
-            a.start_at.localeCompare(b.start_at),
+          [...previous.filter((event) => event.id !== item.id), item].sort(
+            (a, b) => a.start_at.localeCompare(b.start_at),
           ),
         );
         setTitle("");
@@ -75,12 +157,29 @@ export function CalendarEvents({
         setEnd("");
         setLocation("");
         setDescription("");
+        setEditing(null);
       } catch {
         setMessage("ثبت رویداد ناموفق بود؛ زمان‌ها و اتصال را بررسی کنید.");
       } finally {
         setBusy(false);
       }
     })();
+  }
+  function edit(event: EventRecord) {
+    const local = (iso: string) => {
+      const d = new Date(iso);
+      return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16);
+    };
+    setEditing(event);
+    setTitle(event.title);
+    setStart(local(event.start_at));
+    setEnd(local(event.end_at));
+    setLocation(event.location || "");
+    setDescription(event.description || "");
+    setAllDay(event.all_day);
+    setShared(event.visibility === "HOUSEHOLD_SHARED");
   }
   async function remove(id: string) {
     setBusy(true);
@@ -98,8 +197,7 @@ export function CalendarEvents({
     <section>
       <h2>تقویم</h2>
       <p>
-        نمای ماه در حال حاضر رویدادها را نشان می‌دهد؛ نمایش تسک‌ها و کارهای خانه
-        هنوز منتقل نشده است.
+        رویدادها، تسک‌ها و کارهای خانه در نمای ماه. تکرارهای آینده تخمینی‌اند.
       </p>
       <div className="month-header">
         <button
@@ -134,7 +232,7 @@ export function CalendarEvents({
             onClick={() => setSelected(date)}
           >
             {formatJalaliDayNumber(date)}
-            {events.some((e) => isSameDay(new Date(e.start_at), date)) && (
+            {calendarItems.some((item) => isSameDay(item.date, date)) && (
               <span aria-hidden="true"> •</span>
             )}
           </button>
@@ -142,13 +240,16 @@ export function CalendarEvents({
       </div>
       <p>{formatJalaliLongDate(selected)}</p>
       <ul>
-        {events
-          .filter((event) => isSameDay(new Date(event.start_at), selected))
-          .map((event) => (
-            <li key={event.id}>{event.title}</li>
+        {calendarItems
+          .filter((item) => isSameDay(item.date, selected))
+          .map((item) => (
+            <li key={item.key}>
+              {item.title} — {item.kind}
+              {item.projected ? " (تخمینی)" : ""}
+            </li>
           ))}
       </ul>
-      <h3>ثبت رویداد</h3>
+      <h3>{editing ? "ویرایش رویداد" : "ثبت رویداد"}</h3>
       {message && (
         <p role="alert" className="error">
           {message}
@@ -207,7 +308,7 @@ export function CalendarEvents({
           />
           تمام روز
         </label>
-        {hasHousehold && (
+        {householdId && (
           <label className="item">
             <input
               type="checkbox"
@@ -217,7 +318,25 @@ export function CalendarEvents({
             اشتراک با خانه
           </label>
         )}
-        <button disabled={busy}>افزودن رویداد</button>
+        <button disabled={busy}>
+          {editing ? "ذخیره تغییرات" : "افزودن رویداد"}
+        </button>
+        {editing && (
+          <button
+            type="button"
+            className="minor"
+            onClick={() => {
+              setEditing(null);
+              setTitle("");
+              setStart("");
+              setEnd("");
+              setLocation("");
+              setDescription("");
+            }}
+          >
+            انصراف
+          </button>
+        )}
       </form>
       <ul>
         {events.map((event) => (
@@ -234,7 +353,17 @@ export function CalendarEvents({
             <button
               className="minor"
               disabled={busy}
-              onClick={() => void remove(event.id)}
+              onClick={() => edit(event)}
+            >
+              ویرایش
+            </button>
+            <button
+              className="minor"
+              disabled={busy}
+              onClick={() => {
+                if (window.confirm("این رویداد حذف شود؟"))
+                  void remove(event.id);
+              }}
             >
               حذف
             </button>

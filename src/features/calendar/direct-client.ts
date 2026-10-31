@@ -51,6 +51,40 @@ export function directCalendar(client: SupabaseClient) {
       if (error || !data) throw new Error("ایجاد رویداد ناموفق بود.");
       return data as EventRecord;
     },
+    async update(id: string, input: unknown): Promise<EventRecord> {
+      const event = createEventSchema.parse(input);
+      const { data: auth, error: authError } = await client.auth.getUser();
+      if (authError || !auth.user) throw new Error("ابتدا وارد حساب خود شوید.");
+      let householdId: string | null = null;
+      if (event.visibility === "HOUSEHOLD_SHARED") {
+        const { data, error } = await client
+          .from("household_members")
+          .select("household_id")
+          .eq("user_id", auth.user.id)
+          .is("left_at", null)
+          .maybeSingle();
+        if (error || !data?.household_id)
+          throw new Error("برای رویداد اشتراکی باید عضو خانه باشید.");
+        householdId = data.household_id;
+      }
+      const { data, error } = await client
+        .from("events")
+        .update({
+          title: event.title,
+          description: event.description || null,
+          household_id: householdId,
+          visibility: event.visibility,
+          start_at: event.startAt,
+          end_at: event.endAt,
+          all_day: event.allDay,
+          location: event.location || null,
+        })
+        .eq("id", id)
+        .select(COLUMNS)
+        .maybeSingle();
+      if (error || !data) throw new Error("ویرایش رویداد ناموفق بود.");
+      return data as EventRecord;
+    },
     async remove(id: string): Promise<void> {
       const { data, error } = await client
         .from("events")

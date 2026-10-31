@@ -425,9 +425,9 @@ function App() {
           )}
           <Profile key={session.user.id} client={client} />
           <CalendarEvents
-            key={session.user.id}
+            key={`${session.user.id}:${household ?? "none"}`}
             client={client}
-            hasHousehold={Boolean(household)}
+            householdId={household ?? null}
           />
           <button
             className="minor"

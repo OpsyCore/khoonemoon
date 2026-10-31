@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { applyTaskCompletion } from "./security";
+import { z } from "zod";
 import type { TaskRecord } from "./types";
 
 const COLUMNS =
@@ -16,6 +17,25 @@ export function directTasks(client: SupabaseClient) {
         .order("created_at", { ascending: false });
       if (error) throw new Error("دریافت تسک‌ها ناموفق بود.");
       return (data ?? []) as TaskRecord[];
+    },
+    async rename(id: string, title: string): Promise<void> {
+      const name = z.string().trim().min(2).max(180).parse(title);
+      const { data, error } = await client
+        .from("tasks")
+        .update({ title: name })
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
+      if (error || !data) throw new Error("ویرایش تسک ناموفق بود.");
+    },
+    async archive(id: string): Promise<void> {
+      const { data, error } = await client
+        .from("tasks")
+        .update({ status: "ARCHIVED", archived_at: new Date().toISOString() })
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
+      if (error || !data) throw new Error("بایگانی تسک ناموفق بود.");
     },
     async completion(
       task: TaskRecord,
