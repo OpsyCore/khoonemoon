@@ -94,9 +94,15 @@ export function Chores({
       };
       if (editing) await api.update(editing, payload);
       else await api.create(payload);
-      setChores(await api.list(householdId));
       resetForm();
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
+      try {
+        setChores(await api.list(householdId));
+      } catch {
+        setMessage(
+          "کار ذخیره شد، اما تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و صفحه را تازه کنید.",
+        );
+      }
     } catch {
       setMessage(
         "ذخیره کار خانه ناموفق بود؛ اطلاعات و نوبت‌بندی را بررسی کنید.",
@@ -111,8 +117,14 @@ export function Chores({
     setMessage("");
     try {
       await api.complete(chore.id);
-      setChores(await api.list(householdId));
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
+      try {
+        setChores(await api.list(householdId));
+      } catch {
+        setMessage(
+          "انجام کار ثبت شد، اما تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و صفحه را تازه کنید.",
+        );
+      }
     } catch {
       setMessage("ثبت کار ناموفق بود؛ پیش از تلاش دوباره وضعیت را بررسی کنید.");
     } finally {
@@ -157,8 +169,14 @@ export function Chores({
     setMessage("");
     try {
       await api.archive(id);
-      setChores(await api.list(householdId));
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
+      try {
+        setChores(await api.list(householdId));
+      } catch {
+        setMessage(
+          "کار بایگانی شد، اما تازه‌سازی ناموفق بود؛ صفحه را تازه کنید.",
+        );
+      }
     } catch {
       setMessage("بایگانی کار خانه ناموفق بود.");
     } finally {

@@ -40,7 +40,10 @@ describe("mobile archive", () => {
     expect(archive.tables.financial_records).toHaveLength(1);
     expect(archive.tables.documents).toEqual([]);
     expect(archive.note).toContain("فایل‌های مدارک");
-    expect(ranges).toHaveLength(9);
+    expect(ranges).toHaveLength(14);
+    expect(archive.tables.task_recurrences).toEqual([]);
+    expect(archive.tables.chore_rotation_steps).toEqual([]);
+    expect(archive.tables.document_attachments).toEqual([]);
   });
   it("fails instead of silently producing a partial archive", async () => {
     const { client } = fixture("tasks");

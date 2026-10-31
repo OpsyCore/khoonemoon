@@ -648,3 +648,23 @@ end $$;
 select public.register_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab', repeat('c',64));
 select public.read_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab', repeat('c',64));
 select public.revoke_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab');
+
+-- Verify export projections exist and are selectable by an authenticated user.
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+select id,title,description,creator_id,owner_id,household_id,visibility,status,priority,due_at,completed_at,archived_at,created_at,updated_at from public.tasks limit 0;
+select id,task_id,assignee_id,created_at from public.task_assignees limit 0;
+select id,task_id,frequency,interval_days,weekdays,next_occurrence_at,created_at,updated_at from public.task_recurrences limit 0;
+select id,title,description,creator_id,owner_id,household_id,visibility,start_at,end_at,all_day,location,created_at,updated_at from public.events limit 0;
+select id,target_type,target_id,user_id,household_id,remind_at,status,snoozed_until,snooze_count,delivered_at,created_at,updated_at from public.reminders limit 0;
+select id,user_id,in_app_enabled,web_push_enabled,quiet_hours_enabled,quiet_hours_start,quiet_hours_end,created_at,updated_at from public.notification_preferences limit 0;
+select id,household_id,title,description,created_by,rotation_mode,current_rotation_index,frequency,interval_days,weekdays,next_due_at,is_active,archived_at,created_at,updated_at from public.chores limit 0;
+select id,chore_id,position,assignee_id,created_at from public.chore_rotation_steps limit 0;
+select id,chore_id,completed_by,completed_at,due_at,note,created_at from public.chore_completions limit 0;
+select id,household_id,name,created_by,archived_at,created_at,updated_at from public.shopping_lists limit 0;
+select id,list_id,name,quantity,unit,category,note,added_by,purchased,purchased_by,purchased_at,position,created_at,updated_at from public.shopping_items limit 0;
+select id,household_id,owner_id,created_by,visibility,record_type,title,amount,currency,category,note,occurred_at,due_at,bill_status,is_recurring,recurrence_rule,paid_by,paid_at,archived_at,created_at,updated_at from public.financial_records limit 0;
+select id,household_id,created_by,title,description,visibility,category,mime_type,file_size,storage_path,created_at,updated_at from public.documents limit 0;
+select id,document_id,entity_type,entity_id,created_by,created_at from public.document_attachments limit 0;
+rollback;

@@ -60,3 +60,12 @@ The mobile web build has an install manifest and a static-shell-only service
 worker; Supabase/API data are not cached and functionality requires connectivity.
 Actual browser installation, offline recovery, update behavior and multi-user
 privacy on shared devices have not been verified.
+
+Export projections now include task assignment/recurrence, chore rotation,
+notification preferences and document links in addition to the previously
+selected data; local database checks validate the selected columns and grants.
+They still do not include all account/household metadata or provide restore.
+The current server recurrence function truncates due times to UTC midnight and
+interprets weekday selections in UTC; this must be fixed with an explicit
+timezone design and tested before claiming recurrence parity. Financial
+recurrence is only a flag and does not generate future records.

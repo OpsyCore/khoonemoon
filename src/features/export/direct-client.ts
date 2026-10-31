@@ -7,21 +7,34 @@ import {
   type ExportableRecord,
 } from "./archive";
 
-const TABLES = {
+const TABLES: Record<string, string> = {
   tasks:
-    "id,title,description,status,priority,due_at,completed_at,archived_at,created_at",
-  events: "id,title,description,start_at,end_at,all_day,location,created_at",
-  reminders: "id,target_type,target_id,remind_at,status,created_at",
+    "id,title,description,creator_id,owner_id,household_id,visibility,status,priority,due_at,completed_at,archived_at,created_at,updated_at",
+  task_assignees: "id,task_id,assignee_id,created_at",
+  task_recurrences:
+    "id,task_id,frequency,interval_days,weekdays,next_occurrence_at,created_at,updated_at",
+  events:
+    "id,title,description,creator_id,owner_id,household_id,visibility,start_at,end_at,all_day,location,created_at,updated_at",
+  reminders:
+    "id,target_type,target_id,user_id,household_id,remind_at,status,snoozed_until,snooze_count,delivered_at,created_at,updated_at",
+  notification_preferences:
+    "id,user_id,in_app_enabled,web_push_enabled,quiet_hours_enabled,quiet_hours_start,quiet_hours_end,created_at,updated_at",
   chores:
-    "id,title,description,frequency,next_due_at,is_active,archived_at,created_at",
-  chore_completions: "id,chore_id,completed_by,completed_at,due_at,note",
-  shopping_lists: "id,name,created_at",
-  shopping_items: "id,list_id,name,quantity,purchased,created_at",
+    "id,household_id,title,description,created_by,rotation_mode,current_rotation_index,frequency,interval_days,weekdays,next_due_at,is_active,archived_at,created_at,updated_at",
+  chore_rotation_steps: "id,chore_id,position,assignee_id,created_at",
+  chore_completions:
+    "id,chore_id,completed_by,completed_at,due_at,note,created_at",
+  shopping_lists:
+    "id,household_id,name,created_by,archived_at,created_at,updated_at",
+  shopping_items:
+    "id,list_id,name,quantity,unit,category,note,added_by,purchased,purchased_by,purchased_at,position,created_at,updated_at",
   financial_records:
-    "id,record_type,title,amount,currency,category,note,occurred_at,due_at,paid_at,archived_at",
+    "id,household_id,owner_id,created_by,visibility,record_type,title,amount,currency,category,note,occurred_at,due_at,bill_status,is_recurring,recurrence_rule,paid_by,paid_at,archived_at,created_at,updated_at",
   documents:
-    "id,title,description,visibility,category,mime_type,file_size,storage_path,created_at",
-} as const;
+    "id,household_id,created_by,title,description,visibility,category,mime_type,file_size,storage_path,created_at,updated_at",
+  document_attachments:
+    "id,document_id,entity_type,entity_id,created_by,created_at",
+};
 
 /** Explicit columns, JWT/RLS, stable pagination; never silently exports a partial table. */
 async function readTable(
