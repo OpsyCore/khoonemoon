@@ -508,3 +508,9 @@ do $$ begin
     raise exception 'financial_records must be published for realtime';
   end if;
 end $$;
+
+do $$ begin
+  if not exists (select 1 from pg_constraint where conrelid = 'public.documents'::regclass and conname = 'documents_category_check') then
+    raise exception 'document categories must be constrained';
+  end if;
+end $$;

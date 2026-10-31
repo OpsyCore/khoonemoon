@@ -213,3 +213,267 @@ main {
   color: #59633a;
   font-weight: 700;
 }
+
+/* Warm paper journal: inspired by the supplied archive illustration. */
+:root {
+  --paper: #f4eddd;
+  --paper-card: #faf5e9;
+  --paper-line: #d5c8ae;
+  --paper-ink: #36281e;
+  --olive: #7e8657;
+}
+body {
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(
+      circle at 13% 9%,
+      rgba(255, 255, 255, 0.66),
+      transparent 27%
+    ),
+    repeating-linear-gradient(
+      92deg,
+      rgba(106, 79, 44, 0.015) 0 1px,
+      transparent 1px 6px
+    );
+}
+main {
+  max-width: 35rem;
+}
+header {
+  border-bottom: 1px solid #d8ccb8;
+  padding: 1.2rem 0.3rem 0.8rem;
+  position: relative;
+}
+header h1 {
+  font-size: 1.65rem;
+  color: #302118;
+}
+header p {
+  margin: 0.2rem 0;
+  font-size: 0.8rem;
+  color: #867b6a;
+}
+section {
+  background: linear-gradient(165deg, #fcf8ee, #f6f0e3);
+  border: 1px solid #d9ccb5;
+  border-radius: 0.65rem;
+  box-shadow:
+    0 3px 8px #6955391a,
+    0 12px 22px #84694412;
+}
+section h2,
+section h3 {
+  color: #38271c;
+}
+input,
+select {
+  background: #f7f1e5;
+  border: 1px solid #cdbfa6;
+  border-radius: 0.55rem;
+}
+button:not(.calendar-day) {
+  border-radius: 0.6rem;
+}
+.bottom-nav {
+  display: flex;
+  overflow-x: auto;
+  justify-content: space-between;
+  width: min(100%, 36rem);
+  border-radius: 0.8rem 0.8rem 0 0;
+  background: linear-gradient(#fbf6e9, #eee5d1);
+  border-color: #cbbda6;
+}
+.bottom-nav button:not(.calendar-day) {
+  flex: 1 0 3rem;
+  border-radius: 0.3rem;
+  font-size: 0.62rem;
+}
+.bottom-nav button[aria-current="page"] {
+  background: #7d8556;
+  color: #fffdf5;
+}
+.documents-page {
+  position: relative;
+  padding-top: 0.3rem;
+}
+.documents-heading {
+  min-height: 11rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 1.1rem 0.5rem;
+  position: relative;
+}
+.documents-heading::before {
+  content: "";
+  position: absolute;
+  width: 6rem;
+  height: 10rem;
+  left: 0;
+  top: 0;
+  background: url("../public/botanical.png") center/contain no-repeat;
+  mix-blend-mode: multiply;
+  opacity: 0.75;
+  pointer-events: none;
+}
+.documents-heading > div {
+  position: relative;
+  flex: 1;
+  text-align: center;
+  padding-left: 4rem;
+}
+.documents-heading h2 {
+  margin: 0.2rem 0;
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: #322117;
+}
+.documents-heading h2 span {
+  font-weight: 400;
+  color: #93836b;
+  font-size: 1.1rem;
+}
+.documents-heading p {
+  margin: 0.2rem 0;
+  color: #8b7b67;
+  font-size: 0.8rem;
+}
+.overline {
+  color: #a89a84;
+  font-size: 0.68rem;
+}
+.document-add {
+  flex: 0 0 4.7rem;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  background: transparent;
+  color: #3c2d21;
+  gap: 0.5rem;
+  padding: 0.2rem;
+}
+.document-add svg {
+  border: 1.5px solid #443326;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  padding: 0.7rem;
+  background: #f4ebd9;
+  box-shadow:
+    0 0 0 6px #e6d8bf,
+    0 3px 9px #6e593d3d;
+}
+.document-add small {
+  font-size: 0.64rem;
+  white-space: nowrap;
+}
+.document-tabs {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  padding-top: 0.5rem;
+  scrollbar-width: none;
+}
+.document-tabs button:not(.calendar-day) {
+  flex: 1 0 auto;
+  border-radius: 0.4rem 0.4rem 0 0;
+  min-height: 2.4rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.76rem;
+  color: #685a4b;
+  background: #f2ebdc;
+  border: 1px solid #d3c5ab;
+  border-bottom: 0;
+}
+.document-tabs button[aria-selected="true"] {
+  background: #7d8556;
+  color: #fffdf4;
+}
+.document-card {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.8rem;
+  min-height: 8rem;
+  margin: 0 0 0.42rem;
+  padding: 0.9rem 1rem;
+  background: linear-gradient(155deg, #fcf8ed, #f7f0e3);
+  border: 1px solid #d7c9af;
+  border-radius: 0.35rem;
+  box-shadow: 0 3px 6px #70573a20;
+}
+.document-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.45rem;
+  overflow-wrap: anywhere;
+}
+.document-copy strong {
+  font-size: 1rem;
+  color: #33251d;
+}
+.document-copy small {
+  color: #9a8d79;
+  font-size: 0.69rem;
+}
+.document-category {
+  color: #8a9068;
+  font-size: 0.75rem;
+}
+.document-icon {
+  width: 4.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px dashed #d8cbb5;
+  color: #584633;
+}
+.document-icon span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.document-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.document-actions button:not(.calendar-day) {
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.7rem;
+}
+.paper-note {
+  max-width: 19rem;
+  margin: 2rem auto;
+  padding: 1.4rem 1rem;
+  position: relative;
+  text-align: center;
+  color: #8b7c68;
+  background: repeating-linear-gradient(#f9f3e6 0 26px, #eadfcb 27px 28px);
+  box-shadow: 0 4px 9px #6a56372b;
+  transform: rotate(-1deg);
+}
+.paper-note::before {
+  content: "";
+  position: absolute;
+  width: 6rem;
+  height: 1rem;
+  top: -0.5rem;
+  left: 38%;
+  background: #d8c4a4a8;
+  transform: rotate(3deg);
+}
+.paper-note p {
+  margin: 0.3rem 0;
+  font-size: 0.8rem;
+}

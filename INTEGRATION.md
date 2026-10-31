@@ -23,3 +23,7 @@ automatic creation of the next task on completion uses migration `0015_recurring
 ### Mobile shopping and finance
 
 The independent mobile UI includes shopping and financial record flows using the current user's JWT and RLS. The finance realtime publication migration `0016_finance_realtime.sql` has been applied to project `isfzuxrkzeeeggvfcoah`; shopping lists, shopping items, and financial records are in `supabase_realtime`. A foreground and periodic refresh covers missed events, including deletes. Realtime delivery and the interface have not yet been exercised end-to-end with two real accounts or on Android. Reports and settlement are restricted to the chosen currency; settlement is an estimate for current household members, not a recorded payment. Financial recurrence is only a flag and does not create future records. The independent mobile UI is not yet packaged in the Android wrapper. The user-facing Android build and real-device testing remain in the integration phase.
+
+### Document screen — not yet deployed
+
+The paper-styled mobile document screen and direct client are in progress. Production has neither `documents` nor `document_attachments`; migrations 0011 and 0017 have NOT been applied there. Uploading, signed URL handling, access control and cross-account isolation need a real Supabase Storage/RLS test before this feature is treated as ready. Deletion and entity links are not yet implemented on mobile; background Android reminder notifications are also still missing. Do not distribute an APK as a completed documents feature.

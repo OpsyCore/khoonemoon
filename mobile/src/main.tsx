@@ -10,8 +10,10 @@ import {
   Wallet,
   UserRound,
   Bell,
+  FolderOpen,
 } from "lucide-react";
 import { createRoot } from "react-dom/client";
+import { Documents } from "./documents";
 import { Reminders } from "./reminders";
 import { Shopping } from "./shopping";
 import { signupSchema } from "@/features/auth/schemas";
@@ -39,6 +41,7 @@ function App() {
     | "finance"
     | "profile"
     | "reminders"
+    | "documents"
   >("tasks");
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(!client);
@@ -308,6 +311,13 @@ function App() {
               householdId={household ?? null}
             />
           )}
+          {page === "documents" && (
+            <Documents
+              key={`${session.user.id}:${household ?? "none"}`}
+              client={client}
+              householdId={household ?? null}
+            />
+          )}
           {page === "reminders" && (
             <Reminders key={session.user.id} client={client} />
           )}
@@ -343,6 +353,7 @@ function App() {
                 ["shopping", "خرید", ShoppingBasket],
                 ["finance", "مالی", Wallet],
                 ["house", "خانه", Home],
+                ["documents", "مدارک", FolderOpen],
                 ["reminders", "یادآور", Bell],
                 ["profile", "حساب", UserRound],
               ] as const
