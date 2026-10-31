@@ -11,6 +11,7 @@ declare global {
   interface Window {
     KhoonemoonNotifications?: {
       takeRecoveryCode: () => string | null;
+      saveExport?: (name: string, mime: string, content: string) => boolean;
       activate: (account: string) => boolean;
       backgroundCredential?: (account: string) => string | null;
       startBackground?: (account: string, id: string) => boolean;

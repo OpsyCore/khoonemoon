@@ -17,6 +17,9 @@ import { useMobileNotifications } from "./notifications";
 import { Documents } from "./documents";
 import { Reminders } from "./reminders";
 import { Shopping } from "./shopping";
+import { Search } from "./search";
+import { ExportData } from "./export";
+import { WeeklySummary } from "./weekly-summary";
 import { signupSchema } from "@/features/auth/schemas";
 import {
   ANDROID_RECOVERY_REDIRECT,
@@ -51,6 +54,7 @@ function App() {
     | "profile"
     | "reminders"
     | "documents"
+    | "search"
   >("tasks");
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(!client);
@@ -242,6 +246,15 @@ function App() {
       <header>
         <h1>خونه‌مون</h1>
         <p>نسخهٔ اندروید در حال ساخت</p>
+        {session && (
+          <button
+            className="minor"
+            type="button"
+            onClick={() => setPage("search")}
+          >
+            جستجو
+          </button>
+        )}
       </header>
 
       {message && (
@@ -437,6 +450,9 @@ function App() {
             </section>
           )}
           {page === "tasks" && (
+            <WeeklySummary key={`weekly:${session.user.id}`} client={client} />
+          )}
+          {page === "tasks" && (
             <Tasks
               key={`${session.user.id}:${household ?? "none"}`}
               client={client}
@@ -453,6 +469,9 @@ function App() {
               householdId={household ?? null}
             />
           )}
+          {page === "search" && (
+            <Search key={session.user.id} client={client} />
+          )}
           {page === "documents" && (
             <Documents
               key={`${session.user.id}:${household ?? "none"}`}
@@ -468,7 +487,10 @@ function App() {
             />
           )}
           {page === "profile" && (
-            <Profile key={session.user.id} client={client} />
+            <>
+              <Profile key={session.user.id} client={client} />
+              <ExportData key={`export:${session.user.id}`} client={client} />
+            </>
           )}
           {page === "calendar" && (
             <CalendarEvents

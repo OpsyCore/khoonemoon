@@ -29,9 +29,11 @@ public class MainActivity extends Activity {
     private static final String HOST = "appassets.androidplatform.net";
     private static final String HOME = "https://" + HOST + "/assets/index.html";
     private static final int FILE_REQUEST = 101;
+    private static final int EXPORT_REQUEST = 103;
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
     private String pendingRecoveryCode;
+    private byte[] pendingExport;
 
     private boolean isLocal(Uri uri) {
         return uri != null && "https".equalsIgnoreCase(uri.getScheme())
@@ -179,6 +181,27 @@ public class MainActivity extends Activity {
                 ReminderScheduler.clear(MainActivity.this);
             }
         }
+        @JavascriptInterface public boolean saveExport(String name, String mime, String content) {
+            if (name == null || !name.matches("khoonemoon-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.(json|csv)") ||
+                !("application/json".equals(mime) || "text/csv".equals(mime)) || content == null) return false;
+            byte[] bytes = content.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            if (bytes.length > 8 * 1024 * 1024) return false;
+            synchronized (MainActivity.this) {
+                if (pendingExport != null) return false;
+                pendingExport = bytes;
+            }
+            runOnUiThread(() -> {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                        .setType(mime).putExtra(Intent.EXTRA_TITLE, name);
+                    startActivityForResult(intent, EXPORT_REQUEST);
+                } catch (ActivityNotFoundException e) {
+                    synchronized (MainActivity.this) { pendingExport = null; }
+                    Toast.makeText(MainActivity.this, "ذخیره فایل در دسترس نیست", Toast.LENGTH_LONG).show();
+                }
+            });
+            return true;
+        }
         @JavascriptInterface public boolean enabled() {
             android.app.NotificationManager manager = (android.app.NotificationManager)getSystemService(NOTIFICATION_SERVICE);
             boolean permission = Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
@@ -197,6 +220,25 @@ public class MainActivity extends Activity {
     }
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == EXPORT_REQUEST) {
+            byte[] bytes;
+            synchronized (this) { bytes = pendingExport; pendingExport = null; }
+            Uri target = data == null ? null : data.getData();
+            if (resultCode == RESULT_OK && target != null && bytes == null) {
+                Toast.makeText(this, "فایل آماده نیست؛ دوباره خروجی بگیرید", Toast.LENGTH_LONG).show();
+            }
+            if (resultCode == RESULT_OK && target != null && bytes != null) {
+                new Thread(() -> {
+                    boolean saved = false;
+                    try (java.io.OutputStream out = getContentResolver().openOutputStream(target, "w")) {
+                        if (out != null) { out.write(bytes); out.flush(); saved = true; }
+                    } catch (Exception ignored) { }
+                    final boolean success = saved;
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, success ? "فایل ذخیره شد" : "ذخیره فایل ناموفق بود", Toast.LENGTH_LONG).show());
+                }).start();
+            }
+            return;
+        }
         if (requestCode == FILE_REQUEST && fileCallback != null) {
             fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
             fileCallback = null;

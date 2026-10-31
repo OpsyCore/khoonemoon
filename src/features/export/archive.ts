@@ -29,7 +29,13 @@ export type CsvColumn<T> = {
 export function csvEscape(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return "";
 
-  const text = String(value);
+  // Spreadsheet applications may execute text beginning with a formula marker.
+  // Neutralize text fields only; genuine numeric values keep their numeric type.
+  const raw = String(value);
+  const text =
+    typeof value === "string" && /^[\s\u0000-\u001f]*[=+@-]/.test(raw)
+      ? `'${raw}`
+      : raw;
 
   if (/[",\n\r]/.test(text)) {
     return `"${text.replace(/"/g, '""')}"`;

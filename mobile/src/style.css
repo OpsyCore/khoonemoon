@@ -477,3 +477,14 @@ button:not(.calendar-day) {
   margin: 0.3rem 0;
   font-size: 0.8rem;
 }
+
+.search-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.7rem 0;
+}
+.search-filters button[aria-pressed="true"] {
+  background: #7c8253;
+  color: white;
+}
