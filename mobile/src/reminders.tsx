@@ -13,7 +13,10 @@ import {
   buildReminderInbox,
   type ReminderState,
 } from "@/features/reminders/inbox";
-import type { ReminderRecord } from "@/features/reminders/types";
+import type {
+  ReminderRecord,
+  ReminderPreferenceRecord,
+} from "@/features/reminders/types";
 
 const labels: Record<ReminderState, string> = {
   DUE: "سررسیده",
@@ -23,7 +26,13 @@ const labels: Record<ReminderState, string> = {
   CANCELED: "لغوشده",
 };
 type Target = { id: string; title: string; date: string | null };
-export function Reminders({ client }: { client: SupabaseClient }) {
+export function Reminders({
+  client,
+  notificationStatus,
+}: {
+  client: SupabaseClient;
+  notificationStatus: string;
+}) {
   const api = useMemo(() => directReminders(client), [client]);
   const [rows, setRows] = useState<ReminderRecord[]>([]);
   const [tasks, setTasks] = useState<Target[]>([]);
@@ -34,6 +43,12 @@ export function Reminders({ client }: { client: SupabaseClient }) {
   const [offset, setOffset] = useState("0");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [prefs, setPrefs] = useState<ReminderPreferenceRecord | null>(null);
+  const [prefsReady, setPrefsReady] = useState(false);
+  const [enabled, setEnabled] = useState(true);
+  const [quiet, setQuiet] = useState(false);
+  const [quietStart, setQuietStart] = useState("22:00");
+  const [quietEnd, setQuietEnd] = useState("08:00");
   const load = useCallback(async () => {
     const [r, t, e] = await Promise.all([
       api.list(),
@@ -67,6 +82,26 @@ export function Reminders({ client }: { client: SupabaseClient }) {
       document.removeEventListener("visibilitychange", visible);
     };
   }, [load]);
+  useEffect(() => {
+    let active = true;
+    void api
+      .preferences()
+      .then((value) => {
+        if (!active) return;
+        setPrefs(value);
+        setEnabled(value?.in_app_enabled ?? true);
+        setQuiet(value?.quiet_hours_enabled ?? false);
+        setQuietStart(value?.quiet_hours_start ?? "22:00");
+        setQuietEnd(value?.quiet_hours_end ?? "08:00");
+        setPrefsReady(true);
+      })
+      .catch(() => {
+        if (active) setMessage("دریافت تنظیمات یادآور ناموفق بود.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [api]);
   const inbox = buildReminderInbox({
     reminders: rows,
     tasks,
@@ -97,6 +132,7 @@ export function Reminders({ client }: { client: SupabaseClient }) {
       });
       setTarget("");
       setDate("");
+      window.dispatchEvent(new Event("khoonemoon:reminders-changed"));
       try {
         await load();
       } catch {
@@ -108,14 +144,96 @@ export function Reminders({ client }: { client: SupabaseClient }) {
     <section>
       <h2>یادآورها</h2>
       <p>
-        فعلاً یادآورها داخل برنامه دیده می‌شوند؛ اعلان پس‌زمینه اندروید هنوز
-        فعال نشده است.
+        {window.KhoonemoonNotifications
+          ? notificationStatus || "در حال بررسی اعلان‌ها…"
+          : "اعلان اندروید در این مرورگر در دسترس نیست."}
       </p>
+      {window.KhoonemoonNotifications && (
+        <>
+          <button
+            type="button"
+            className="minor"
+            onClick={() => window.KhoonemoonNotifications?.request()}
+          >
+            مجوز و تنظیمات اعلان
+          </button>
+          <p>
+            اعلان‌های دریافت‌شده روی این گوشی زمان‌بندی می‌شوند. تغییرات دستگاه
+            دیگر تا بازگشت به برنامه همگام نمی‌شوند؛ ممکن است اندروید اعلان را
+            با تأخیر نشان دهد.
+          </p>
+        </>
+      )}
       {message && (
         <p role="alert" className="error">
           {message}
         </p>
       )}
+      <details>
+        <summary>تنظیمات یادآور و ساعات سکوت</summary>
+        {prefsReady ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void action(async () => {
+                await api.savePreferences({
+                  inAppEnabled: enabled,
+                  webPushEnabled: prefs?.web_push_enabled ?? false,
+                  quietHoursEnabled: quiet,
+                  quietHoursStart: quiet ? quietStart : null,
+                  quietHoursEnd: quiet ? quietEnd : null,
+                });
+                window.dispatchEvent(new Event("khoonemoon:reminders-changed"));
+              });
+            }}
+          >
+            <label className="item">
+              <input
+                type="checkbox"
+                checked={enabled}
+                onChange={(e) => setEnabled(e.target.checked)}
+              />{" "}
+              فعال بودن یادآوری در برنامه و اعلان محلی
+            </label>
+            <label className="item">
+              <input
+                type="checkbox"
+                checked={quiet}
+                onChange={(e) => setQuiet(e.target.checked)}
+              />{" "}
+              ساعات سکوت
+            </label>
+            {quiet && (
+              <>
+                <label>
+                  از ساعت
+                  <input
+                    type="time"
+                    required
+                    value={quietStart}
+                    onChange={(e) => setQuietStart(e.target.value)}
+                  />
+                </label>
+                <label>
+                  تا ساعت
+                  <input
+                    type="time"
+                    required
+                    value={quietEnd}
+                    onChange={(e) => setQuietEnd(e.target.value)}
+                  />
+                </label>
+                <small>
+                  یادآوری به پایان ساعت سکوت طبق ساعت گوشی موکول می‌شود.
+                </small>
+              </>
+            )}
+            <button disabled={busy}>ذخیره تنظیمات</button>
+          </form>
+        ) : (
+          <p>تنظیمات در دسترس نیست؛ اتصال را بررسی کنید.</p>
+        )}
+      </details>
       <form onSubmit={save}>
         <h3>یادآور جدید</h3>
         <label>
@@ -212,6 +330,9 @@ export function Reminders({ client }: { client: SupabaseClient }) {
                       onClick={() =>
                         void action(async () => {
                           await api.snooze(entry.id, 15);
+                          window.dispatchEvent(
+                            new Event("khoonemoon:reminders-changed"),
+                          );
                           await load();
                         })
                       }
@@ -226,6 +347,9 @@ export function Reminders({ client }: { client: SupabaseClient }) {
                       if (window.confirm("این یادآور حذف شود؟"))
                         void action(async () => {
                           await api.remove(entry.id);
+                          window.dispatchEvent(
+                            new Event("khoonemoon:reminders-changed"),
+                          );
                           await load();
                         });
                     }}

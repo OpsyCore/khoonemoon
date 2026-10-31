@@ -13,6 +13,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { createRoot } from "react-dom/client";
+import { useMobileNotifications } from "./notifications";
 import { Documents } from "./documents";
 import { Reminders } from "./reminders";
 import { Shopping } from "./shopping";
@@ -77,6 +78,7 @@ function App() {
   }, []);
 
   const userId = session?.user.id;
+  const notificationStatus = useMobileNotifications(client, userId, ready);
 
   useEffect(() => {
     // Clear the previous account’s data before loading the next account.
@@ -319,7 +321,11 @@ function App() {
             />
           )}
           {page === "reminders" && (
-            <Reminders key={session.user.id} client={client} />
+            <Reminders
+              key={session.user.id}
+              client={client}
+              notificationStatus={notificationStatus}
+            />
           )}
           {page === "profile" && (
             <Profile key={session.user.id} client={client} />

@@ -1,7 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { applySnooze, buildReminderTimes } from "./calculations";
-import { createRemindersSchema, snoozeReminderSchema } from "./schemas";
-import type { ReminderRecord } from "./types";
+import {
+  createRemindersSchema,
+  snoozeReminderSchema,
+  reminderPreferencesSchema,
+} from "./schemas";
+import type { ReminderRecord, ReminderPreferenceRecord } from "./types";
 
 const COLUMNS =
   "id, target_type, target_id, user_id, household_id, remind_at, status, snoozed_until, snooze_count, delivered_at, created_at, updated_at";
@@ -28,6 +32,34 @@ export function directReminders(client: SupabaseClient) {
         if (rows.length >= 10000)
           throw new Error("تعداد یادآورها بیش از حد مجاز است.");
       }
+    },
+    async preferences(): Promise<ReminderPreferenceRecord | null> {
+      const user = await currentUser(client);
+      const { data, error } = await client
+        .from("notification_preferences")
+        .select(
+          "id,user_id,in_app_enabled,web_push_enabled,quiet_hours_enabled,quiet_hours_start,quiet_hours_end,created_at,updated_at",
+        )
+        .eq("user_id", user)
+        .maybeSingle();
+      if (error) throw new Error("دریافت تنظیمات یادآور ناموفق بود.");
+      return data as ReminderPreferenceRecord | null;
+    },
+    async savePreferences(input: unknown): Promise<void> {
+      const value = reminderPreferencesSchema.parse(input);
+      const user = await currentUser(client);
+      const { error } = await client.from("notification_preferences").upsert(
+        {
+          user_id: user,
+          in_app_enabled: value.inAppEnabled,
+          web_push_enabled: value.webPushEnabled,
+          quiet_hours_enabled: value.quietHoursEnabled,
+          quiet_hours_start: value.quietHoursStart ?? null,
+          quiet_hours_end: value.quietHoursEnd ?? null,
+        },
+        { onConflict: "user_id" },
+      );
+      if (error) throw new Error("ذخیره تنظیمات یادآور ناموفق بود.");
     },
     async create(input: unknown): Promise<void> {
       const parsed = createRemindersSchema.parse(input);

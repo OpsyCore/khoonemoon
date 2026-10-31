@@ -1,6 +1,10 @@
 package app.khoonemoon.mobile;
 
+import android.Manifest;
 import android.app.Activity;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.webkit.JavascriptInterface;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
@@ -41,6 +45,7 @@ public class MainActivity extends Activity {
         WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this)).build();
         webView = new WebView(this);
+        webView.addJavascriptInterface(new NotificationBridge(), "KhoonemoonNotifications");
         setContentView(webView);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -105,6 +110,26 @@ public class MainActivity extends Activity {
         if (state != null) webView.restoreState(state);
         else webView.loadUrl(HOME);
     }
+    public final class NotificationBridge {
+        @JavascriptInterface public boolean activate(String account) { return ReminderScheduler.activate(MainActivity.this, account); }
+        @JavascriptInterface public boolean sync(String account, String rows) { return ReminderScheduler.replace(MainActivity.this, account, rows); }
+        @JavascriptInterface public void clear() { ReminderScheduler.clear(MainActivity.this); }
+        @JavascriptInterface public boolean enabled() {
+            android.app.NotificationManager manager = (android.app.NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+            boolean permission = Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+            return permission && manager.areNotificationsEnabled();
+        }
+        @JavascriptInterface public void request() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+                    requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 102);
+                else {
+                    Intent settings = new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName());
+                    try { startActivity(settings); } catch (ActivityNotFoundException ignored) { Toast.makeText(MainActivity.this, "تنظیمات اعلان در دسترس نیست", Toast.LENGTH_SHORT).show(); }
+                }
+            });
+        }
+    }
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == FILE_REQUEST && fileCallback != null) {
@@ -122,6 +147,7 @@ public class MainActivity extends Activity {
     }
     @Override protected void onDestroy() {
         if (fileCallback != null) fileCallback.onReceiveValue(null);
+        webView.removeJavascriptInterface("KhoonemoonNotifications");
         webView.destroy();
         super.onDestroy();
     }
