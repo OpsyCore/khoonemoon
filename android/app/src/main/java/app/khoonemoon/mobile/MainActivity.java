@@ -137,9 +137,48 @@ public class MainActivity extends Activity {
                 return code;
             }
         }
-        @JavascriptInterface public boolean activate(String account) { return ReminderScheduler.activate(MainActivity.this, account); }
+        @JavascriptInterface public boolean activate(String account) {
+            synchronized (BackgroundCredential.class) {
+                if (account == null) return false;
+                org.json.JSONObject existing = BackgroundCredential.get(MainActivity.this);
+                if (existing != null && !account.equals(existing.optString("account"))) {
+                    ReminderSyncWorker.cancel(MainActivity.this);
+                    BackgroundCredential.clear(MainActivity.this);
+                }
+                return ReminderScheduler.activate(MainActivity.this, account);
+            }
+        }
+        @JavascriptInterface public String backgroundCredential(String account) {
+            synchronized (BackgroundCredential.class) {
+                if (!ReminderScheduler.isAccount(MainActivity.this, account)) return null;
+                org.json.JSONObject credential = BackgroundCredential.getOrCreate(MainActivity.this, account);
+                return credential == null ? null : credential.toString();
+            }
+        }
+        @JavascriptInterface public boolean startBackground(String account, String id) {
+            synchronized (BackgroundCredential.class) {
+                if (!BackgroundCredential.isCurrent(MainActivity.this, id, account) || !ReminderScheduler.isAccount(MainActivity.this, account)) return false;
+                ReminderSyncWorker.enable(MainActivity.this);
+                return true;
+            }
+        }
+        @JavascriptInterface public String stopBackground() {
+            synchronized (BackgroundCredential.class) {
+                org.json.JSONObject existing = BackgroundCredential.get(MainActivity.this);
+                String id = existing == null ? null : existing.optString("id", null);
+                ReminderSyncWorker.cancel(MainActivity.this);
+                BackgroundCredential.clear(MainActivity.this);
+                return id;
+            }
+        }
         @JavascriptInterface public boolean sync(String account, String rows) { return ReminderScheduler.replace(MainActivity.this, account, rows); }
-        @JavascriptInterface public void clear() { ReminderScheduler.clear(MainActivity.this); }
+        @JavascriptInterface public void clear() {
+            synchronized (BackgroundCredential.class) {
+                ReminderSyncWorker.cancel(MainActivity.this);
+                BackgroundCredential.clear(MainActivity.this);
+                ReminderScheduler.clear(MainActivity.this);
+            }
+        }
         @JavascriptInterface public boolean enabled() {
             android.app.NotificationManager manager = (android.app.NotificationManager)getSystemService(NOTIFICATION_SERVICE);
             boolean permission = Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;

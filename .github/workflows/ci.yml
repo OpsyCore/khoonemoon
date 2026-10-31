@@ -142,3 +142,31 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: build-time-placeholder
           NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+  android-compile:
+    name: Android compile and quiet-hours tests (no APK)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Test native quiet hours
+        run: bash scripts/test-android-quiet-hours.sh
+      - name: Build mobile assets
+        run: npm ci --legacy-peer-deps && npm run mobile:build
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_test
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Compile Android code without producing APK
+        working-directory: android
+        run: gradle --no-daemon :app:compileDebugJavaWithJavac

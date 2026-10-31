@@ -482,6 +482,18 @@ function App() {
               disabled={busy}
               onClick={() =>
                 void action(async () => {
+                  const deviceId =
+                    window.KhoonemoonNotifications?.stopBackground?.();
+                  if (deviceId) {
+                    // Offline sign-out still clears the local credential. The
+                    // server credential expires after 30 days if revocation fails.
+                    await Promise.race([
+                      client.rpc("revoke_reminder_device", { p_id: deviceId }),
+                      new Promise((resolve) =>
+                        window.setTimeout(resolve, 4000),
+                      ),
+                    ]).catch(() => {});
+                  }
                   const { error } = await client.auth.signOut();
                   if (error) throw error;
                 })

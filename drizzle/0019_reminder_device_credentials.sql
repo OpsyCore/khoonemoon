@@ -47,8 +47,8 @@ begin
   select count(*) into v_count from public.reminders
     where user_id = v_user and status in ('PENDING','SNOOZED') and delivered_at is null;
   if v_count > 10000 then raise exception 'Too many reminders'; end if;
-  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'at',
-    case when status = 'SNOOZED' and snoozed_until is not null then snoozed_until else remind_at end)), '[]'::jsonb)
+  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'at_ms',
+    (extract(epoch from (case when status = 'SNOOZED' and snoozed_until is not null then snoozed_until else remind_at end)) * 1000)::bigint)), '[]'::jsonb)
     into v_rows from public.reminders
     where user_id = v_user and status in ('PENDING','SNOOZED') and delivered_at is null;
   select jsonb_build_object('enabled', in_app_enabled, 'quiet_enabled', quiet_hours_enabled,

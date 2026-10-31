@@ -45,14 +45,28 @@ final class ReminderScheduler {
                 JSONObject entry = incoming.getJSONObject(i);
                 String id = entry.getString("id"); long at = entry.getLong("at");
                 if (!id.matches("[0-9a-fA-F-]{36}") || at <= 0) return false;
-                if (at > now) valid.put(new JSONObject().put("id",id).put("at",at));
+                long source = entry.optLong("source", at);
+                if (source <= 0) return false;
+                if (at > now) valid.put(new JSONObject().put("id",id).put("at",at).put("source",source));
             }
             SharedPreferences p = prefs(context);
-            if (!account.equals(p.getString("account", ""))) clear(context);
-            p.edit().putString("account",account).putString("pending",valid.toString()).apply();
+            if (!account.equals(p.getString("account", ""))) return false;
+            p.edit().putString("pending",valid.toString()).putLong("revision",p.getLong("revision",0)+1).apply();
             schedule(context);
             return true;
         } catch (JSONException e) { return false; }
+    }
+    static synchronized boolean isAccount(Context context, String account) {
+        return account != null && account.equals(prefs(context).getString("account", ""));
+    }
+    static synchronized long revision(Context context) { return prefs(context).getLong("revision", 0); }
+    static synchronized boolean replaceIfUnchanged(Context context, String account, String raw, long revision) {
+        if (revision != revision(context)) return false;
+        return replace(context, account, raw);
+    }
+    static synchronized JSONObject delivered(Context context) {
+        try { return new JSONObject(prefs(context).getString("delivered", "{}")); }
+        catch (JSONException e) { return new JSONObject(); }
     }
     static synchronized void clear(Context context) {
         ((AlarmManager)context.getSystemService(Context.ALARM_SERVICE)).cancel(alarmIntent(context));
@@ -72,12 +86,19 @@ final class ReminderScheduler {
     static synchronized void fire(Context context) {
         try {
             JSONArray rows = new JSONArray(prefs(context).getString("pending","[]"));
-            JSONArray remaining = new JSONArray(); long now=System.currentTimeMillis(); int due=0;
+            JSONArray remaining = new JSONArray(); JSONObject delivered = delivered(context);
+            if (delivered.length() > 10000) delivered = new JSONObject();
+            long now=System.currentTimeMillis(); int due=0;
             for (int i=0;i<rows.length();i++) {
                 JSONObject row=rows.getJSONObject(i);
-                if (row.getLong("at") <= now + 1000) due++; else remaining.put(row);
+                if (row.getLong("at") <= now + 1000) {
+                    due++;
+                    delivered.put(row.getString("id"), row.optLong("source", row.getLong("at")));
+                } else remaining.put(row);
             }
-            prefs(context).edit().putString("pending",remaining.toString()).apply();
+            SharedPreferences p = prefs(context);
+            p.edit().putString("pending",remaining.toString()).putString("delivered",delivered.toString())
+                .putLong("revision",p.getLong("revision",0)+1).apply();
             if (due>0) show(context, due);
             schedule(context);
         } catch (JSONException ignored) { clear(context); }

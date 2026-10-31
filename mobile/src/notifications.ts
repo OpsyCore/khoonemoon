@@ -5,12 +5,16 @@ import type {
   ReminderPreferenceRecord,
 } from "@/features/reminders/types";
 import { directReminders } from "@/features/reminders/direct-client";
+import { registerBackgroundReminderDevice } from "./background-reminders";
 
 declare global {
   interface Window {
     KhoonemoonNotifications?: {
       takeRecoveryCode: () => string | null;
       activate: (account: string) => boolean;
+      backgroundCredential?: (account: string) => string | null;
+      startBackground?: (account: string, id: string) => boolean;
+      stopBackground?: () => string | null;
       sync: (account: string, rows: string) => boolean;
       clear: () => void;
       enabled: () => boolean;
@@ -96,6 +100,37 @@ export function useMobileNotifications(
     if (!bridge.activate(userId)) return;
     let alive = true;
     let sequence = 0;
+    let backgroundAvailable: boolean | null = null;
+    let currentStatus = "";
+    const showStatus = () =>
+      setStatus(
+        backgroundAvailable === false
+          ? `${currentStatus} همگام‌سازی پس‌زمینه فعال نشد.`.trim()
+          : currentStatus,
+      );
+    // A dedicated read-only device credential avoids sharing the Supabase refresh token.
+    const registerBackground = async () => {
+      if (!bridge.backgroundCredential || !bridge.startBackground) return;
+      try {
+        await registerBackgroundReminderDevice(
+          client,
+          {
+            backgroundCredential: bridge.backgroundCredential,
+            startBackground: bridge.startBackground,
+          },
+          userId,
+          () => alive,
+        );
+        backgroundAvailable = true;
+        showStatus();
+      } catch {
+        if (alive) {
+          backgroundAvailable = false;
+          showStatus();
+        }
+      }
+    };
+    void registerBackground();
     const sync = async () => {
       const serial = ++sequence;
       try {
@@ -112,18 +147,19 @@ export function useMobileNotifications(
           )
         )
           throw new Error();
-        setStatus(
+        currentStatus =
           preferences && !preferences.in_app_enabled
             ? "اعلان‌های درون برنامه غیرفعال هستند."
             : bridge.enabled()
               ? "اعلان‌های محلی فعال هستند."
-              : "مجوز اعلان در اندروید فعال نیست.",
-        );
+              : "مجوز اعلان در اندروید فعال نیست.";
+        showStatus();
       } catch {
-        if (alive && serial === sequence)
-          setStatus(
-            "همگام‌سازی اعلان‌ها ناموفق بود؛ یادآورهای جدید ممکن است اعلام نشوند.",
-          );
+        if (alive && serial === sequence) {
+          currentStatus =
+            "همگام‌سازی اعلان‌ها ناموفق بود؛ یادآورهای جدید ممکن است اعلام نشوند.";
+          showStatus();
+        }
       }
     };
     const visible = () => {
