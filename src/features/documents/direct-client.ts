@@ -147,10 +147,8 @@ export function directDocuments(client: SupabaseClient) {
       if (error || !data) throw new Error("ویرایش مدرک ناموفق بود.");
     },
     async remove(record: MobileDocument) {
-      const deleted = await client.storage
-        .from(DOCUMENT_BUCKET)
-        .remove([record.storage_path]);
-      if (deleted.error) throw new Error("حذف فایل ناموفق بود؛ مدرک حذف نشد.");
+      // Confirm metadata deletion before deleting the file. If the DB response
+      // is lost, preserve the file: the row may still exist.
       const { data, error } = await client
         .from("documents")
         .delete()
@@ -159,7 +157,14 @@ export function directDocuments(client: SupabaseClient) {
         .maybeSingle();
       if (error || !data)
         throw new Error(
-          "فایل حذف شد اما حذف اطلاعات مدرک ناموفق بود؛ دوباره تلاش کنید.",
+          "وضعیت حذف مدرک نامشخص است؛ فهرست را تازه‌سازی کنید. فایل نگه داشته شد.",
+        );
+      const deleted = await client.storage
+        .from(DOCUMENT_BUCKET)
+        .remove([record.storage_path]);
+      if (deleted.error)
+        throw new Error(
+          "اطلاعات مدرک حذف شد اما حذف فایل تأیید نشد؛ فایل ممکن است در فضای ذخیره‌سازی باقی مانده باشد.",
         );
     },
     async attachments(id: string): Promise<DocumentAttachment[]> {

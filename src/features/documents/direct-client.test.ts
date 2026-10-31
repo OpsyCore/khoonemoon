@@ -141,31 +141,51 @@ describe("document removal safety", () => {
     id: "document-1",
     storage_path: "user/me/document/file.pdf",
   } as never;
-  it("does not delete metadata when storage deletion fails", async () => {
-    const remove = vi.fn().mockResolvedValue({ error: { message: "denied" } });
-    const from = vi.fn();
-    const api = directDocuments({
-      storage: { from: () => ({ remove }) },
-      from,
-    } as never);
-    await expect(api.remove(row)).rejects.toThrow("مدرک حذف نشد");
-    expect(from).not.toHaveBeenCalled();
-  });
-  it("reports a partial failure if metadata deletion is denied", async () => {
-    const api = directDocuments({
-      storage: {
-        from: () => ({ remove: vi.fn().mockResolvedValue({ error: null }) }),
-      },
-      from: () => ({
-        delete: () => ({
-          eq: () => ({
-            select: () => ({
-              maybeSingle: () => Promise.resolve({ data: null, error: null }),
-            }),
-          }),
+  function setupRemoval(
+    result: { data: { id: string } | null; error: unknown },
+    storageError: unknown = null,
+  ) {
+    const remove = vi.fn().mockResolvedValue({ error: storageError });
+    const dbDelete = vi
+      .fn()
+      .mockReturnValue({
+        eq: () => ({
+          select: () => ({ maybeSingle: () => Promise.resolve(result) }),
         }),
-      }),
-    } as never);
-    await expect(api.remove(row)).rejects.toThrow("فایل حذف شد");
+      });
+    return {
+      remove,
+      dbDelete,
+      api: directDocuments({
+        storage: { from: () => ({ remove }) },
+        from: () => ({ delete: dbDelete }),
+      } as never),
+    };
+  }
+  it("does not delete the file unless metadata deletion is confirmed", async () => {
+    const { api, remove } = setupRemoval({
+      data: null,
+      error: { message: "network" },
+    });
+    await expect(api.remove(row)).rejects.toThrow("نامشخص");
+    expect(remove).not.toHaveBeenCalled();
+  });
+  it("deletes the file only after a confirmed metadata deletion", async () => {
+    const { api, remove, dbDelete } = setupRemoval({
+      data: { id: "document-1" },
+      error: null,
+    });
+    await api.remove(row);
+    expect(dbDelete.mock.invocationCallOrder[0]).toBeLessThan(
+      remove.mock.invocationCallOrder[0],
+    );
+    expect(remove).toHaveBeenCalledWith(["user/me/document/file.pdf"]);
+  });
+  it("reports an orphan risk when storage deletion fails", async () => {
+    const { api } = setupRemoval(
+      { data: { id: "document-1" }, error: null },
+      { message: "network" },
+    );
+    await expect(api.remove(row)).rejects.toThrow("ممکن است");
   });
 });

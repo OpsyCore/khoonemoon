@@ -435,7 +435,7 @@ describe("documents API CRUD and isolation", () => {
     expect(result.body.url).toBe("https://signed.example/bill.pdf");
   });
 
-  it("deletes storage before metadata and forbids cross-user delete", async () => {
+  it("deletes after authorized metadata removal and forbids cross-user delete", async () => {
     const client = createMockSupabase({
       user: userA,
       document: {
@@ -463,6 +463,44 @@ describe("documents API CRUD and isolation", () => {
       }),
     );
     expect(denied.status).toBe(404);
+  });
+
+  it("retains the file when metadata deletion is not confirmed", async () => {
+    const client = createMockSupabase({
+      user: userA,
+      document: {
+        id: docId,
+        storage_path: `user/${userA.id}/${docId}/bill.pdf`,
+      },
+      documentCheckError: { message: "network" },
+    });
+    // First lookup must succeed; subsequent delete fails. Simulate this explicitly.
+    let calls = 0;
+    const from = client.from.bind(client);
+    client.from = (table: string) => {
+      const query = from(table);
+      if (table === "documents") {
+        query.maybeSingle = async () =>
+          ++calls === 1
+            ? {
+                data: {
+                  id: docId,
+                  storage_path: `user/${userA.id}/${docId}/bill.pdf`,
+                },
+                error: null,
+              }
+            : { data: null, error: { message: "network" } };
+      }
+      return query;
+    };
+    mockCreateClient.mockResolvedValue(client);
+    const { DELETE } = await import("./[id]/route");
+    const result = await DELETE(
+      new Request("http://localhost/api/documents/x"),
+      { params: Promise.resolve({ id: docId }) },
+    );
+    expect(result.status).toBe(503);
+    expect(client.removals).toHaveLength(0);
   });
 
   it("rejects attaching to an inaccessible entity", async () => {

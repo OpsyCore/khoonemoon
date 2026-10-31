@@ -167,6 +167,7 @@ export function Documents({
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "حذف مدرک ناموفق بود.");
+      await load().catch(() => {});
     } finally {
       setBusy(false);
     }

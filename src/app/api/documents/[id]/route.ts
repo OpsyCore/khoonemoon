@@ -132,17 +132,8 @@ export async function DELETE(
     return NextResponse.json({ message: "مدرک یافت نشد." }, { status: 404 });
   }
 
-  const removed = await supabase.storage
-    .from(DOCUMENT_BUCKET)
-    .remove([existing.storage_path]);
-
-  if (removed.error) {
-    return NextResponse.json(
-      { message: "حذف فایل ذخیره‌شده ناموفق بود." },
-      { status: 500 },
-    );
-  }
-
+  // A failed metadata response may still commit, so retain the file unless
+  // the deletion is confirmed. This favors recoverable orphans over data loss.
   const { data, error } = await supabase
     .from("documents")
     .delete()
@@ -152,8 +143,24 @@ export async function DELETE(
 
   if (error || !data) {
     return NextResponse.json(
-      { message: "حذف مدرک ناموفق بود." },
-      { status: 400 },
+      {
+        message:
+          "وضعیت حذف مدرک نامشخص است؛ فهرست را تازه‌سازی کنید. فایل نگه داشته شد.",
+      },
+      { status: 503 },
+    );
+  }
+
+  const removed = await supabase.storage
+    .from(DOCUMENT_BUCKET)
+    .remove([existing.storage_path]);
+  if (removed.error) {
+    return NextResponse.json(
+      {
+        message:
+          "اطلاعات مدرک حذف شد اما حذف فایل تأیید نشد؛ فایل ممکن است باقی مانده باشد.",
+      },
+      { status: 500 },
     );
   }
 
