@@ -8,6 +8,8 @@ import type { ShoppingItem, ShoppingList } from "@/features/shopping/types";
 import { signupSchema } from "@/features/auth/schemas";
 import { directHousehold } from "@/features/households/direct-client";
 import { CalendarEvents } from "./calendar";
+import { Tasks } from "./tasks";
+import { Chores } from "./chores";
 import { Profile } from "./profile";
 import { HouseholdDetails } from "./household-details";
 import "./style.css";
@@ -416,6 +418,10 @@ function App() {
                 </>
               )}
             </section>
+          )}
+          <Tasks key={session.user.id} client={client} />
+          {household && (
+            <Chores key={household} client={client} householdId={household} />
           )}
           <Profile key={session.user.id} client={client} />
           <CalendarEvents

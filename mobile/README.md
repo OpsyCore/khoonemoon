@@ -4,7 +4,7 @@ This is a separate, unfinished client-side prototype. It does not load Netlify
 and is **not yet packaged into the Android APK**. The existing Android workflow
 still builds the old remote WebView wrapper; do not distribute it as this app.
 The prototype currently implements sign-in/sign-up, profile editing, household membership and invitation management, and a
-shopping list and basic event creation/listing/deletion using the current user's Supabase session. The full calendar and other M1–M29 features,
+shopping list, basic event creation/listing/deletion, monthly event calendar, and read/completion for tasks and chores using the current user's Supabase session. The full calendar and other M1–M29 features,
 account recovery/deep links, onboarding, accessibility, native
 notifications, and real-device/security tests remain to be ported. Existing
 Next.js code is retained for reference and the web product.

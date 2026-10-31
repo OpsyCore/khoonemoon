@@ -2,8 +2,17 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { directCalendar } from "@/features/calendar/direct-client";
 import type { EventRecord } from "@/features/calendar/types";
+import {
+  formatJalaliDayNumber,
+  formatJalaliLongDate,
+  formatJalaliMonthYear,
+  getMonthGrid,
+  getPersianWeekdayLabels,
+  isSameDay,
+  shiftJalaliMonth,
+} from "@/shared/utils/jalali";
 
-/** First transferred slice: events. The full Jalali calendar and tasks are not yet ported. */
+/** Month view currently includes events only; tasks and chores are still being integrated. */
 export function CalendarEvents({
   client,
   hasHousehold,
@@ -13,6 +22,9 @@ export function CalendarEvents({
 }) {
   const api = useMemo(() => directCalendar(client), [client]);
   const [events, setEvents] = useState<EventRecord[]>([]);
+  const [cursor, setCursor] = useState(() => new Date());
+  const [selected, setSelected] = useState(() => new Date());
+  const month = useMemo(() => getMonthGrid(cursor), [cursor]);
   const [title, setTitle] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -84,8 +96,59 @@ export function CalendarEvents({
   }
   return (
     <section>
-      <h2>رویدادها</h2>
-      <p>ثبت و نمایش رویدادها؛ نمای کامل تقویم هنوز منتقل نشده است.</p>
+      <h2>تقویم</h2>
+      <p>
+        نمای ماه در حال حاضر رویدادها را نشان می‌دهد؛ نمایش تسک‌ها و کارهای خانه
+        هنوز منتقل نشده است.
+      </p>
+      <div className="month-header">
+        <button
+          type="button"
+          className="minor"
+          onClick={() => setCursor((date) => shiftJalaliMonth(date, -1))}
+        >
+          ماه قبل
+        </button>
+        <strong>{formatJalaliMonthYear(cursor)}</strong>
+        <button
+          type="button"
+          className="minor"
+          onClick={() => setCursor((date) => shiftJalaliMonth(date, 1))}
+        >
+          ماه بعد
+        </button>
+      </div>
+      <div className="calendar-grid">
+        {getPersianWeekdayLabels().map((day, index) => (
+          <span className="weekday" key={index}>
+            {day}
+          </span>
+        ))}
+        {month.map(({ date, isCurrentMonth }) => (
+          <button
+            type="button"
+            key={date.toISOString()}
+            aria-label={formatJalaliLongDate(date)}
+            aria-pressed={isSameDay(date, selected)}
+            className={`calendar-day${isCurrentMonth ? "" : " outside"}`}
+            onClick={() => setSelected(date)}
+          >
+            {formatJalaliDayNumber(date)}
+            {events.some((e) => isSameDay(new Date(e.start_at), date)) && (
+              <span aria-hidden="true"> •</span>
+            )}
+          </button>
+        ))}
+      </div>
+      <p>{formatJalaliLongDate(selected)}</p>
+      <ul>
+        {events
+          .filter((event) => isSameDay(new Date(event.start_at), selected))
+          .map((event) => (
+            <li key={event.id}>{event.title}</li>
+          ))}
+      </ul>
+      <h3>ثبت رویداد</h3>
       {message && (
         <p role="alert" className="error">
           {message}

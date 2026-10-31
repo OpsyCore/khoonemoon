@@ -98,3 +98,33 @@ li {
 .item input {
   width: auto;
 }
+.month-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.15rem;
+  margin-top: 1rem;
+}
+.weekday {
+  text-align: center;
+  color: #8a7b6a;
+  font-size: 0.75rem;
+}
+.calendar-day {
+  padding: 0.55rem 0;
+  color: #3f342b;
+  background: transparent;
+  font-size: 0.85rem;
+}
+.calendar-day.outside {
+  color: #ab9d8b;
+}
+.calendar-day[aria-pressed="true"] {
+  background: #7c8253;
+  color: white;
+}
