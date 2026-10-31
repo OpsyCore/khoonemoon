@@ -85,8 +85,12 @@ export function Tasks({
       );
       setTasks(await api.list());
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
-    } catch {
-      setMessage("تغییر وضعیت تسک ناموفق بود؛ دوباره بارگذاری کنید.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "تغییر وضعیت تسک ناموفق بود؛ دوباره بارگذاری کنید.",
+      );
     } finally {
       setBusy(false);
     }
@@ -239,13 +243,18 @@ export function Tasks({
                 بایگانی
               </button>
             </div>
-            <button
-              className="minor"
-              disabled={busy}
-              onClick={() => void toggle(task)}
-            >
-              {task.status === "COMPLETED" ? "بازگرداندن" : "انجام شد"}
-            </button>
+            {task.status === "COMPLETED" &&
+            task.task_recurrences?.some((r) => r.frequency !== "NONE") ? (
+              <span>انجام شد؛ نوبت بعدی ایجاد شده است.</span>
+            ) : (
+              <button
+                className="minor"
+                disabled={busy}
+                onClick={() => void toggle(task)}
+              >
+                {task.status === "COMPLETED" ? "بازگرداندن" : "انجام شد"}
+              </button>
+            )}
           </li>
         ))}
       </ul>

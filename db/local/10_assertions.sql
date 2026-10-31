@@ -465,3 +465,40 @@ begin
   if not rejected or not exists(select 1 from public.chores where id=cid and title='بعد') then raise exception 'unauthorized update not rejected atomically'; end if;
 end $$;
 rollback;
+
+-- Recurring task completion is atomic, access-controlled and idempotent.
+begin;
+select set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-4000-8000-00000000000a', 'role', 'authenticated')::text, true);
+set local role authenticated;
+do $$
+declare original uuid; successor uuid; repeated uuid; denied boolean := false;
+begin
+  original := public.mobile_create_task('{"title":"تکرار","visibility":"PRIVATE","dueAt":"2026-11-01T00:00:00Z","assigneeIds":[],"nextOccurrenceAt":"2026-11-02T00:00:00Z","recurrence":{"frequency":"DAILY"}}'::jsonb);
+  successor := public.mobile_complete_task(original);
+  repeated := public.mobile_complete_task(original);
+  if successor is null or successor <> repeated then raise exception 'completion must be idempotent'; end if;
+  if not exists(select 1 from public.tasks where id=original and status='COMPLETED') then raise exception 'original not completed'; end if;
+  if not exists(select 1 from public.tasks where id=successor and status='PENDING' and due_at='2026-11-02T00:00:00Z') then raise exception 'successor wrong'; end if;
+  if not exists(select 1 from public.task_recurrences where task_id=successor and next_occurrence_at='2026-11-03T00:00:00Z') then raise exception 'next date wrong'; end if;
+  if (select count(*) from public.task_recurrence_instances where completed_task_id=original) <> 1 then raise exception 'duplicate successor'; end if;
+  begin
+    insert into public.task_recurrence_instances(completed_task_id,next_task_id) values(successor,original);
+  exception when insufficient_privilege then denied := true; end;
+  if not denied then raise exception 'direct link write must be denied'; end if;
+end $$;
+rollback;
+
+begin;
+select set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-4000-8000-00000000000c', 'role', 'authenticated')::text, true);
+set local role authenticated;
+do $$
+declare blocked boolean := false; target uuid;
+begin
+  select id into target from public.tasks where title='تسک خصوصی آرش';
+  if target is not null then raise exception 'outsider should not see private task'; end if;
+  begin
+    perform public.mobile_complete_task('00000000-0000-4000-8000-0000000000c1'::uuid);
+  exception when others then blocked := true; end;
+  if not blocked then raise exception 'outsider completion must be denied'; end if;
+end $$;
+rollback;

@@ -19,16 +19,32 @@ function setup() {
 }
 
 describe("direct task transport", () => {
-  it("writes completion and guards against a stale task status", async () => {
+  it("completes through the idempotent database RPC", async () => {
     const { api, fetcher } = setup();
     await api.completion(
       { id: "task-1", status: "PENDING" } as TaskRecord,
       "complete",
     );
-    expect(String(fetcher.mock.calls[0][0])).toContain("status=eq.PENDING");
-    const body = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
-    expect(body.status).toBe("COMPLETED");
-    expect(Number.isNaN(Date.parse(body.completed_at))).toBe(false);
+    expect(String(fetcher.mock.calls[0][0])).toContain(
+      "rpc/mobile_complete_task",
+    );
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      p_task_id: "task-1",
+    });
+  });
+  it("does not undo a completed recurring occurrence after creating its successor", async () => {
+    const { api, fetcher } = setup();
+    await expect(
+      api.completion(
+        {
+          id: "task-1",
+          status: "COMPLETED",
+          task_recurrences: [{ frequency: "DAILY" }],
+        } as TaskRecord,
+        "undo",
+      ),
+    ).rejects.toThrow("تکراری");
+    expect(fetcher).not.toHaveBeenCalled();
   });
   it("reports a conflicting or inaccessible row rather than false success", async () => {
     const { api, fetcher } = setup();

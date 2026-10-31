@@ -8,7 +8,7 @@ import type { TaskRecord } from "./types";
 const COLUMNS =
   "id, title, description, creator_id, owner_id, household_id, visibility, status, priority, due_at, completed_at, archived_at, created_at, updated_at, task_assignees(assignee_id), task_recurrences(frequency, interval_days, weekdays)";
 
-/** RLS-scoped reads and completion; task creation/assignment still need porting. */
+/** User-scoped task operations. Completion atomically creates a successor when recurring. */
 export function directTasks(client: SupabaseClient) {
   return {
     async create(input: unknown): Promise<string> {
@@ -68,6 +68,22 @@ export function directTasks(client: SupabaseClient) {
       task: TaskRecord,
       action: "complete" | "undo",
     ): Promise<void> {
+      if (action === "complete") {
+        const { error } = await client.rpc("mobile_complete_task", {
+          p_task_id: task.id,
+        });
+        if (error) throw new Error("ثبت انجام تسک ناموفق بود.");
+        return;
+      }
+      if (
+        task.task_recurrences?.some(
+          (recurrence) => recurrence.frequency !== "NONE",
+        )
+      ) {
+        throw new Error(
+          "بازگرداندن تسک تکراری پشتیبانی نمی‌شود؛ نوبت بعدی ایجاد شده است.",
+        );
+      }
       const next = applyTaskCompletion({ currentStatus: task.status, action });
       const { data, error } = await client
         .from("tasks")
