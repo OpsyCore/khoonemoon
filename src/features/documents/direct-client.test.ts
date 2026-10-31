@@ -74,7 +74,7 @@ describe("direct documents", () => {
       category: "HOME",
     });
   });
-  it("derives shared household membership and cleans up after failed metadata insert", async () => {
+  it("derives shared household membership and preserves the object on an uncertain insert", async () => {
     const { api, upload, remove } = setup({ failInsert: true });
     await expect(
       api.create({
@@ -84,9 +84,9 @@ describe("direct documents", () => {
         visibility: "HOUSEHOLD_SHARED",
         category: "HOME",
       }),
-    ).rejects.toThrow("ناموفق");
+    ).rejects.toThrow("نامشخص");
     expect(upload.mock.calls[0][0]).toMatch(/^household\/house\//);
-    expect(remove).toHaveBeenCalledWith([upload.mock.calls[0][0]]);
+    expect(remove).not.toHaveBeenCalled();
   });
   it("does not remove a file when insert outcome cannot be verified", async () => {
     const { api, remove } = setup({ failInsert: true, checkError: true });

@@ -21,6 +21,7 @@ type MockOptions = {
   attachments?: unknown[];
   insertId?: string | null;
   insertError?: { message: string } | null;
+  documentCheckError?: { message: string } | null;
   entity?: { id: string } | null;
   uploadError?: { message: string } | null;
   signedUrl?: string | null;
@@ -59,7 +60,10 @@ function createMockSupabase(options: MockOptions) {
           return { data: options.membership ?? null, error: null };
         }
         if (table === "documents") {
-          return { data: options.document ?? null, error: null };
+          return {
+            data: options.document ?? null,
+            error: options.documentCheckError ?? null,
+          };
         }
         if (
           table === "tasks" ||
@@ -263,6 +267,53 @@ describe("documents API CRUD and isolation", () => {
     );
     expect(result.status).toBe(201);
     expect(client.uploads[0]).toContain(`user/${userA.id}/`);
+  });
+
+  it.each([false, true])(
+    "preserves an uploaded file after an uncertain metadata insert (read error: %s)",
+    async (readError) => {
+      const client = createMockSupabase({
+        user: userA,
+        insertError: { message: "network" },
+        documentCheckError: readError ? { message: "network" } : null,
+      });
+      mockCreateClient.mockResolvedValue(client);
+      const { POST } = await import("./route");
+      const form = new FormData();
+      form.set("title", "سند");
+      form.set("visibility", "PRIVATE");
+      form.set("file", pdfFile());
+      const response = await POST(
+        new Request("http://localhost/api/documents", {
+          method: "POST",
+          body: form,
+        }),
+      );
+      expect(response.status).toBe(503);
+      expect(client.uploads).toHaveLength(1);
+      expect(client.removals).toHaveLength(0);
+    },
+  );
+  it("does not remove a file when the insertion committed but the response failed", async () => {
+    const client = createMockSupabase({
+      user: userA,
+      insertError: { message: "network" },
+      document: { id: docId },
+    });
+    mockCreateClient.mockResolvedValue(client);
+    const { POST } = await import("./route");
+    const form = new FormData();
+    form.set("title", "سند");
+    form.set("visibility", "PRIVATE");
+    form.set("file", pdfFile());
+    const response = await POST(
+      new Request("http://localhost/api/documents", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    expect(response.status).toBe(201);
+    expect(client.removals).toHaveLength(0);
   });
 
   it("rejects SHARED upload without a household", async () => {

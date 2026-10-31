@@ -589,3 +589,48 @@ begin
     'household/00000000-0000-4000-8000-0000000000f1/new/file.pdf', 'HOUSEHOLD_SHARED');
 end $$;
 rollback;
+
+-- Exercise storage writes as a different household member, not just SELECT.
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare denied boolean := false; affected integer;
+begin
+  begin
+    insert into storage.objects(bucket_id,name) values
+      ('documents','user/00000000-0000-4000-8000-00000000000a/new/forged.pdf');
+  exception when insufficient_privilege then denied := true; end;
+  if not denied then raise exception 'DOC FAIL: partner can upload to another user private prefix'; end if;
+  delete from storage.objects where name = 'user/00000000-0000-4000-8000-00000000000a/doc/file.pdf';
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'DOC FAIL: partner deleted another user private file'; end if;
+  update storage.objects set name = 'user/00000000-0000-4000-8000-00000000000b/stolen.pdf'
+    where name = 'user/00000000-0000-4000-8000-00000000000a/doc/file.pdf';
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'DOC FAIL: partner modified another user private file'; end if;
+  insert into storage.objects(bucket_id,name) values
+    ('documents','user/00000000-0000-4000-8000-00000000000b/new/file.pdf'),
+    ('documents','household/00000000-0000-4000-8000-0000000000f1/new/file.pdf');
+  delete from storage.objects where name = 'household/00000000-0000-4000-8000-0000000000f1/new/file.pdf';
+  get diagnostics affected = row_count;
+  if affected <> 1 then raise exception 'DOC FAIL: member cannot manage shared file'; end if;
+end $$;
+rollback;
+
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare denied boolean := false; affected integer;
+begin
+  begin
+    insert into storage.objects(bucket_id,name) values
+      ('documents','household/00000000-0000-4000-8000-0000000000f1/new/forged.pdf');
+  exception when insufficient_privilege then denied := true; end;
+  if not denied then raise exception 'DOC FAIL: outsider can upload to household'; end if;
+  delete from storage.objects where name = 'household/00000000-0000-4000-8000-0000000000f1/doc/file.pdf';
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'DOC FAIL: outsider deleted household file'; end if;
+end $$;
+rollback;

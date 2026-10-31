@@ -150,10 +150,21 @@ export async function POST(request: Request) {
       .single();
 
     if (error || !data) {
-      await supabase.storage.from(DOCUMENT_BUCKET).remove([storagePath]);
+      // A failed response (or even an immediate read) can race a commit.
+      // Preserve the object instead of deleting a potentially referenced file.
+      const check = await supabase
+        .from("documents")
+        .select("id")
+        .eq("id", documentId)
+        .maybeSingle();
+      if (!check.error && check.data)
+        return NextResponse.json({ id: documentId }, { status: 201 });
       return NextResponse.json(
-        { message: "ثبت مدرک ناموفق بود." },
-        { status: 400 },
+        {
+          message:
+            "وضعیت ثبت مدرک نامشخص است؛ فهرست را تازه‌سازی کنید. فایل برای جلوگیری از حذف ناخواسته نگه داشته شد.",
+        },
+        { status: 503 },
       );
     }
 

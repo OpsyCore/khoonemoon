@@ -114,25 +114,16 @@ export function directDocuments(client: SupabaseClient) {
         .select("id")
         .single();
       if (error || !data) {
-        // A lost insert response may have committed. Never delete a possibly
-        // referenced file unless an authorized read confirms there is no row.
+        // An insert may still commit after a failed response or a read that
+        // raced with it. Never delete the uploaded object in this case.
         const check = await client
           .from("documents")
           .select("id")
           .eq("id", id)
           .maybeSingle();
-        if (check.error)
-          throw new Error(
-            "وضعیت ثبت نامشخص است؛ فهرست مدارک را تازه‌سازی کنید.",
-          );
-        if (check.data) return;
-        const removed = await client.storage
-          .from(DOCUMENT_BUCKET)
-          .remove([path]);
+        if (!check.error && check.data) return;
         throw new Error(
-          removed.error
-            ? "ثبت مدرک ناموفق بود و پاک‌سازی فایل نیاز به بررسی دارد."
-            : "ثبت مدرک ناموفق بود؛ فایل بارگذاری‌شده پاک شد.",
+          "وضعیت ثبت مدرک نامشخص است؛ فهرست را تازه‌سازی کنید. فایل برای جلوگیری از حذف ناخواسته نگه داشته شد.",
         );
       }
     },
