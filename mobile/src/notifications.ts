@@ -131,6 +131,13 @@ export function useMobileNotifications(
       }
     };
     void registerBackground();
+    const credentialsChanged = () => {
+      void registerBackground();
+    };
+    window.addEventListener(
+      "khoonemoon:credentials-changed",
+      credentialsChanged,
+    );
     const sync = async () => {
       const serial = ++sequence;
       try {
@@ -202,6 +209,10 @@ export function useMobileNotifications(
     const interval = window.setInterval(visible, 5 * 60 * 1000);
     return () => {
       alive = false;
+      window.removeEventListener(
+        "khoonemoon:credentials-changed",
+        credentialsChanged,
+      );
       document.removeEventListener("visibilitychange", visible);
       window.removeEventListener("khoonemoon:reminders-changed", visible);
       window.clearInterval(interval);

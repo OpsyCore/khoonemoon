@@ -35,7 +35,7 @@ final class ReminderScheduler {
         return true;
     }
     static synchronized boolean replace(Context context, String account, String raw) {
-        if (account == null || !account.matches("[0-9a-fA-F-]{36}") || raw == null || raw.length() > 500000) return false;
+        if (account == null || !account.matches("[0-9a-fA-F-]{36}") || raw == null || raw.length() > 1500000) return false;
         try {
             JSONArray incoming = new JSONArray(raw);
             if (incoming.length() > 10000) return false;

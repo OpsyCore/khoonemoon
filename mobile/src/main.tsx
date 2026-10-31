@@ -212,6 +212,7 @@ function App() {
     void action(async () => {
       if (!client) throw new Error();
       await changeRecoveredPassword(client, password, confirmPassword);
+      window.dispatchEvent(new Event("khoonemoon:credentials-changed"));
       setPassword("");
       setConfirmPassword("");
       sessionStorage.removeItem("khoonemoon:recovery");

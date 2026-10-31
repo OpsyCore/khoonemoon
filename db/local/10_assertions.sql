@@ -634,3 +634,17 @@ begin
   if affected <> 0 then raise exception 'DOC FAIL: outsider deleted household file'; end if;
 end $$;
 rollback;
+
+-- Changing an account password immediately invalidates its device credential.
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', false);
+select public.register_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab', repeat('c',64));
+update auth.users set encrypted_password = 'changed-test-password' where id = '00000000-0000-4000-8000-00000000000a';
+do $$ begin
+  begin
+    perform public.read_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab', repeat('c',64));
+    raise exception 'password change did not revoke device credential';
+  exception when invalid_authorization_specification then null; end;
+end $$;
+select public.register_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab', repeat('c',64));
+select public.read_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab', repeat('c',64));
+select public.revoke_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab');

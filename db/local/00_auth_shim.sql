@@ -29,6 +29,7 @@ $$;
 create table if not exists auth.users (
   id uuid primary key,
   email text unique,
+  encrypted_password varchar,
   raw_user_meta_data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
