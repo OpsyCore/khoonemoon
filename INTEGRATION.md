@@ -18,5 +18,4 @@ Postgres/RLS checks. Both expose SECURITY INVOKER functions only to authenticate
 users. Metadata confirms anon cannot execute them. Real two-account and Android
 tests are still outstanding. The standalone mobile prototype is not yet packaged
 into the Android APK. Its task recurrence fields preserve the existing model;
-automatic generation of recurring tasks is not yet implemented. The mobile
-calendar has month, week and agenda views, pending real-device testing.
+automatic creation of the next task on completion uses migration `0015_recurring_task_completion.sql` applied to Supabase. It is tested locally and in CI, but not yet with real accounts or on Android. The mobile calendar has month, week and agenda views, pending real-device testing.

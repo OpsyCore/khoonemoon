@@ -245,7 +245,7 @@ export function Tasks({
             </div>
             {task.status === "COMPLETED" &&
             task.task_recurrences?.some((r) => r.frequency !== "NONE") ? (
-              <span>انجام شد؛ نوبت بعدی ایجاد شده است.</span>
+              <span>تسک تکراری انجام‌شده</span>
             ) : (
               <button
                 className="minor"

@@ -80,9 +80,7 @@ export function directTasks(client: SupabaseClient) {
           (recurrence) => recurrence.frequency !== "NONE",
         )
       ) {
-        throw new Error(
-          "بازگرداندن تسک تکراری پشتیبانی نمی‌شود؛ نوبت بعدی ایجاد شده است.",
-        );
+        throw new Error("بازگرداندن تسک تکراری پشتیبانی نمی‌شود.");
       }
       const next = applyTaskCompletion({ currentStatus: task.status, action });
       const { data, error } = await client
