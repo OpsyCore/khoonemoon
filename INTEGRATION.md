@@ -38,3 +38,5 @@ The candidate scoped device credential migration 0019 is local only; Android bac
 ### Password recovery
 
 The standalone client requests PKCE recovery links and Android handles the custom `app.khoonemoon.mobile://recovery` URI. Supabase's redirect allowlist includes it. Recovery links must be opened on the same device/app that initiated the request. Only helper tests have run: Android deep-link delivery, browser recovery, SMTP and real email flows remain untested. The Supabase project currently has no custom SMTP configured, so the default service has delivery restrictions and is not suitable for general production recovery.
+
+Migration 0020 tightens document metadata inserts so private records must use their owner's storage prefix and shared records their household prefix. Applied to `isfzuxrkzeeeggvfcoah` after verifying there were no existing mismatched records; CI-style RLS assertions cover both valid and invalid paths. Real Storage API and multi-device tests are still required.

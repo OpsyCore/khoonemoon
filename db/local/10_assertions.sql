@@ -560,3 +560,32 @@ do $$ begin
     raise exception 'revoked credential accepted';
   exception when invalid_authorization_specification then null; end;
 end $$;
+
+-- Metadata cannot call a household-readable file private (or vice versa).
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare denied boolean := false;
+begin
+  begin
+    insert into public.documents (created_by, title, mime_type, file_size, storage_path, visibility)
+    values (auth.uid(), 'incorrect private path', 'application/pdf', 1,
+      'household/00000000-0000-4000-8000-0000000000f1/bad/file.pdf', 'PRIVATE');
+  exception when insufficient_privilege then denied := true; end;
+  if not denied then raise exception 'private document accepted a shared storage path'; end if;
+  denied := false;
+  begin
+    insert into public.documents (household_id, created_by, title, mime_type, file_size, storage_path, visibility)
+    values ('00000000-0000-4000-8000-0000000000f1', auth.uid(), 'incorrect shared path', 'application/pdf', 1,
+      'user/00000000-0000-4000-8000-00000000000a/bad/file.pdf', 'HOUSEHOLD_SHARED');
+  exception when insufficient_privilege then denied := true; end;
+  if not denied then raise exception 'shared document accepted a private storage path'; end if;
+  insert into public.documents (created_by, title, mime_type, file_size, storage_path, visibility)
+  values (auth.uid(), 'valid private path', 'application/pdf', 1,
+    'user/00000000-0000-4000-8000-00000000000a/new/file.pdf', 'PRIVATE');
+  insert into public.documents (household_id, created_by, title, mime_type, file_size, storage_path, visibility)
+  values ('00000000-0000-4000-8000-0000000000f1', auth.uid(), 'valid shared path', 'application/pdf', 1,
+    'household/00000000-0000-4000-8000-0000000000f1/new/file.pdf', 'HOUSEHOLD_SHARED');
+end $$;
+rollback;
