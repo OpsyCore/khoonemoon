@@ -9,6 +9,7 @@ import { directReminders } from "@/features/reminders/direct-client";
 declare global {
   interface Window {
     KhoonemoonNotifications?: {
+      takeRecoveryCode: () => string | null;
       activate: (account: string) => boolean;
       sync: (account: string, rows: string) => boolean;
       clear: () => void;

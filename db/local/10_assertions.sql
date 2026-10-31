@@ -514,3 +514,49 @@ do $$ begin
     raise exception 'document categories must be constrained';
   end if;
 end $$;
+
+-- Narrow device credentials: registration is authenticated, snapshots contain
+-- only that user's scheduling data, and revoked/foreign tokens are rejected.
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', false);
+select public.register_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', repeat('a',64));
+insert into public.reminders (id,target_type,target_id,user_id,remind_at,status) values
+ ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1','TASK','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3','00000000-0000-4000-8000-00000000000a',now() + interval '1 day','PENDING'),
+ ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2','TASK','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4','00000000-0000-4000-8000-00000000000b',now() + interval '1 day','PENDING');
+do $$
+declare snapshot jsonb;
+begin
+  if has_table_privilege('anon','public.reminder_devices','select') or
+     has_table_privilege('authenticated','public.reminder_devices','select') or
+     has_function_privilege('anon','public.register_reminder_device(uuid,text)','execute') then
+    raise exception 'device credential privileges too broad';
+  end if;
+  snapshot := public.read_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('a',64));
+  if jsonb_typeof(snapshot->'reminders') <> 'array' then raise exception 'missing snapshot'; end if;
+  if not (snapshot->'reminders' @> '[{"id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1"}]'::jsonb)
+     or snapshot->'reminders' @> '[{"id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2"}]'::jsonb then
+    raise exception 'device snapshot isolation failure';
+  end if;
+  begin
+    perform public.read_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('b',64));
+    raise exception 'bad credential accepted';
+  exception when invalid_authorization_specification then null; end;
+end $$;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000b","role":"authenticated"}', false);
+do $$ begin
+  begin
+    perform public.register_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', repeat('b',64));
+    raise exception 'foreign account overwrote device';
+  exception when raise_exception then
+    if sqlerrm = 'foreign account overwrote device' then raise; end if;
+  end;
+end $$;
+select public.revoke_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+select public.read_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('a',64));
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', false);
+select public.revoke_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+do $$ begin
+  begin
+    perform public.read_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('a',64));
+    raise exception 'revoked credential accepted';
+  exception when invalid_authorization_specification then null; end;
+end $$;

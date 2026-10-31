@@ -18,6 +18,11 @@ import { Documents } from "./documents";
 import { Reminders } from "./reminders";
 import { Shopping } from "./shopping";
 import { signupSchema } from "@/features/auth/schemas";
+import {
+  ANDROID_RECOVERY_REDIRECT,
+  changeRecoveredPassword,
+  requestRecovery,
+} from "./recovery";
 import { directHousehold } from "@/features/households/direct-client";
 import { CalendarEvents } from "./calendar";
 import { Tasks } from "./tasks";
@@ -31,7 +36,10 @@ const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 // Only publishable/anon keys belong in client bundles. A service-role key must
 // never be supplied to this build. Database RLS remains the security boundary.
-const client = url && anonKey ? createClient(url, anonKey) : null;
+const client =
+  url && anonKey
+    ? createClient(url, anonKey, { auth: { flowType: "pkce" } })
+    : null;
 
 function App() {
   const [page, setPage] = useState<
@@ -48,8 +56,14 @@ function App() {
   const [ready, setReady] = useState(!client);
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">(
+    "login",
+  );
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [recovery, setRecovery] = useState(
+    () => sessionStorage.getItem("khoonemoon:recovery") === "1",
+  );
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [household, setHousehold] = useState<string | null | undefined>(
@@ -68,12 +82,50 @@ function App() {
         setReady(true);
       }
     });
-    const { data } = client.auth.onAuthStateChange((_event, next) => {
-      if (alive) setSession(next);
+    const { data } = client.auth.onAuthStateChange((event, next) => {
+      if (!alive) return;
+      setSession(next);
+      if (event === "PASSWORD_RECOVERY") {
+        sessionStorage.setItem("khoonemoon:recovery", "1");
+        setRecovery(true);
+      }
+      if (event === "SIGNED_OUT") {
+        sessionStorage.removeItem("khoonemoon:recovery");
+        setRecovery(false);
+      }
     });
     return () => {
       alive = false;
       data.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!client || !window.KhoonemoonNotifications) return;
+    let alive = true;
+    const consume = () => {
+      const code = window.KhoonemoonNotifications?.takeRecoveryCode?.();
+      if (!code) return;
+      void client.auth
+        .exchangeCodeForSession(code)
+        .then(({ error }) => {
+          if (alive && error)
+            setMessage(
+              "پیوند بازیابی نامعتبر یا منقضی است؛ دوباره درخواست کنید.",
+            );
+        })
+        .catch(() => {
+          if (alive)
+            setMessage(
+              "اتصال برای بازیابی رمز برقرار نشد؛ دوباره درخواست کنید.",
+            );
+        });
+    };
+    consume();
+    const timer = window.setInterval(consume, 1000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
     };
   }, []);
 
@@ -142,6 +194,31 @@ function App() {
         setMessage("ثبت‌نام انجام شد؛ برای ورود تأیید ایمیل لازم است.");
     });
   }
+  function forgot(event: FormEvent) {
+    event.preventDefault();
+    void action(async () => {
+      if (!client) throw new Error();
+      const redirectTo = window.KhoonemoonNotifications
+        ? ANDROID_RECOVERY_REDIRECT
+        : `${window.location.origin}${window.location.pathname}`;
+      await requestRecovery(client, email, redirectTo);
+      setMessage(
+        "اگر حسابی با این ایمیل وجود داشته باشد، پیوند بازیابی ارسال می‌شود. پیوند را روی همین دستگاه باز کنید.",
+      );
+    });
+  }
+  function updatePassword(event: FormEvent) {
+    event.preventDefault();
+    void action(async () => {
+      if (!client) throw new Error();
+      await changeRecoveredPassword(client, password, confirmPassword);
+      setPassword("");
+      setConfirmPassword("");
+      sessionStorage.removeItem("khoonemoon:recovery");
+      setRecovery(false);
+      setMessage("رمز عبور تغییر کرد.");
+    });
+  }
   function createHouse(event: FormEvent) {
     event.preventDefault();
     void action(async () => {
@@ -177,10 +254,53 @@ function App() {
         </section>
       ) : !ready ? (
         <p>در حال آماده‌سازی…</p>
+      ) : recovery && session ? (
+        <section>
+          <h2>انتخاب رمز جدید</h2>
+          <form onSubmit={updatePassword}>
+            <label>
+              رمز جدید
+              <input
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+            <label>
+              تکرار رمز
+              <input
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </label>
+            <button disabled={busy}>ذخیره رمز جدید</button>
+          </form>
+        </section>
       ) : !session ? (
         <section>
-          <h2>{authMode === "login" ? "ورود" : "ساخت حساب"}</h2>
-          <form onSubmit={authMode === "login" ? login : signup}>
+          <h2>
+            {authMode === "login"
+              ? "ورود"
+              : authMode === "signup"
+                ? "ساخت حساب"
+                : "بازیابی رمز عبور"}
+          </h2>
+          <form
+            onSubmit={
+              authMode === "login"
+                ? login
+                : authMode === "signup"
+                  ? signup
+                  : forgot
+            }
+          >
             {authMode === "signup" && (
               <label>
                 نام
@@ -203,20 +323,26 @@ function App() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </label>
-            <label>
-              رمز عبور
-              <input
-                type="password"
-                autoComplete={
-                  authMode === "login" ? "current-password" : "new-password"
-                }
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </label>
+            {authMode !== "forgot" && (
+              <label>
+                رمز عبور
+                <input
+                  type="password"
+                  autoComplete={
+                    authMode === "login" ? "current-password" : "new-password"
+                  }
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </label>
+            )}
             <button disabled={busy}>
-              {authMode === "login" ? "ورود" : "ثبت‌نام"}
+              {authMode === "login"
+                ? "ورود"
+                : authMode === "signup"
+                  ? "ثبت‌نام"
+                  : "ارسال پیوند بازیابی"}
             </button>
           </form>
           <button
@@ -230,6 +356,19 @@ function App() {
           >
             {authMode === "login" ? "ساخت حساب جدید" : "بازگشت به ورود"}
           </button>
+          {authMode === "login" && (
+            <button
+              className="minor"
+              disabled={busy}
+              onClick={() => {
+                setAuthMode("forgot");
+                setPassword("");
+                setMessage("");
+              }}
+            >
+              رمز عبور را فراموش کرده‌ام
+            </button>
+          )}
         </section>
       ) : (
         <>

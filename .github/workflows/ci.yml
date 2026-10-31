@@ -119,6 +119,12 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: build-time-placeholder
           NEXT_PUBLIC_APP_URL: http://localhost:3000
 
+      - name: Build standalone mobile assets (no APK)
+        run: npm run mobile:build
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_test
+
       - name: End-to-end (HTTP)
         # Boots the real production build and checks pages, redirects and API
         # guards. No browser needed, so this runs everywhere.

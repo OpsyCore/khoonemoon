@@ -8,7 +8,7 @@ The integration starts from main (`8b72c84`) to retain the later finance, remind
 
 Inspection of the live `khoonemoon` database on 2026-10-30 shows `shopping_lists.archived_at` (not `is_active`). Its `shopping_items` columns include `added_by`, `purchased`, `purchased_by`, and `purchased_at`, not the redesigned branch's `created_by`, `is_checked`, `checked_by`, and `checked_at`. The main branch's shopping API uses the live schema. Adding a single `is_active` column would therefore not fix the redesigned branch and could produce conflicting data models. Preserve current data and RLS; do not apply the other branch's shopping migration blindly.
 
-Documents routes, UI and an adapted migration have been ported locally; the migration is not yet applied to production. The local RLS suite covers private/shared document and storage isolation and finance attachment access. Before release: port remaining screen layouts, verify document upload/download and authenticated journeys against a safe environment, and validate mobile UI. Review branch-specific settings and make the eventual Netlify production branch point to the integrated version only after verification.
+Documents routes, UI and adapted migrations have been ported and applied to the connected Supabase project. The local RLS suite covers private/shared document and storage isolation and finance attachment access. Before release: port remaining screen layouts, verify document upload/download and authenticated journeys against a safe environment, and validate mobile UI. Review branch-specific settings and make the eventual Netlify production branch point to the integrated version only after verification.
 
 ## Direct mobile schedule transport
 
@@ -16,13 +16,12 @@ Migrations `0013_mobile_atomic_create.sql` and `0014_mobile_atomic_update.sql`
 were applied to the connected Supabase project on 2026-10-31 after local and CI
 Postgres/RLS checks. Both expose SECURITY INVOKER functions only to authenticated
 users. Metadata confirms anon cannot execute them. Real two-account and Android
-tests are still outstanding. The standalone mobile prototype is not yet packaged
-into the Android APK. Its task recurrence fields preserve the existing model;
+tests are still outstanding. The standalone mobile client is packaged into the Android test APK. Its task recurrence fields preserve the existing model;
 automatic creation of the next task on completion uses migration `0015_recurring_task_completion.sql` applied to Supabase. It is tested locally and in CI, but not yet with real accounts or on Android. The mobile calendar has month, week and agenda views, pending real-device testing.
 
 ### Mobile shopping and finance
 
-The independent mobile UI includes shopping and financial record flows using the current user's JWT and RLS. The finance realtime publication migration `0016_finance_realtime.sql` has been applied to project `isfzuxrkzeeeggvfcoah`; shopping lists, shopping items, and financial records are in `supabase_realtime`. A foreground and periodic refresh covers missed events, including deletes. Realtime delivery and the interface have not yet been exercised end-to-end with two real accounts or on Android. Reports and settlement are restricted to the chosen currency; settlement is an estimate for current household members, not a recorded payment. Financial recurrence is only a flag and does not create future records. The independent mobile UI is not yet packaged in the Android wrapper. The user-facing Android build and real-device testing remain in the integration phase.
+The independent mobile UI includes shopping and financial record flows using the current user's JWT and RLS. The finance realtime publication migration `0016_finance_realtime.sql` has been applied to project `isfzuxrkzeeeggvfcoah`; shopping lists, shopping items, and financial records are in `supabase_realtime`. A foreground and periodic refresh covers missed events, including deletes. Realtime delivery and the interface have not yet been exercised end-to-end with two real accounts or on Android. Reports and settlement are restricted to the chosen currency; settlement is an estimate for current household members, not a recorded payment. Financial recurrence is only a flag and does not create future records. The independent mobile UI is packaged in the Android wrapper. The user-facing Android build and real-device testing remain in the integration phase.
 
 ### Document screen and database deployment
 
@@ -33,3 +32,9 @@ The mobile document screen includes category filtering, user-scoped upload, shor
 The Android client can schedule already-synced active reminders locally using AlarmManager, notification permission and a single alarm. Only user ID, reminder IDs and timestamps are kept on device; no tokens or titles cross the native bridge. Alarms are cleared at sign-out/account change and re-scheduled after reboot or time changes. Quiet hours are calculated in device time during sync; inexact alarms may be delayed by the operating system. Remote changes on another device are NOT fetched while this app is closed; synchronization occurs on startup, foreground and periodically while open. Force-stop, permissions, battery optimizations, reboot, timezone changes, Storage/file handling, and actual delivery have not been tested on a physical Android device. These local alarms are not a replacement for authenticated background sync or native push.
 
 When the Android app is visible, reminder and preference changes also trigger an RLS-scoped refresh through Supabase Realtime (migration 0018); periodic foreground polling remains the fallback. Realtime cannot deliver updates to the scheduler after the app is closed. Android APK builds are manually triggered only; normal pushes do not build an APK.
+
+The candidate scoped device credential migration 0019 is local only; Android background worker integration, credential storage/revocation lifecycle, and device testing are not complete. Do not treat it as a working background sync service.
+
+### Password recovery
+
+The standalone client requests PKCE recovery links and Android handles the custom `app.khoonemoon.mobile://recovery` URI. Supabase's redirect allowlist includes it. Recovery links must be opened on the same device/app that initiated the request. Only helper tests have run: Android deep-link delivery, browser recovery, SMTP and real email flows remain untested. The Supabase project currently has no custom SMTP configured, so the default service has delivery restrictions and is not suitable for general production recovery.

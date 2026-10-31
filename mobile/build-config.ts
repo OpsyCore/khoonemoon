@@ -41,3 +41,19 @@ export function validateMobileConfig(
     "Only a Supabase publishable or legacy anon key may be bundled; never use a secret/service-role key.",
   );
 }
+
+/** Restrict connections to the configured HTTPS Supabase origin and its realtime socket. */
+export function mobileConnectSources(url: string | undefined): string {
+  if (!url) return "";
+  const origin = new URL(url);
+  if (
+    origin.protocol !== "https:" ||
+    origin.username ||
+    origin.password ||
+    origin.search ||
+    origin.hash ||
+    origin.pathname !== "/"
+  )
+    throw new Error("Invalid Supabase origin for CSP.");
+  return `${origin.origin} wss://${origin.host}`;
+}

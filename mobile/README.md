@@ -4,8 +4,10 @@ The Android workflow builds this client into an APK using WebViewAssetLoader;
 it does not load Netlify. It connects directly to Supabase using the public
 publishable key and RLS. The APK is a debug-signed test build, not a market-ready
 release. Android behavior and two-account data access still require real-device
-testing. Documents, reminders, native notifications and password recovery are
-not yet integrated into this mobile client.
+testing. Documents, reminders and local notifications are integrated, but are not fully
+tested on real devices. Password recovery code is integrated using PKCE, but email delivery and Android
+deep links have not been tested on a real device; background synchronization is
+not yet integrated.
 
 Use only the project's public publishable/anon key. Vite build-time variables
 are embedded in JavaScript and are not secrets. A service-role/secret key must

@@ -31,6 +31,7 @@ public class MainActivity extends Activity {
     private static final int FILE_REQUEST = 101;
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
+    private String pendingRecoveryCode;
 
     private boolean isLocal(Uri uri) {
         return uri != null && "https".equalsIgnoreCase(uri.getScheme())
@@ -42,6 +43,7 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        captureRecoveryIntent(getIntent());
         WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this)).build();
         webView = new WebView(this);
@@ -110,7 +112,31 @@ public class MainActivity extends Activity {
         if (state != null) webView.restoreState(state);
         else webView.loadUrl(HOME);
     }
+    // A PKCE code alone is not a session: the verifier remains in this app's
+    // WebView storage. Never load an external deep link in the WebView.
+    private synchronized void captureRecoveryIntent(Intent intent) {
+        if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction())) return;
+        Uri uri = intent.getData();
+        if (uri == null || !"app.khoonemoon.mobile".equals(uri.getScheme()) ||
+            !"recovery".equals(uri.getHost()) || uri.getPort() != -1 || uri.getUserInfo() != null ||
+            (uri.getPath() != null && !uri.getPath().isEmpty() && !"/".equals(uri.getPath())) ||
+            uri.getFragment() != null || uri.getQueryParameters("code").size() != 1) return;
+        String code = uri.getQueryParameter("code");
+        if (code != null && code.matches("[A-Za-z0-9_-]{1,512}")) pendingRecoveryCode = code;
+    }
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        captureRecoveryIntent(intent);
+    }
     public final class NotificationBridge {
+        @JavascriptInterface public String takeRecoveryCode() {
+            synchronized (MainActivity.this) {
+                String code = pendingRecoveryCode;
+                pendingRecoveryCode = null;
+                return code;
+            }
+        }
         @JavascriptInterface public boolean activate(String account) { return ReminderScheduler.activate(MainActivity.this, account); }
         @JavascriptInterface public boolean sync(String account, String rows) { return ReminderScheduler.replace(MainActivity.this, account, rows); }
         @JavascriptInterface public void clear() { ReminderScheduler.clear(MainActivity.this); }

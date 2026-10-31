@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { validateMobileConfig } from "../../../mobile/build-config";
+import {
+  mobileConnectSources,
+  validateMobileConfig,
+} from "../../../mobile/build-config";
 
 function token(role: string) {
   return `header.${Buffer.from(JSON.stringify({ role })).toString("base64url")}.signature`;
@@ -41,5 +44,13 @@ describe("mobile client build configuration", () => {
     expect(() =>
       validateMobileConfig("https://example.com", undefined),
     ).toThrow();
+  });
+  it("restricts CSP connections to the configured origin and secure websocket", () => {
+    expect(mobileConnectSources("https://project.supabase.co")).toBe(
+      "https://project.supabase.co wss://project.supabase.co",
+    );
+    expect(mobileConnectSources(undefined)).toBe("");
+    expect(() => mobileConnectSources("http://example.com")).toThrow();
+    expect(() => mobileConnectSources("https://example.com/path")).toThrow();
   });
 });
