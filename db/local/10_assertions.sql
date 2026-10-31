@@ -421,3 +421,27 @@ begin
   end if;
 end $$;
 commit;
+
+-- Mobile create RPCs are atomic and respect caller membership and RLS.
+begin;
+select set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-4000-8000-00000000000a', 'role', 'authenticated')::text, true);
+set local role authenticated;
+do $$
+declare tid uuid; cid uuid; rejected boolean := false;
+begin
+  tid := public.mobile_create_task('{"title":"کار موبایل","visibility":"PRIVATE","priority":"NORMAL","status":"PENDING","assigneeIds":[],"recurrence":{"frequency":"NONE"}}'::jsonb);
+  if not exists(select 1 from public.task_assignees where task_id = tid and assignee_id = auth.uid()) then raise exception 'task assignee missing'; end if;
+  cid := public.mobile_create_chore('{"title":"کار خانه موبایل","rotationMode":"FIXED","frequency":"WEEKLY","assigneeIds":[]}'::jsonb);
+  if not exists(select 1 from public.chore_rotation_steps where chore_id = cid and assignee_id = auth.uid()) then raise exception 'chore assignee missing'; end if;
+  begin
+    perform public.mobile_create_chore('{"title":"کار نامجاز","rotationMode":"FIXED","frequency":"WEEKLY","assigneeIds":["00000000-0000-4000-8000-00000000000c"]}'::jsonb);
+  exception when others then rejected := true; end;
+  if not rejected or exists(select 1 from public.chores where title = 'کار نامجاز') then raise exception 'invalid assignee should leave no chore'; end if;
+  rejected := false;
+  begin
+    perform public.mobile_create_task('{"title":"تسک نامجاز","visibility":"PRIVATE","assigneeIds":["00000000-0000-4000-8000-00000000000b"],"recurrence":{"frequency":"NONE"}}'::jsonb);
+  exception when others then rejected := true; end;
+  if not rejected or exists(select 1 from public.tasks where title = 'تسک نامجاز') then raise exception 'invalid assignee should leave no task'; end if;
+  if has_function_privilege('anon', 'public.mobile_create_task(jsonb)', 'execute') or has_function_privilege('anon', 'public.mobile_create_chore(jsonb)', 'execute') then raise exception 'anonymous execution must be denied'; end if;
+end $$;
+rollback;

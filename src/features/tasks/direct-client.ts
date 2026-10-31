@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { applyTaskCompletion } from "./security";
 import { z } from "zod";
+import { createTaskSchema } from "./schemas";
+import { getNextOccurrence } from "./recurrence";
 import type { TaskRecord } from "./types";
 
 const COLUMNS =
@@ -9,6 +11,19 @@ const COLUMNS =
 /** RLS-scoped reads and completion; task creation/assignment still need porting. */
 export function directTasks(client: SupabaseClient) {
   return {
+    async create(input: unknown): Promise<string> {
+      const task = createTaskSchema.parse(input);
+      const next = getNextOccurrence({
+        from: task.dueAt ? new Date(task.dueAt) : new Date(),
+        recurrence: task.recurrence,
+      });
+      const { data, error } = await client.rpc("mobile_create_task", {
+        p_input: { ...task, nextOccurrenceAt: next?.toISOString() ?? null },
+      });
+      if (error || typeof data !== "string")
+        throw new Error("ساخت تسک ناموفق بود.");
+      return data;
+    },
     async list(): Promise<TaskRecord[]> {
       const { data, error } = await client
         .from("tasks")

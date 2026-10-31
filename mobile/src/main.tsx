@@ -419,7 +419,11 @@ function App() {
               )}
             </section>
           )}
-          <Tasks key={session.user.id} client={client} />
+          <Tasks
+            key={`${session.user.id}:${household ?? "none"}`}
+            client={client}
+            householdId={household ?? null}
+          />
           {household && (
             <Chores key={household} client={client} householdId={household} />
           )}

@@ -72,3 +72,29 @@ describe("task edits and archive", () => {
     await expect(api.archive("task-1")).rejects.toThrow("بایگانی");
   });
 });
+
+describe("atomic task creation", () => {
+  it("validates and sends the task to the transactional RPC", async () => {
+    const { api, fetcher } = setup();
+    fetcher.mockResolvedValueOnce(
+      new Response(JSON.stringify("task-1"), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await api.create({
+      title: "  خرید  ",
+      visibility: "PRIVATE",
+      priority: "NORMAL",
+      status: "PENDING",
+      assigneeIds: [],
+      recurrence: { frequency: "NONE" },
+    });
+    expect(String(fetcher.mock.calls[0][0])).toContain(
+      "rpc/mobile_create_task",
+    );
+    expect(
+      JSON.parse(String(fetcher.mock.calls[0][1]?.body)).p_input,
+    ).toMatchObject({ title: "خرید", assigneeIds: [], nextOccurrenceAt: null });
+  });
+});

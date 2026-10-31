@@ -1,12 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ChoreRecord } from "./types";
-import { updateChoreSchema } from "./schemas";
+import { createChoreSchema, updateChoreSchema } from "./schemas";
 const COLUMNS =
   "id, household_id, title, description, created_by, rotation_mode, current_rotation_index, frequency, interval_days, weekdays, next_due_at, is_active, archived_at, created_at, updated_at, chore_rotation_steps(id, chore_id, position, assignee_id)";
 
 /** Uses the existing transactional completion RPC and database RLS. */
 export function directChores(client: SupabaseClient) {
   return {
+    async create(input: unknown): Promise<string> {
+      const chore = createChoreSchema.parse(input);
+      const { data, error } = await client.rpc("mobile_create_chore", {
+        p_input: chore,
+      });
+      if (error || typeof data !== "string")
+        throw new Error("ساخت کار خانه ناموفق بود.");
+      return data;
+    },
     async list(householdId: string): Promise<ChoreRecord[]> {
       const { data, error } = await client
         .from("chores")

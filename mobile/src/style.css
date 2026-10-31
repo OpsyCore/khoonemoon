@@ -128,3 +128,49 @@ li {
   background: #7c8253;
   color: white;
 }
+fieldset {
+  border: 1px solid #e2d8c4;
+  border-radius: 1rem;
+  padding: 0.8rem;
+}
+fieldset label {
+  padding: 0.2rem 0;
+}
+/* Warm archival-paper surfaces shared by every mobile section. */
+:root {
+  --paper: #f6f1e7;
+  --paper-card: #fcf8ee;
+  --paper-line: #e2d8c4;
+  --paper-ink: #3f342b;
+  --olive: #7c8253;
+}
+body {
+  background: var(--paper);
+  color: var(--paper-ink);
+}
+section {
+  box-shadow:
+    0 2px 5px rgba(74, 58, 35, 0.06),
+    0 12px 28px rgba(74, 58, 35, 0.045);
+}
+header h1 {
+  font-size: 1.8rem;
+  letter-spacing: -0.025em;
+}
+header p,
+section > p {
+  color: #807365;
+}
+button:not(.calendar-day) {
+  min-height: 2.75rem;
+  border-radius: 999px;
+}
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid #7c8253;
+  outline-offset: 2px;
+}
+li {
+  flex-wrap: wrap;
+}
