@@ -9,8 +9,10 @@ import {
   ShoppingBasket,
   Wallet,
   UserRound,
+  Bell,
 } from "lucide-react";
 import { createRoot } from "react-dom/client";
+import { Reminders } from "./reminders";
 import { Shopping } from "./shopping";
 import { signupSchema } from "@/features/auth/schemas";
 import { directHousehold } from "@/features/households/direct-client";
@@ -30,7 +32,13 @@ const client = url && anonKey ? createClient(url, anonKey) : null;
 
 function App() {
   const [page, setPage] = useState<
-    "house" | "tasks" | "calendar" | "shopping" | "finance" | "profile"
+    | "house"
+    | "tasks"
+    | "calendar"
+    | "shopping"
+    | "finance"
+    | "profile"
+    | "reminders"
   >("tasks");
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(!client);
@@ -300,6 +308,9 @@ function App() {
               householdId={household ?? null}
             />
           )}
+          {page === "reminders" && (
+            <Reminders key={session.user.id} client={client} />
+          )}
           {page === "profile" && (
             <Profile key={session.user.id} client={client} />
           )}
@@ -332,6 +343,7 @@ function App() {
                 ["shopping", "خرید", ShoppingBasket],
                 ["finance", "مالی", Wallet],
                 ["house", "خانه", Home],
+                ["reminders", "یادآور", Bell],
                 ["profile", "حساب", UserRound],
               ] as const
             ).map(([id, label, Icon]) => (
