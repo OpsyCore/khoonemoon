@@ -60,3 +60,84 @@ describe("mobile archive", () => {
     expect(csvEscape("@test")).toBe("'@test");
   });
 });
+
+describe("document backup", () => {
+  it("includes each accessible file with an ID-based path and consistent manifest", async () => {
+    const { unzipSync, strFromU8 } = await import("fflate");
+    const { exportMobileBackup } = await import("./direct-client");
+    const id = "11111111-1111-4111-8111-111111111111";
+    const download = vi
+      .fn()
+      .mockResolvedValue({ data: new Blob(["file"]), error: null });
+    const from = vi.fn((table: string) => ({
+      select: () => ({
+        order: () => ({
+          range: async () => ({
+            data:
+              table === "documents"
+                ? [
+                    {
+                      id,
+                      storage_path: "user/me/x.pdf",
+                      mime_type: "application/pdf",
+                      file_size: 4,
+                      title: "مدرک",
+                    },
+                  ]
+                : [],
+            error: null,
+          }),
+        }),
+      }),
+    }));
+    const client = {
+      from,
+      storage: { from: () => ({ download }) },
+    } as unknown as SupabaseClient;
+    const zip = unzipSync(
+      await exportMobileBackup(client, new Date("2026-01-01")),
+    );
+    expect(strFromU8(zip[`documents/${id}.pdf`])).toBe("file");
+    const manifest = JSON.parse(strFromU8(zip["archive.json"]));
+    expect(manifest.tables.documents[0].archive_file).toBe(
+      `documents/${id}.pdf`,
+    );
+    expect(manifest.tables.documents[0].storage_path).toBeUndefined();
+    expect(download).toHaveBeenCalledWith("user/me/x.pdf");
+  });
+  it("fails instead of creating a partial backup when any file cannot be read", async () => {
+    const { exportMobileBackup } = await import("./direct-client");
+    const id = "11111111-1111-4111-8111-111111111111";
+    const from = vi.fn((table: string) => ({
+      select: () => ({
+        order: () => ({
+          range: async () => ({
+            data:
+              table === "documents"
+                ? [
+                    {
+                      id,
+                      storage_path: "user/me/x.pdf",
+                      mime_type: "application/pdf",
+                      file_size: 4,
+                    },
+                  ]
+                : [],
+            error: null,
+          }),
+        }),
+      }),
+    }));
+    const client = {
+      from,
+      storage: {
+        from: () => ({
+          download: async () => ({ data: null, error: { message: "denied" } }),
+        }),
+      },
+    } as unknown as SupabaseClient;
+    await expect(exportMobileBackup(client, new Date())).rejects.toThrow(
+      "ناقص",
+    );
+  });
+});

@@ -1,17 +1,29 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { exportFileName } from "@/features/export/archive";
-import { exportMobileData } from "@/features/export/direct-client";
+import {
+  exportMobileBackup,
+  exportMobileData,
+} from "@/features/export/direct-client";
+import { saveBackupNative } from "./save-backup";
 
 export function ExportData({ client }: { client: SupabaseClient }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   async function download(format: "json" | "csv") {
     setBusy(true);
     setMessage("");
     try {
       const now = new Date();
       const text = await exportMobileData(client, format, now);
+      if (!active.current) return;
       const name = exportFileName({ extension: format, now });
       const mime = format === "csv" ? "text/csv" : "application/json";
       if (new TextEncoder().encode(text).length > 8 * 1024 * 1024)
@@ -37,17 +49,52 @@ export function ExportData({ client }: { client: SupabaseClient }) {
         error instanceof Error ? error.message : "استخراج داده‌ها ناموفق بود.",
       );
     } finally {
-      setBusy(false);
+      if (active.current) setBusy(false);
+    }
+  }
+  async function backup() {
+    setBusy(true);
+    setMessage("");
+    try {
+      const now = new Date();
+      const bytes = await exportMobileBackup(client, now);
+      if (!active.current) return;
+      const name = `khoonemoon-${now.toISOString().slice(0, 10)}.zip`;
+      if (window.KhoonemoonNotifications) {
+        saveBackupNative(bytes, name);
+        setMessage("محل ذخیره را در پنجرهٔ اندروید انتخاب کنید.");
+      } else {
+        const blob = new Blob([new Uint8Array(bytes)], {
+          type: "application/zip",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = name;
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        setMessage("درخواست ذخیرهٔ فایل ارسال شد.");
+      }
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "ساخت پشتیبان ناموفق بود.",
+      );
+    } finally {
+      if (active.current) setBusy(false);
     }
   }
   return (
     <section>
       <h2>خروجی داده‌ها</h2>
       <p>
-        خروجی شامل داده‌های قابل‌مشاهدهٔ حسابت است؛ فایل‌های مدارک در آن نیستند.
-        آن را در جای امن نگه دارید.
+        پشتیبان ZIP شامل فایل‌های مدارک قابل مشاهده است (حداکثر ۲۰۰ فایل و ۱۲
+        مگابایت). فایل را در جای امن نگه دارید. خروجی JSON و CSV بدون فایل
+        مدارک‌اند.
       </p>
       <div className="search-filters">
+        <button disabled={busy} onClick={() => void backup()}>
+          پشتیبان با فایل مدارک (ZIP)
+        </button>
         <button disabled={busy} onClick={() => void download("json")}>
           دریافت داده‌ها (JSON)
         </button>

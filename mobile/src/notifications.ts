@@ -12,6 +12,10 @@ declare global {
     KhoonemoonNotifications?: {
       takeRecoveryCode: () => string | null;
       saveExport?: (name: string, mime: string, content: string) => boolean;
+      beginBinaryExport?: () => boolean;
+      appendBinaryExport?: (base64: string) => boolean;
+      finishBinaryExport?: (name: string) => boolean;
+      cancelBinaryExport?: () => void;
       activate: (account: string) => boolean;
       backgroundCredential?: (account: string) => string | null;
       startBackground?: (account: string, id: string) => boolean;

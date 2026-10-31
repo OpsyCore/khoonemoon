@@ -573,4 +573,15 @@ function App() {
   );
 }
 
+// Native Android already bundles its assets. Only the standalone web app
+// registers a static-shell worker; it never caches Supabase/API responses.
+if (
+  !window.KhoonemoonNotifications &&
+  "serviceWorker" in navigator &&
+  window.isSecureContext
+) {
+  window.addEventListener("load", () => {
+    void navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}
 createRoot(document.getElementById("root")!).render(<App />);

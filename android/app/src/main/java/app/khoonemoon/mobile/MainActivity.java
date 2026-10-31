@@ -34,6 +34,7 @@ public class MainActivity extends Activity {
     private ValueCallback<Uri[]> fileCallback;
     private String pendingRecoveryCode;
     private byte[] pendingExport;
+    private java.io.ByteArrayOutputStream pendingBinaryExport;
 
     private boolean isLocal(Uri uri) {
         return uri != null && "https".equalsIgnoreCase(uri.getScheme())
@@ -187,7 +188,7 @@ public class MainActivity extends Activity {
             byte[] bytes = content.getBytes(java.nio.charset.StandardCharsets.UTF_8);
             if (bytes.length > 8 * 1024 * 1024) return false;
             synchronized (MainActivity.this) {
-                if (pendingExport != null) return false;
+                if (pendingExport != null || pendingBinaryExport != null) return false;
                 pendingExport = bytes;
             }
             runOnUiThread(() -> {
@@ -196,6 +197,46 @@ public class MainActivity extends Activity {
                         .setType(mime).putExtra(Intent.EXTRA_TITLE, name);
                     startActivityForResult(intent, EXPORT_REQUEST);
                 } catch (ActivityNotFoundException e) {
+                    synchronized (MainActivity.this) { pendingExport = null; }
+                    Toast.makeText(MainActivity.this, "ذخیره فایل در دسترس نیست", Toast.LENGTH_LONG).show();
+                }
+            });
+            return true;
+        }
+        @JavascriptInterface public boolean beginBinaryExport() {
+            synchronized (MainActivity.this) {
+                if (pendingExport != null || pendingBinaryExport != null) return false;
+                pendingBinaryExport = new java.io.ByteArrayOutputStream();
+                return true;
+            }
+        }
+        @JavascriptInterface public boolean appendBinaryExport(String base64) {
+            if (base64 == null || base64.length() > 50000) return false;
+            synchronized (MainActivity.this) {
+                if (pendingBinaryExport == null) return false;
+                try {
+                    byte[] part = android.util.Base64.decode(base64, android.util.Base64.NO_WRAP);
+                    if (pendingBinaryExport.size() + part.length > 16 * 1024 * 1024) return false;
+                    pendingBinaryExport.write(part);
+                    return true;
+                } catch (Exception error) { return false; }
+            }
+        }
+        @JavascriptInterface public void cancelBinaryExport() {
+            synchronized (MainActivity.this) { pendingBinaryExport = null; }
+        }
+        @JavascriptInterface public boolean finishBinaryExport(String name) {
+            if (name == null || !name.matches("khoonemoon-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.zip")) return false;
+            synchronized (MainActivity.this) {
+                if (pendingBinaryExport == null || pendingExport != null) return false;
+                pendingExport = pendingBinaryExport.toByteArray(); pendingBinaryExport = null;
+            }
+            runOnUiThread(() -> {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                        .setType("application/zip").putExtra(Intent.EXTRA_TITLE, name);
+                    startActivityForResult(intent, EXPORT_REQUEST);
+                } catch (ActivityNotFoundException error) {
                     synchronized (MainActivity.this) { pendingExport = null; }
                     Toast.makeText(MainActivity.this, "ذخیره فایل در دسترس نیست", Toast.LENGTH_LONG).show();
                 }

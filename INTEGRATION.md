@@ -25,7 +25,7 @@ The independent mobile UI includes shopping and financial record flows using the
 
 ### Document screen and database deployment
 
-The mobile document screen includes category filtering, user-scoped upload, short-lived signed URLs, metadata editing, deletion and entity links. Production project `isfzuxrkzeeeggvfcoah` has the documents and document_category migrations applied; tables have RLS enabled and the private documents bucket has scoped policies. Database RLS assertions and client mock tests pass, but actual Storage upload/download, Android file chooser, sharing and two-user isolation have not been tested on real devices. Deletion is two-step: metadata deletion is confirmed first, then the file is deleted. An uncertain database response keeps the file; a storage failure may leave an unreferenced file and is reported. Export still does not include document files. Background Android reminder notifications and complete final integration remain open.
+The mobile document screen includes category filtering, user-scoped upload, short-lived signed URLs, metadata editing, deletion and entity links. Production project `isfzuxrkzeeeggvfcoah` has the documents and document_category migrations applied; tables have RLS enabled and the private documents bucket has scoped policies. Database RLS assertions and client mock tests pass, but actual Storage upload/download, Android file chooser, sharing and two-user isolation have not been tested on real devices. Deletion is two-step: metadata deletion is confirmed first, then the file is deleted. An uncertain database response keeps the file; a storage failure may leave an unreferenced file and is reported. ZIP export now includes visible document files within explicit limits; device verification is still pending. Background Android reminder notifications and complete final integration remain open.
 
 ### Android local reminder alarms
 
@@ -47,6 +47,16 @@ A candidate Android WorkManager implementation now uses a 15-minute-or-longer po
 
 A password change invalidates previously registered background credentials on the server (0021); the current app attempts to re-register after an in-app recovery. Failed registration is surfaced, but delivery and credential lifecycle require end-to-end device testing.
 
-Standalone mobile now includes RLS-scoped search, a weekly recap separated by currency, and JSON/CSV export of selected visible fields. Search is limited to 50 matches. Exports exclude document files, are bounded (10,000 rows per table and 8 MiB total) and are not a transactional snapshot; CSV text is protected against spreadsheet formulas. Android saving uses the system document picker and has only been compiled, not verified on a physical device. Complete M29 parity, dashboard, quick add and full export scope still require further work and testing.
+Standalone mobile now includes RLS-scoped search, a weekly recap separated by currency, and JSON/CSV export of selected visible fields. Search is limited to 50 matches. The JSON/CSV exports exclude document files, are bounded (10,000 rows per table and 8 MiB total) and are not a transactional snapshot; CSV text is protected against spreadsheet formulas. Android saving uses the system document picker and has only been compiled, not verified on a physical device. Complete M29 parity and end-to-end testing still require further work.
 
-A standalone Today overview (due/overdue counts) and quick-add forms for task, event, shopping item, expense and weekly chore are now implemented. These use the user's existing Supabase transports. They and the Android picker have automated unit/compile coverage only; no real-device or two-account tests have been performed. Full web-app/PWA and theme parity and inclusion of document files in the export remain open.
+A standalone Today overview (due/overdue counts) and quick-add forms for task, event, shopping item, expense and weekly chore are now implemented. These use the user's existing Supabase transports. They and the Android picker have automated unit/compile coverage only; no real-device or two-account tests have been performed. Full theme and feature parity remain open.
+
+
+The standalone ZIP export bundles visible document files and JSON metadata, with
+limits of 200 files, 12 MiB file content, and 4 MiB JSON; failures downloading
+any file fail the export. It is not a transactional snapshot or an unlimited
+backup. Android SAF transfer uses bounded chunks; physical-device testing remains.
+The mobile web build has an install manifest and a static-shell-only service
+worker; Supabase/API data are not cached and functionality requires connectivity.
+Actual browser installation, offline recovery, update behavior and multi-user
+privacy on shared devices have not been verified.
