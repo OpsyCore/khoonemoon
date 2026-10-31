@@ -1,10 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createDocumentMetaSchema, updateDocumentSchema } from "./schemas";
+import {
+  createDocumentMetaSchema,
+  updateDocumentSchema,
+  createDocumentAttachmentSchema,
+} from "./schemas";
 import {
   DOCUMENT_BUCKET,
   DOCUMENT_SELECT,
   DOCUMENT_SIGNED_URL_SECONDS,
   type DocumentRecord,
+  DOCUMENT_ATTACHMENT_SELECT,
+  type DocumentAttachment,
+  type DocumentEntityType,
 } from "./types";
 import { z } from "zod";
 
@@ -107,6 +114,18 @@ export function directDocuments(client: SupabaseClient) {
         .select("id")
         .single();
       if (error || !data) {
+        // A lost insert response may have committed. Never delete a possibly
+        // referenced file unless an authorized read confirms there is no row.
+        const check = await client
+          .from("documents")
+          .select("id")
+          .eq("id", id)
+          .maybeSingle();
+        if (check.error)
+          throw new Error(
+            "وضعیت ثبت نامشخص است؛ فهرست مدارک را تازه‌سازی کنید.",
+          );
+        if (check.data) return;
         const removed = await client.storage
           .from(DOCUMENT_BUCKET)
           .remove([path]);
@@ -135,6 +154,77 @@ export function directDocuments(client: SupabaseClient) {
         .select("id")
         .maybeSingle();
       if (error || !data) throw new Error("ویرایش مدرک ناموفق بود.");
+    },
+    async remove(record: MobileDocument) {
+      const deleted = await client.storage
+        .from(DOCUMENT_BUCKET)
+        .remove([record.storage_path]);
+      if (deleted.error) throw new Error("حذف فایل ناموفق بود؛ مدرک حذف نشد.");
+      const { data, error } = await client
+        .from("documents")
+        .delete()
+        .eq("id", record.id)
+        .select("id")
+        .maybeSingle();
+      if (error || !data)
+        throw new Error(
+          "فایل حذف شد اما حذف اطلاعات مدرک ناموفق بود؛ دوباره تلاش کنید.",
+        );
+    },
+    async attachments(id: string): Promise<DocumentAttachment[]> {
+      const { data, error } = await client
+        .from("document_attachments")
+        .select(DOCUMENT_ATTACHMENT_SELECT)
+        .eq("document_id", id)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error("دریافت پیوندهای مدرک ناموفق بود.");
+      return (data ?? []) as DocumentAttachment[];
+    },
+    async targets(
+      type: DocumentEntityType,
+    ): Promise<{ id: string; title: string }[]> {
+      const tables = {
+        TASK: "tasks",
+        EVENT: "events",
+        CHORE: "chores",
+        SHOPPING_LIST: "shopping_lists",
+        FINANCE_RECORD: "financial_records",
+      } as const;
+      const field = type === "SHOPPING_LIST" ? "name" : "title";
+      const { data, error } = await client
+        .from(tables[type])
+        .select(`id,${field}`)
+        .limit(1000);
+      if (error) throw new Error("دریافت موارد قابل پیوند ناموفق بود.");
+      return ((data ?? []) as unknown as Record<string, string>[]).map(
+        (row) => ({ id: row.id, title: row[field] }),
+      );
+    },
+    async attach(id: string, type: DocumentEntityType, entityId: string) {
+      const item = createDocumentAttachmentSchema.parse({
+        entityType: type,
+        entityId,
+      });
+      const user = await currentUser(client);
+      const { error } = await client.from("document_attachments").insert({
+        document_id: id,
+        entity_type: item.entityType,
+        entity_id: item.entityId,
+        created_by: user,
+      });
+      if (error)
+        throw new Error(
+          "ثبت پیوند ناموفق بود؛ دسترسی یا تکراری بودن آن را بررسی کنید.",
+        );
+    },
+    async detach(id: string) {
+      const { data, error } = await client
+        .from("document_attachments")
+        .delete()
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
+      if (error || !data) throw new Error("حذف پیوند ناموفق بود.");
     },
     async signedUrl(record: MobileDocument) {
       const { data, error } = await client.storage

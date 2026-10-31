@@ -17,6 +17,11 @@ import {
   directDocuments,
   type MobileDocument,
 } from "@/features/documents/direct-client";
+import {
+  DOCUMENT_ENTITY_LABELS,
+  type DocumentEntityType,
+  type DocumentAttachment,
+} from "@/features/documents/types";
 import { formatPersianDate } from "@/shared/utils/locale";
 const cats = {
   ALL: "همه",
@@ -46,6 +51,11 @@ export function Documents({
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [linking, setLinking] = useState<MobileDocument | null>(null);
+  const [links, setLinks] = useState<DocumentAttachment[]>([]);
+  const [linkType, setLinkType] = useState<DocumentEntityType>("TASK");
+  const [targets, setTargets] = useState<{ id: string; title: string }[]>([]);
+  const [target, setTarget] = useState("");
   const [loaded, setLoaded] = useState(false);
   const load = useCallback(async () => {
     const data = await api.list();
@@ -126,6 +136,41 @@ export function Documents({
       setBusy(false);
     }
   }
+  async function manageLinks(
+    row: MobileDocument,
+    type: DocumentEntityType = "TASK",
+  ) {
+    setBusy(true);
+    setError("");
+    setTarget("");
+    try {
+      const [existing, choices] = await Promise.all([
+        api.attachments(row.id),
+        api.targets(type),
+      ]);
+      setLinks(existing);
+      setTargets(choices);
+      setLinkType(type);
+      setLinking(row);
+    } catch {
+      setError("دریافت پیوندها ناموفق بود.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function remove(row: MobileDocument) {
+    if (!window.confirm("این مدرک و فایل آن حذف شوند؟")) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api.remove(row);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "حذف مدرک ناموفق بود.");
+    } finally {
+      setBusy(false);
+    }
+  }
   const visible = items.filter(
     (x) => category === "ALL" || x.category === category,
   );
@@ -154,7 +199,18 @@ export function Documents({
       </div>
       {error && (
         <p className="error" role="alert">
-          {error}
+          {error}{" "}
+          <button
+            type="button"
+            className="minor"
+            disabled={busy}
+            onClick={() => {
+              setError("");
+              void load().catch(() => setError("دریافت مدارک ناموفق بود."));
+            }}
+          >
+            تلاش دوباره
+          </button>
         </p>
       )}
       {form && (
@@ -225,6 +281,83 @@ export function Documents({
           </form>
         </section>
       )}
+      {linking && (
+        <section>
+          <h3>پیوندهای {linking.title}</h3>
+          <p>فقط مواردی که به آنها دسترسی دارید نمایش داده می‌شوند.</p>
+          <ul>
+            {links.map((link) => (
+              <li key={link.id}>
+                <span>
+                  {DOCUMENT_ENTITY_LABELS[link.entity_type]} · {link.entity_id}
+                </span>
+                <button
+                  className="minor"
+                  disabled={busy}
+                  onClick={() => {
+                    if (window.confirm("پیوند حذف شود؟")) {
+                      setBusy(true);
+                      void api
+                        .detach(link.id)
+                        .then(() => manageLinks(linking, linkType))
+                        .catch(() => setError("حذف پیوند ناموفق بود."))
+                        .finally(() => setBusy(false));
+                    }
+                  }}
+                >
+                  حذف پیوند
+                </button>
+              </li>
+            ))}
+          </ul>
+          <label>
+            نوع مورد
+            <select
+              value={linkType}
+              onChange={(e) =>
+                void manageLinks(linking, e.target.value as DocumentEntityType)
+              }
+            >
+              {Object.entries(DOCUMENT_ENTITY_LABELS).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            مورد
+            <select value={target} onChange={(e) => setTarget(e.target.value)}>
+              <option value="">انتخاب کنید</option>
+              {targets.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            disabled={busy || !target}
+            onClick={() => {
+              setBusy(true);
+              void api
+                .attach(linking.id, linkType, target)
+                .then(() => manageLinks(linking, linkType))
+                .catch(() =>
+                  setError(
+                    "ثبت پیوند ناموفق بود؛ دسترسی و تکراری نبودن آن را بررسی کنید.",
+                  ),
+                )
+                .finally(() => setBusy(false));
+            }}
+          >
+            افزودن پیوند
+          </button>
+          <button className="minor" onClick={() => setLinking(null)}>
+            بستن
+          </button>
+        </section>
+      )}
       <div className="document-tabs" role="tablist" aria-label="دسته مدارک">
         {Object.entries(cats).map(([key, label]) => (
           <button
@@ -267,6 +400,20 @@ export function Documents({
                 onClick={() => edit(row)}
               >
                 ویرایش
+              </button>
+              <button
+                className="minor"
+                disabled={busy}
+                onClick={() => void manageLinks(row)}
+              >
+                پیوندها
+              </button>
+              <button
+                className="minor"
+                disabled={busy}
+                onClick={() => void remove(row)}
+              >
+                حذف
               </button>
             </div>
           </div>
