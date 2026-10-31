@@ -445,3 +445,23 @@ begin
   if has_function_privilege('anon', 'public.mobile_create_task(jsonb)', 'execute') or has_function_privilege('anon', 'public.mobile_create_chore(jsonb)', 'execute') then raise exception 'anonymous execution must be denied'; end if;
 end $$;
 rollback;
+
+-- Mobile updates replace details and assignments atomically under caller RLS.
+begin;
+select set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-4000-8000-00000000000a', 'role', 'authenticated')::text, true);
+set local role authenticated;
+do $$
+declare tid uuid; cid uuid; rejected boolean := false;
+begin
+  tid := public.mobile_create_task('{"title":"قبل","visibility":"PRIVATE","assigneeIds":[],"recurrence":{"frequency":"NONE"}}'::jsonb);
+  perform public.mobile_update_task(tid, '{"title":"بعد","visibility":"PRIVATE","priority":"HIGH","assigneeIds":[],"recurrence":{"frequency":"DAILY"}}'::jsonb);
+  if not exists(select 1 from public.tasks where id=tid and title='بعد' and priority='HIGH') or not exists(select 1 from public.task_recurrences where task_id=tid and frequency='DAILY') then raise exception 'task update failed'; end if;
+  cid := public.mobile_create_chore('{"title":"قبل","rotationMode":"FIXED","frequency":"WEEKLY","assigneeIds":[]}'::jsonb);
+  perform public.mobile_update_chore(cid, '{"title":"بعد","rotationMode":"FIXED","frequency":"DAILY","assigneeIds":[]}'::jsonb);
+  if not exists(select 1 from public.chores where id=cid and title='بعد' and frequency='DAILY') then raise exception 'chore update failed'; end if;
+  begin
+    perform public.mobile_update_chore(cid, '{"title":"نامعتبر","rotationMode":"FIXED","frequency":"WEEKLY","assigneeIds":["00000000-0000-4000-8000-00000000000c"]}'::jsonb);
+  exception when others then rejected := true; end;
+  if not rejected or not exists(select 1 from public.chores where id=cid and title='بعد') then raise exception 'unauthorized update not rejected atomically'; end if;
+end $$;
+rollback;

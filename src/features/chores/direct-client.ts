@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ChoreRecord } from "./types";
+import type { ChoreRecord, ChoreCompletion } from "./types";
 import { createChoreSchema, updateChoreSchema } from "./schemas";
 const COLUMNS =
   "id, household_id, title, description, created_by, rotation_mode, current_rotation_index, frequency, interval_days, weekdays, next_due_at, is_active, archived_at, created_at, updated_at, chore_rotation_steps(id, chore_id, position, assignee_id)";
@@ -16,6 +16,14 @@ export function directChores(client: SupabaseClient) {
         throw new Error("ساخت کار خانه ناموفق بود.");
       return data;
     },
+    async update(id: string, input: unknown): Promise<void> {
+      const chore = createChoreSchema.parse(input);
+      const { data, error } = await client.rpc("mobile_update_chore", {
+        p_id: id,
+        p_input: chore,
+      });
+      if (error || data !== id) throw new Error("ویرایش کار خانه ناموفق بود.");
+    },
     async list(householdId: string): Promise<ChoreRecord[]> {
       const { data, error } = await client
         .from("chores")
@@ -25,6 +33,17 @@ export function directChores(client: SupabaseClient) {
         .order("next_due_at", { ascending: true, nullsFirst: false });
       if (error) throw new Error("دریافت کارهای خانه ناموفق بود.");
       return (data ?? []) as ChoreRecord[];
+    },
+    async history(choreIds: string[]): Promise<ChoreCompletion[]> {
+      if (!choreIds.length) return [];
+      const { data, error } = await client
+        .from("chore_completions")
+        .select("id, chore_id, completed_by, completed_at, due_at, note")
+        .in("chore_id", choreIds)
+        .order("completed_at", { ascending: false })
+        .limit(50);
+      if (error) throw new Error("دریافت تاریخچه کارهای خانه ناموفق بود.");
+      return (data ?? []) as ChoreCompletion[];
     },
     async rename(id: string, title: string): Promise<void> {
       const parsed = updateChoreSchema.parse({ title });

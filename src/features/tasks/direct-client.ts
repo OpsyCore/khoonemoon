@@ -24,6 +24,18 @@ export function directTasks(client: SupabaseClient) {
         throw new Error("ساخت تسک ناموفق بود.");
       return data;
     },
+    async update(id: string, input: unknown): Promise<void> {
+      const task = createTaskSchema.parse(input);
+      const next = getNextOccurrence({
+        from: task.dueAt ? new Date(task.dueAt) : new Date(),
+        recurrence: task.recurrence,
+      });
+      const { data, error } = await client.rpc("mobile_update_task", {
+        p_id: id,
+        p_input: { ...task, nextOccurrenceAt: next?.toISOString() ?? null },
+      });
+      if (error || data !== id) throw new Error("ویرایش تسک ناموفق بود.");
+    },
     async list(): Promise<TaskRecord[]> {
       const { data, error } = await client
         .from("tasks")

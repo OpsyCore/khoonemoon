@@ -20,7 +20,6 @@ export function Tasks({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
-  const [name, setName] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [description, setDescription] = useState("");
   const [due, setDue] = useState("");
@@ -49,7 +48,7 @@ export function Tasks({
     setBusy(true);
     setMessage("");
     try {
-      await api.create({
+      const payload = {
         title: newTitle,
         description,
         dueAt: due ? new Date(due).toISOString() : null,
@@ -64,14 +63,14 @@ export function Tasks({
             : {}),
           ...(frequency === "WEEKLY" ? { weekdays: days } : {}),
         },
-      });
+      };
+      if (editing) await api.update(editing, payload);
+      else await api.create(payload);
       setTasks(await api.list());
-      setNewTitle("");
-      setDescription("");
-      setDue("");
+      resetForm();
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
     } catch {
-      setMessage("ساخت تسک ناموفق بود؛ اطلاعات و تنظیم تکرار را بررسی کنید.");
+      setMessage("ذخیره تسک ناموفق بود؛ اطلاعات و تنظیم تکرار را بررسی کنید.");
     } finally {
       setBusy(false);
     }
@@ -92,19 +91,36 @@ export function Tasks({
       setBusy(false);
     }
   }
-  async function rename(id: string) {
-    setBusy(true);
-    setMessage("");
-    try {
-      await api.rename(id, name);
-      setTasks(await api.list());
-      setEditing(null);
-      window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
-    } catch {
-      setMessage("ویرایش تسک ناموفق بود.");
-    } finally {
-      setBusy(false);
-    }
+  function beginEdit(task: TaskRecord) {
+    const local = (iso: string) => {
+      const d = new Date(iso);
+      return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16);
+    };
+    const recurrence = task.task_recurrences?.[0];
+    setEditing(task.id);
+    setNewTitle(task.title);
+    setDescription(task.description ?? "");
+    setDue(task.due_at ? local(task.due_at) : "");
+    setShared(task.visibility === "HOUSEHOLD_SHARED");
+    setPriority(task.priority);
+    setFrequency(recurrence?.frequency ?? "NONE");
+    setInterval(String(recurrence?.interval_days ?? 1));
+    setDays(recurrence?.weekdays ?? []);
+    setAssignees(task.task_assignees.map((a) => a.assignee_id));
+  }
+  function resetForm() {
+    setEditing(null);
+    setNewTitle("");
+    setDescription("");
+    setDue("");
+    setShared(false);
+    setPriority("NORMAL");
+    setFrequency("NONE");
+    setInterval("1");
+    setDays([]);
+    setAssignees([]);
   }
   async function archive(id: string) {
     if (!window.confirm("این تسک بایگانی شود؟")) return;
@@ -191,9 +207,13 @@ export function Tasks({
           days={days}
           setDays={setDays}
         />
-        <button disabled={busy}>ساخت تسک</button>
+        <button disabled={busy}>{editing ? "ذخیره تسک" : "ساخت تسک"}</button>
+        {editing && (
+          <button type="button" className="minor" onClick={resetForm}>
+            انصراف
+          </button>
+        )}
       </form>
-      <p>ویرایش کامل تنظیمات تسک هنوز منتقل نشده است.</p>
       {message && (
         <p role="alert" className="error">
           {message}
@@ -203,54 +223,21 @@ export function Tasks({
         {tasks.map((task) => (
           <li key={task.id}>
             <div>
-              {editing === task.id ? (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void rename(task.id);
-                  }}
-                >
-                  <label>
-                    عنوان
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      minLength={2}
-                      maxLength={180}
-                      required
-                    />
-                  </label>
-                  <button disabled={busy}>ذخیره</button>
-                  <button
-                    type="button"
-                    className="minor"
-                    onClick={() => setEditing(null)}
-                  >
-                    انصراف
-                  </button>
-                </form>
-              ) : (
-                <>
-                  <span>{task.title}</span>
-                  <button
-                    className="minor"
-                    disabled={busy}
-                    onClick={() => {
-                      setName(task.title);
-                      setEditing(task.id);
-                    }}
-                  >
-                    ویرایش عنوان
-                  </button>
-                  <button
-                    className="minor"
-                    disabled={busy}
-                    onClick={() => void archive(task.id)}
-                  >
-                    بایگانی
-                  </button>
-                </>
-              )}
+              <span>{task.title}</span>
+              <button
+                className="minor"
+                disabled={busy}
+                onClick={() => beginEdit(task)}
+              >
+                ویرایش
+              </button>
+              <button
+                className="minor"
+                disabled={busy}
+                onClick={() => void archive(task.id)}
+              >
+                بایگانی
+              </button>
             </div>
             <button
               className="minor"

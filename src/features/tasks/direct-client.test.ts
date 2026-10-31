@@ -98,3 +98,32 @@ describe("atomic task creation", () => {
     ).toMatchObject({ title: "خرید", assigneeIds: [], nextOccurrenceAt: null });
   });
 });
+
+describe("atomic task update", () => {
+  it("sends all validated fields to the update RPC and rejects absent rows", async () => {
+    const { api, fetcher } = setup();
+    const input = {
+      title: "تسک",
+      visibility: "PRIVATE",
+      priority: "HIGH",
+      status: "PENDING",
+      assigneeIds: [],
+      recurrence: { frequency: "NONE" },
+    };
+    fetcher.mockResolvedValueOnce(
+      new Response(JSON.stringify("task-1"), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await api.update("task-1", input);
+    expect(String(fetcher.mock.calls[0][0])).toContain(
+      "rpc/mobile_update_task",
+    );
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({
+      p_id: "task-1",
+      p_input: { title: "تسک", priority: "HIGH" },
+    });
+    await expect(api.update("task-1", input)).rejects.toThrow();
+  });
+});
