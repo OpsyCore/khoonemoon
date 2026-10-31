@@ -3,12 +3,12 @@ import "@fontsource-variable/vazirmatn";
 import { createClient, type Session } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
-import { directShopping } from "@/features/shopping/direct-client";
-import type { ShoppingItem, ShoppingList } from "@/features/shopping/types";
+import { Shopping } from "./shopping";
 import { signupSchema } from "@/features/auth/schemas";
 import { directHousehold } from "@/features/households/direct-client";
 import { CalendarEvents } from "./calendar";
 import { Tasks } from "./tasks";
+import { Finance } from "./finance";
 import { Chores } from "./chores";
 import { Profile } from "./profile";
 import { HouseholdDetails } from "./household-details";
@@ -34,13 +34,7 @@ function App() {
   );
   const [houseName, setHouseName] = useState("");
   const [joinCode, setJoinCode] = useState("");
-  const [lists, setLists] = useState<ShoppingList[]>([]);
-  const [listId, setListId] = useState("");
-  const [items, setItems] = useState<ShoppingItem[]>([]);
-  const [listName, setListName] = useState("");
-  const [itemName, setItemName] = useState("");
   const houses = useMemo(() => (client ? directHousehold(client) : null), []);
-  const shopping = useMemo(() => (client ? directShopping(client) : null), []);
 
   useEffect(() => {
     if (!client) return;
@@ -66,10 +60,7 @@ function App() {
     // Clear the previous account’s data before loading the next account.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHousehold(undefined);
-    setLists([]);
     setJoinCode("");
-    setListId("");
-    setItems([]);
     if (!userId || !client) return;
     let alive = true;
     void client
@@ -87,44 +78,6 @@ function App() {
       alive = false;
     };
   }, [userId]);
-
-  useEffect(() => {
-    if (!household || !shopping) return;
-    let alive = true;
-    void shopping
-      .lists(household)
-      .then((result) => {
-        if (alive) {
-          setLists(result);
-          setListId(result[0]?.id ?? "");
-        }
-      })
-      .catch(() => {
-        if (alive) setMessage("دریافت لیست‌های خرید ناموفق بود.");
-      });
-    return () => {
-      alive = false;
-    };
-  }, [household, shopping]);
-
-  useEffect(() => {
-    // Avoid displaying one list’s contents while another is loading.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setItems([]);
-    if (!listId || !shopping) return;
-    let alive = true;
-    void shopping
-      .items(listId)
-      .then((result) => {
-        if (alive) setItems(result);
-      })
-      .catch(() => {
-        if (alive) setMessage("دریافت اقلام ناموفق بود.");
-      });
-    return () => {
-      alive = false;
-    };
-  }, [listId, shopping]);
 
   async function action(fn: () => Promise<void>) {
     setMessage("");
@@ -179,25 +132,6 @@ function App() {
       if (!houses) throw new Error();
       setHousehold(await houses.join(joinCode));
       setJoinCode("");
-    });
-  }
-  function createList(event: FormEvent) {
-    event.preventDefault();
-    void action(async () => {
-      if (!shopping || !household) throw new Error();
-      const list = await shopping.createList(household, { name: listName });
-      setLists((previous) => [...previous, list]);
-      setListId(list.id);
-      setListName("");
-    });
-  }
-  function addItem(event: FormEvent) {
-    event.preventDefault();
-    void action(async () => {
-      if (!shopping || !listId) throw new Error();
-      const item = await shopping.addItem({ listId, name: itemName });
-      setItems((previous) => [...previous, item]);
-      setItemName("");
     });
   }
 
@@ -289,9 +223,6 @@ function App() {
                 userId={session.user.id}
                 onLeave={() => {
                   setHousehold(null);
-                  setLists([]);
-                  setListId("");
-                  setItems([]);
                 }}
               />
             ) : (
@@ -327,97 +258,11 @@ function App() {
             )}
           </section>
           {household && (
-            <section>
-              <h2>لیست خرید</h2>
-              {lists.length > 0 && (
-                <label>
-                  انتخاب لیست
-                  <select
-                    value={listId}
-                    onChange={(e) => setListId(e.target.value)}
-                  >
-                    {lists.map((list) => (
-                      <option key={list.id} value={list.id}>
-                        {list.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <form onSubmit={createList}>
-                <label>
-                  نام لیست جدید
-                  <input
-                    value={listName}
-                    onChange={(e) => setListName(e.target.value)}
-                    minLength={2}
-                    maxLength={120}
-                    required
-                  />
-                </label>
-                <button disabled={busy}>ساخت لیست</button>
-              </form>
-              {listId && (
-                <>
-                  <form onSubmit={addItem}>
-                    <label>
-                      مورد جدید
-                      <input
-                        value={itemName}
-                        onChange={(e) => setItemName(e.target.value)}
-                        maxLength={160}
-                        required
-                      />
-                    </label>
-                    <button disabled={busy}>افزودن</button>
-                  </form>
-                  <ul>
-                    {items.map((item) => (
-                      <li key={item.id}>
-                        <label className="item">
-                          <input
-                            type="checkbox"
-                            checked={item.purchased}
-                            disabled={busy}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              void action(async () => {
-                                if (!shopping) return;
-                                const updated = await shopping.updateItem(
-                                  item.id,
-                                  { purchased: checked },
-                                );
-                                setItems((previous) =>
-                                  previous.map((i) =>
-                                    i.id === updated.id ? updated : i,
-                                  ),
-                                );
-                              });
-                            }}
-                          />
-                          {item.name}
-                        </label>
-                        <button
-                          className="minor"
-                          disabled={busy}
-                          onClick={() =>
-                            void action(async () => {
-                              if (!shopping) return;
-                              await shopping.deleteItem(item.id);
-                              setItems((previous) =>
-                                previous.filter((i) => i.id !== item.id),
-                              );
-                            })
-                          }
-                        >
-                          حذف
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </section>
+            <Shopping
+              key={`${session.user.id}:${household}`}
+              client={client}
+              householdId={household}
+            />
           )}
           <Tasks
             key={`${session.user.id}:${household ?? "none"}`}
@@ -427,6 +272,11 @@ function App() {
           {household && (
             <Chores key={household} client={client} householdId={household} />
           )}
+          <Finance
+            key={`${session.user.id}:${household ?? "none"}`}
+            client={client}
+            householdId={household ?? null}
+          />
           <Profile key={session.user.id} client={client} />
           <CalendarEvents
             key={`${session.user.id}:${household ?? "none"}`}

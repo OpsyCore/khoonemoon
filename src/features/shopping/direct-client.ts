@@ -45,6 +45,25 @@ export function directShopping(client: SupabaseClient) {
       if (error || !data) throw new Error("ایجاد لیست خرید ناموفق بود.");
       return data as ShoppingList;
     },
+    async updateList(id: string, name: string): Promise<void> {
+      const input = createShoppingListSchema.parse({ name });
+      const { data, error } = await client
+        .from("shopping_lists")
+        .update({ name: input.name })
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
+      if (error || !data) throw new Error("ویرایش لیست ناموفق بود.");
+    },
+    async archiveList(id: string): Promise<void> {
+      const { data, error } = await client
+        .from("shopping_lists")
+        .update({ archived_at: new Date().toISOString() })
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
+      if (error || !data) throw new Error("بایگانی لیست ناموفق بود.");
+    },
     async items(listId: string): Promise<ShoppingItem[]> {
       const { data, error } = await client
         .from("shopping_items")

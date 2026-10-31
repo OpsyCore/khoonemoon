@@ -19,3 +19,7 @@ users. Metadata confirms anon cannot execute them. Real two-account and Android
 tests are still outstanding. The standalone mobile prototype is not yet packaged
 into the Android APK. Its task recurrence fields preserve the existing model;
 automatic creation of the next task on completion uses migration `0015_recurring_task_completion.sql` applied to Supabase. It is tested locally and in CI, but not yet with real accounts or on Android. The mobile calendar has month, week and agenda views, pending real-device testing.
+
+### Mobile shopping and finance (work in progress)
+
+The independent mobile UI now includes direct Supabase shopping and financial record flows. These are not yet a completed section: the new mobile UI has not been exercised end-to-end with two real accounts or on Android, realtime publication/delivery has not been verified in production (finance is not added to the publication by the local finance migration), and refresh remains important. Reports and the ledger currently include IRR only; other currencies are excluded. Settlement is an estimate for the current household's current members, not a recorded payment. Recurring is only a flag and does not generate future records. The standalone mobile UI is not yet packaged in the Android wrapper. Additional coverage for the new UI and shopping list update/archive operations is still needed.
