@@ -12,6 +12,11 @@ export function WeeklySummary({ client }: { client: SupabaseClient }) {
   const [refresh, setRefresh] = useState(0);
   const reload = useCallback(() => setRefresh((n) => n + 1), []);
   useEffect(() => {
+    window.addEventListener("khoonemoon:schedule-changed", reload);
+    return () =>
+      window.removeEventListener("khoonemoon:schedule-changed", reload);
+  }, [reload]);
+  useEffect(() => {
     let active = true;
     void getMobileWeeklySummary(client, new Date())
       .then((data) => {

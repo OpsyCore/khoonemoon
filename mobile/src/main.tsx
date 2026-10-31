@@ -20,6 +20,8 @@ import { Shopping } from "./shopping";
 import { Search } from "./search";
 import { ExportData } from "./export";
 import { WeeklySummary } from "./weekly-summary";
+import { Today } from "./today";
+import { QuickAdd } from "./quick-add";
 import { signupSchema } from "@/features/auth/schemas";
 import {
   ANDROID_RECOVERY_REDIRECT,
@@ -45,6 +47,7 @@ const client =
     : null;
 
 function App() {
+  const [revision, setRevision] = useState(0);
   const [page, setPage] = useState<
     | "house"
     | "tasks"
@@ -386,6 +389,11 @@ function App() {
         </section>
       ) : (
         <>
+          <QuickAdd
+            client={client}
+            householdId={household ?? null}
+            onDone={() => setRevision((n) => n + 1)}
+          />
           {page === "house" && (
             <section>
               <h2>خانه و اعضا</h2>
@@ -436,7 +444,7 @@ function App() {
           )}
           {page === "shopping" && household && (
             <Shopping
-              key={`${session.user.id}:${household}`}
+              key={`${session.user.id}:${household}:${revision}`}
               client={client}
               householdId={household}
             />
@@ -450,11 +458,18 @@ function App() {
             </section>
           )}
           {page === "tasks" && (
+            <Today
+              key={`today:${session.user.id}`}
+              client={client}
+              onNavigate={setPage}
+            />
+          )}
+          {page === "tasks" && (
             <WeeklySummary key={`weekly:${session.user.id}`} client={client} />
           )}
           {page === "tasks" && (
             <Tasks
-              key={`${session.user.id}:${household ?? "none"}`}
+              key={`${session.user.id}:${household ?? "none"}:${revision}`}
               client={client}
               householdId={household ?? null}
             />
@@ -464,7 +479,7 @@ function App() {
           )}
           {page === "finance" && (
             <Finance
-              key={`${session.user.id}:${household ?? "none"}`}
+              key={`${session.user.id}:${household ?? "none"}:${revision}`}
               client={client}
               householdId={household ?? null}
             />
@@ -474,7 +489,7 @@ function App() {
           )}
           {page === "documents" && (
             <Documents
-              key={`${session.user.id}:${household ?? "none"}`}
+              key={`${session.user.id}:${household ?? "none"}:${revision}`}
               client={client}
               householdId={household ?? null}
             />
@@ -494,7 +509,7 @@ function App() {
           )}
           {page === "calendar" && (
             <CalendarEvents
-              key={`${session.user.id}:${household ?? "none"}`}
+              key={`${session.user.id}:${household ?? "none"}:${revision}`}
               client={client}
               householdId={household ?? null}
             />
