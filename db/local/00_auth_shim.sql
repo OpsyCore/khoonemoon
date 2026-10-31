@@ -72,3 +72,10 @@ $$;
 grant usage on schema storage to authenticated;
 grant execute on function storage.foldername(text) to authenticated;
 grant select, insert, update, delete on storage.objects to authenticated;
+
+-- Model Supabase's realtime publication so migrations are exercised in CI.
+do $$ begin
+  if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    create publication supabase_realtime;
+  end if;
+end $$;

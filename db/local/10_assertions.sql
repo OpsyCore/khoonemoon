@@ -502,3 +502,9 @@ begin
   if not blocked then raise exception 'outsider completion must be denied'; end if;
 end $$;
 rollback;
+
+do $$ begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'financial_records') then
+    raise exception 'financial_records must be published for realtime';
+  end if;
+end $$;

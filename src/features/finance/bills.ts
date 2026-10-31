@@ -33,14 +33,17 @@ export function getBillStatus({
   return "UPCOMING";
 }
 
-export function formatAmount(amount: number | string, currency = "IRR"): string {
+export function formatAmount(
+  amount: number | string,
+  currency = "IRR",
+): string {
   const value = typeof amount === "string" ? Number(amount) : amount;
 
   if (!Number.isFinite(value)) return "—";
 
   const formatted = new Intl.NumberFormat("fa-IR", {
-    maximumFractionDigits: 0,
-  }).format(Math.round(value));
+    maximumFractionDigits: currency === "IRR" ? 0 : 2,
+  }).format(currency === "IRR" ? Math.round(value) : value);
 
   return currency === "IRR" ? `${formatted} تومان` : `${formatted} ${currency}`;
 }

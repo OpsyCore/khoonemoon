@@ -84,4 +84,48 @@ describe("direct Supabase shopping transport", () => {
       "ایجاد لیست خرید ناموفق بود",
     );
   });
+  it("renames and archives lists through RLS and reports missing rows", async () => {
+    const { api, fetcher } = setup();
+    await api.updateList("list-1", "  خرید تازه  ");
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      name: "خرید تازه",
+    });
+    await api.archiveList("list-1");
+    expect(
+      Number.isNaN(
+        Date.parse(
+          JSON.parse(String(fetcher.mock.calls[1][1]?.body)).archived_at,
+        ),
+      ),
+    ).toBe(false);
+    fetcher.mockResolvedValueOnce(
+      new Response("null", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await expect(api.archiveList("inaccessible")).rejects.toThrow("ناموفق");
+  });
+  it("pages list and item reads instead of silently truncating", async () => {
+    const { api, fetcher } = setup();
+    const page = Array.from({ length: 500 }, (_, i) => ({ id: String(i) }));
+    for (const method of [
+      () => api.lists("house-1"),
+      () => api.items("list-1"),
+    ]) {
+      fetcher.mockResolvedValueOnce(
+        new Response(JSON.stringify(page), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+      fetcher.mockResolvedValueOnce(
+        new Response(JSON.stringify([{ id: "last" }]), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+      expect(await method()).toHaveLength(501);
+    }
+  });
 });

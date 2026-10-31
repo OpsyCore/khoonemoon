@@ -141,9 +141,11 @@ export function Shopping({
     const foreground = () => {
       if (document.visibilityState === "visible") refresh();
     };
+    const interval = window.setInterval(foreground, 60000);
     document.addEventListener("visibilitychange", foreground);
     return () => {
       alive = false;
+      window.clearInterval(interval);
       document.removeEventListener("visibilitychange", foreground);
       void client.removeChannel(channel);
     };
@@ -189,8 +191,12 @@ export function Shopping({
       };
       if (editing) await api.updateItem(editing.id, data);
       else await api.addItem({ listId: selected, ...data });
-      setItems(await api.items(selected));
       clear();
+      try {
+        setItems(await api.items(selected));
+      } catch {
+        setMessage("ذخیره انجام شد؛ تازه‌سازی ناموفق بود.");
+      }
     });
   }
   return (

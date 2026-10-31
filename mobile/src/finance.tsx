@@ -70,6 +70,8 @@ export function Finance({
   const [due, setDue] = useState("");
   const [occurred, setOccurred] = useState("");
   const [recurring, setRecurring] = useState(false);
+  const [currency, setCurrency] = useState("IRR");
+  const [recordCurrency, setRecordCurrency] = useState("IRR");
   const [filters, setFilters] = useState(DEFAULT_LEDGER_FILTERS);
   const load = useCallback(async () => {
     const data = await api.list();
@@ -110,7 +112,7 @@ export function Finance({
         if (alive)
           setSync(
             status === "SUBSCRIBED"
-              ? "اتصال برقرار است؛ انتشار تغییرات مالی هنوز تأیید نشده، برای اطمینان تازه‌سازی کنید."
+              ? "اتصال زنده برقرار است؛ تازه‌سازی دوره‌ای نیز فعال است."
               : "اتصال زنده در دسترس نیست؛ از تازه‌سازی استفاده کنید.",
           );
       });
@@ -129,9 +131,11 @@ export function Finance({
             }
           });
     };
+    const interval = window.setInterval(refresh, 60000);
     document.addEventListener("visibilitychange", refresh);
     return () => {
       alive = false;
+      window.clearInterval(interval);
       document.removeEventListener("visibilitychange", refresh);
       void client.removeChannel(channel);
     };
@@ -139,45 +143,62 @@ export function Finance({
   useEffect(() => {
     let alive = true;
     if (!householdId) return;
-    void Promise.all([
-      client
-        .from("household_members")
-        .select("user_id")
-        .eq("household_id", householdId)
-        .is("left_at", null)
-        .order("joined_at"),
-      client.rpc("household_member_names", {
-        target_household_id: householdId,
-      }),
-    ]).then(([membership, names]) => {
-      if (!alive) return;
-      if (membership.error || names.error || !membership.data?.length) {
-        setMembersReady(false);
-        setMessage("دریافت اعضا برای تسویه ناموفق بود.");
-        return;
-      }
-      const map = new Map(
-        ((names.data ?? []) as { id: string; full_name: string | null }[]).map(
-          (m) => [m.id, m.full_name],
-        ),
-      );
-      setMembers(
-        membership.data.map((m) => ({
-          id: m.user_id,
-          name: map.get(m.user_id) || "کاربر",
-        })),
-      );
-      setMembersReady(true);
-    });
+    const refreshMembers = () => {
+      void Promise.all([
+        client
+          .from("household_members")
+          .select("user_id")
+          .eq("household_id", householdId)
+          .is("left_at", null)
+          .order("joined_at"),
+        client.rpc("household_member_names", {
+          target_household_id: householdId,
+        }),
+      ])
+        .then(([membership, names]) => {
+          if (!alive) return;
+          if (membership.error || names.error || !membership.data?.length) {
+            setMembersReady(false);
+            setMessage("دریافت اعضا برای تسویه ناموفق بود.");
+            return;
+          }
+          const map = new Map(
+            (
+              (names.data ?? []) as { id: string; full_name: string | null }[]
+            ).map((m) => [m.id, m.full_name]),
+          );
+          setMembers(
+            membership.data.map((m) => ({
+              id: m.user_id,
+              name: map.get(m.user_id) || "کاربر",
+            })),
+          );
+          setMembersReady(true);
+        })
+        .catch(() => {
+          if (alive) {
+            setMembersReady(false);
+            setMessage("دریافت اعضا برای تسویه ناموفق بود.");
+          }
+        });
+    };
+    refreshMembers();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshMembers();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    const interval = window.setInterval(onVisible, 60000);
     return () => {
       alive = false;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [client, householdId]);
   const now = new Date();
   // Do not add different currencies together. The current form records IRR only.
   const money = useMemo(
-    () => records.filter((record) => record.currency === "IRR"),
-    [records],
+    () => records.filter((record) => record.currency === currency),
+    [records, currency],
   );
   const summary = summarizeFinance(money, now);
   const analytics = buildFinanceAnalytics({ records: money, now });
@@ -192,6 +213,7 @@ export function Finance({
   );
   function reset() {
     setEditing(null);
+    setRecordCurrency("IRR");
     setTitle("");
     setAmount("");
     setKind("EXPENSE");
@@ -204,6 +226,7 @@ export function Finance({
   }
   function beginEdit(record: FinancialRecord) {
     setEditing(record);
+    setRecordCurrency(record.currency);
     setTitle(record.title);
     setAmount(String(record.amount));
     setKind(record.record_type);
@@ -238,15 +261,21 @@ export function Finance({
           amount: value,
           recordType: kind,
           visibility: shared ? "HOUSEHOLD_SHARED" : "PRIVATE",
-          currency: "IRR",
+          currency: recordCurrency,
           category: category || null,
           note: note || null,
           dueAt,
           occurredAt: occurred ? new Date(occurred).toISOString() : null,
           isRecurring: recurring,
         });
-      await load();
       reset();
+      try {
+        await load();
+      } catch {
+        setMessage(
+          "ثبت انجام شد؛ تازه‌سازی اطلاعات ناموفق بود. دوباره تازه‌سازی کنید.",
+        );
+      }
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "ثبت اطلاعات مالی ناموفق بود.",
@@ -332,13 +361,29 @@ export function Finance({
           </select>
         </label>
         <label>
-          مبلغ (تومان)
+          مبلغ ({recordCurrency === "IRR" ? "تومان" : recordCurrency})
           <input
             required
             inputMode="decimal"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
           />
+        </label>
+        <label>
+          ارز{" "}
+          <select
+            value={recordCurrency}
+            disabled={Boolean(editing)}
+            onChange={(e) => setRecordCurrency(e.target.value)}
+          >
+            <option value="IRR">تومان</option>
+            <option value="USD">دلار آمریکا</option>
+            <option value="EUR">یورو</option>
+            <option value="TRY">لیر ترکیه</option>
+            {!["IRR", "USD", "EUR", "TRY"].includes(recordCurrency) && (
+              <option value={recordCurrency}>{recordCurrency}</option>
+            )}
+          </select>
         </label>
         <label>
           دسته‌بندی
@@ -407,17 +452,27 @@ export function Finance({
       </form>
       {loaded && (
         <>
-          {records.length !== money.length && (
-            <p>
-              گزارش‌ها فقط رکوردهای تومانی را شامل می‌شوند؛ ارزهای دیگر جمع
-              نشده‌اند.
-            </p>
-          )}
+          <label>
+            ارز گزارش و دفتر
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+            >
+              {Array.from(
+                new Set(["IRR", ...records.map((record) => record.currency)]),
+              ).map((code) => (
+                <option key={code} value={code}>
+                  {code === "IRR" ? "تومان" : code}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>مبالغ فقط برای ارز انتخاب‌شده محاسبه می‌شوند.</p>
           <h3>خلاصه مالی</h3>
           <p>
-            درآمد: {formatAmount(summary.income)} · هزینه:{" "}
-            {formatAmount(summary.expense)} · قبض‌های پرداخت‌نشده:{" "}
-            {formatAmount(summary.outstanding)}
+            درآمد: {formatAmount(summary.income, currency)} · هزینه:{" "}
+            {formatAmount(summary.expense, currency)} · قبض‌های پرداخت‌نشده:{" "}
+            {formatAmount(summary.outstanding, currency)}
           </p>
           <p>
             معوق: {summary.overdueCount} · نزدیک سررسید: {summary.dueSoonCount}
@@ -430,8 +485,8 @@ export function Finance({
           <ul>
             {analytics.months.map((month) => (
               <li key={month.key}>
-                {month.label} — درآمد {formatAmount(month.income)} · هزینه{" "}
-                {formatAmount(month.expense)}
+                {month.label} — درآمد {formatAmount(month.income, currency)} ·
+                هزینه {formatAmount(month.expense, currency)}
               </li>
             ))}
           </ul>
@@ -440,7 +495,8 @@ export function Finance({
             <ul>
               {analytics.categories.map((item) => (
                 <li key={item.category}>
-                  {item.category} — {formatAmount(item.total)} ({item.share}٪)
+                  {item.category} — {formatAmount(item.total, currency)} (
+                  {item.share}٪)
                 </li>
               ))}
             </ul>
@@ -456,7 +512,7 @@ export function Finance({
                   {settlement.transfers.map((transfer) => (
                     <li key={`${transfer.fromId}-${transfer.toId}`}>
                       {transfer.fromName} به {transfer.toName}:{" "}
-                      {formatAmount(transfer.amount)}
+                      {formatAmount(transfer.amount, currency)}
                     </li>
                   ))}
                 </ul>

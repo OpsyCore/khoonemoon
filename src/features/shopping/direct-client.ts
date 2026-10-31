@@ -22,14 +22,22 @@ async function currentUserId(client: SupabaseClient): Promise<string> {
 export function directShopping(client: SupabaseClient) {
   return {
     async lists(householdId: string): Promise<ShoppingList[]> {
-      const { data, error } = await client
-        .from("shopping_lists")
-        .select(LIST_COLUMNS)
-        .eq("household_id", householdId)
-        .is("archived_at", null)
-        .order("created_at", { ascending: true });
-      if (error) throw new Error("دریافت لیست‌های خرید ناموفق بود.");
-      return (data ?? []) as ShoppingList[];
+      const rows: ShoppingList[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await client
+          .from("shopping_lists")
+          .select(LIST_COLUMNS)
+          .eq("household_id", householdId)
+          .is("archived_at", null)
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(offset, offset + 499);
+        if (error) throw new Error("دریافت لیست‌های خرید ناموفق بود.");
+        rows.push(...((data ?? []) as ShoppingList[]));
+        if (!data || data.length < 500) return rows;
+        if (rows.length >= 10000)
+          throw new Error("تعداد لیست‌ها بیش از حد مجاز است.");
+      }
     },
     async createList(
       householdId: string,
@@ -65,15 +73,23 @@ export function directShopping(client: SupabaseClient) {
       if (error || !data) throw new Error("بایگانی لیست ناموفق بود.");
     },
     async items(listId: string): Promise<ShoppingItem[]> {
-      const { data, error } = await client
-        .from("shopping_items")
-        .select(ITEM_COLUMNS)
-        .eq("list_id", listId)
-        .order("purchased", { ascending: true })
-        .order("position", { ascending: true })
-        .order("created_at", { ascending: true });
-      if (error) throw new Error("دریافت آیتم‌های خرید ناموفق بود.");
-      return (data ?? []) as ShoppingItem[];
+      const rows: ShoppingItem[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await client
+          .from("shopping_items")
+          .select(ITEM_COLUMNS)
+          .eq("list_id", listId)
+          .order("purchased", { ascending: true })
+          .order("position", { ascending: true })
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(offset, offset + 499);
+        if (error) throw new Error("دریافت آیتم‌های خرید ناموفق بود.");
+        rows.push(...((data ?? []) as ShoppingItem[]));
+        if (!data || data.length < 500) return rows;
+        if (rows.length >= 10000)
+          throw new Error("تعداد اقلام بیش از حد مجاز است.");
+      }
     },
     async addItem(input: unknown): Promise<ShoppingItem> {
       const item = createShoppingItemSchema.parse(input);
