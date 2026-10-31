@@ -28,6 +28,7 @@ import {
 } from "@/features/finance/ledger";
 import { settleHousehold } from "@/features/finance/settlement";
 import { parseAmount } from "@/shared/utils/amount";
+import { formatPersianDate } from "@/shared/utils/locale";
 
 const billTypes = new Set(["BILL", "SUBSCRIPTION", "INSTALLMENT"]);
 const statusLabel = {
@@ -587,7 +588,13 @@ export function Finance({
                   </p>
                   <small>
                     {record.visibility === "PRIVATE" ? "شخصی" : "مشترک"}
+                    {record.category && ` · ${record.category}`}
+                    {record.due_at &&
+                      ` · سررسید: ${formatPersianDate(record.due_at)}`}
+                    {record.paid_at &&
+                      ` · پرداخت: ${formatPersianDate(record.paid_at)}`}
                   </small>
+                  {record.note && <p>{record.note}</p>}
                 </div>
                 <div>
                   <button
