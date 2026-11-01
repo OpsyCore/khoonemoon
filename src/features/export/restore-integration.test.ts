@@ -32,6 +32,18 @@ describe("real ZIP through recovery against isolated PGlite", () => {
           .map((x) => `drizzle/${x}`),
       ])
         await db.exec(sanitize(readFileSync(file, "utf8")));
+      // Match CI: replay all migrations; in particular, never rotate the key.
+      const before = (
+        await db.query("select secret from backup_private.signing_key")
+      ).rows[0];
+      for (const file of readdirSync("drizzle")
+        .filter((x) => x.endsWith(".sql"))
+        .sort())
+        await db.exec(sanitize(readFileSync(`drizzle/${file}`, "utf8")));
+      expect(
+        (await db.query("select secret from backup_private.signing_key"))
+          .rows[0],
+      ).toEqual(before);
       await db.exec(`insert into auth.users(id,email) values ('${user}','restore@example.com');
      select set_config('request.jwt.claims','{"sub":"${user}","role":"authenticated"}',false); set role authenticated;
      insert into public.tasks(title,creator_id,owner_id,visibility,priority) values ('بازگشت کار','${user}','${user}','PRIVATE','NORMAL');

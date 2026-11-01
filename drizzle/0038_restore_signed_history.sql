@@ -1,7 +1,7 @@
 -- Restore only authentic, previously exported historical links/completions.
 -- This does not recreate households or memberships, change current rows, or
 -- grant membership to anybody. Current access is rechecked and locked.
-create function public.mobile_restore_signed_history(p_payload jsonb,p_signature text) returns jsonb
+create or replace function public.mobile_restore_signed_history(p_payload jsonb,p_signature text) returns jsonb
 language plpgsql security definer set search_path=pg_catalog,public as $$
 declare tbl text; r jsonb; snapshot jsonb; n integer; inserted integer:=0; skipped integer:=0;
   source_id uuid; target_id uuid; key_id uuid; source_record record; target_record record;
