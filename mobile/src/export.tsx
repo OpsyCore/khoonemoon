@@ -5,11 +5,39 @@ import {
   exportMobileBackup,
   exportMobileData,
 } from "@/features/export/direct-client";
+import {
+  inspectBackup,
+  type BackupPreview,
+} from "@/features/export/backup-integrity";
 import { saveBackupNative } from "./save-backup";
 
 export function ExportData({ client }: { client: SupabaseClient }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [preview, setPreview] = useState<BackupPreview | null>(null);
+  async function inspect(file: File | undefined) {
+    setPreview(null);
+    setMessage("");
+    if (!file) return;
+    if (file.size > 16 * 1024 * 1024) {
+      setMessage("فایل برای بررسی بیش از ۱۶ مگابایت است.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await inspectBackup(
+        new Uint8Array(await file.arrayBuffer()),
+      );
+      if (active.current) setPreview(result);
+    } catch (error) {
+      if (active.current)
+        setMessage(
+          error instanceof Error ? error.message : "بررسی فایل ناموفق بود.",
+        );
+    } finally {
+      if (active.current) setBusy(false);
+    }
+  }
   const active = useRef(true);
   useEffect(() => {
     active.current = true;
@@ -107,6 +135,43 @@ export function ExportData({ client }: { client: SupabaseClient }) {
           دفتر مالی (CSV)
         </button>
       </div>
+      <details>
+        <summary>بررسی فایل خروجی ذخیره‌شده</summary>
+        <p>
+          فایل ZIP ساخته‌شده توسط برنامه را انتخاب کنید؛ فقط روی دستگاه بررسی
+          می‌شود و چیزی بازیابی یا بارگذاری نمی‌شود.
+        </p>
+        <label>
+          انتخاب فایل ZIP{" "}
+          <input
+            type="file"
+            accept=".zip,application/zip"
+            disabled={busy}
+            onChange={(event) => {
+              void inspect(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+        </label>
+        {preview && (
+          <div role="status">
+            <p>
+              تاریخ خروجی:{" "}
+              {new Date(preview.exportedAt).toLocaleDateString("fa-IR")} ·{" "}
+              {preview.tableCount} بخش داده · {preview.rowCount} ردیف ·{" "}
+              {preview.documents} فایل مدرک
+            </p>
+            <p>
+              {preview.integrity === "verified"
+                ? "یکپارچگی محتوا با SHA-256 بررسی شد؛ این بررسی اصالت فایل یا کامل بودن نسخه را تضمین نمی‌کند."
+                : "نسخه قدیمی بدون مجموع کنترلی است؛ یکپارچگی محتوای آن قابل تأیید نیست."}
+            </p>
+            <p>
+              این بررسی بازیابی داده نیست و خروجی همچنان گزیده و غیرتراکنشی است.
+            </p>
+          </div>
+        )}
+      </details>
       {message && <p role="status">{message}</p>}
     </section>
   );

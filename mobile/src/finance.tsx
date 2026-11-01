@@ -382,7 +382,9 @@ export function Finance({
         );
       }
     } catch {
-      setMessage("بایگانی مورد مالی ناموفق بود.");
+      setMessage(
+        "بایگانی مورد مالی تأیید نشد؛ پیش از تلاش دوباره فهرست را تازه کنید.",
+      );
     } finally {
       setBusy(false);
     }

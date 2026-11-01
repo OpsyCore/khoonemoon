@@ -167,7 +167,9 @@ export function Tasks({
         );
       }
     } catch {
-      setMessage("بایگانی تسک ناموفق بود.");
+      setMessage(
+        "بایگانی تسک تأیید نشد؛ پیش از تلاش دوباره فهرست را تازه کنید.",
+      );
     } finally {
       setBusy(false);
     }

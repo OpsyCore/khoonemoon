@@ -171,8 +171,13 @@ export function Shopping({
     setMessage("");
     try {
       await fn();
-    } catch {
-      setMessage("عملیات خرید ناموفق بود؛ اتصال و اطلاعات را بررسی کنید.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error &&
+          error.message === "تعداد باید بیشتر از صفر باشد."
+          ? error.message
+          : "عملیات خرید تأیید نشد؛ اطلاعات و اتصال را بررسی کنید و پیش از تلاش دوباره فهرست را تازه کنید.",
+      );
     } finally {
       setBusy(false);
     }
@@ -243,7 +248,8 @@ export function Shopping({
     e.preventDefault();
     void action(async () => {
       const value = quantity ? parseAmount(quantity) : null;
-      if (quantity && (value === null || value <= 0)) throw new Error();
+      if (quantity && (value === null || value <= 0))
+        throw new Error("تعداد باید بیشتر از صفر باشد.");
       const data = {
         name,
         quantity: value,

@@ -1,4 +1,5 @@
 import { zipSync, strToU8 } from "fflate";
+import { buildChecksums } from "./backup-integrity";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   buildArchive,
@@ -158,6 +159,7 @@ export async function exportMobileBackup(
       "حجم اطلاعات خروجی بیش از ۴ مگابایت است؛ خروجی کامل ساخته نشد.",
     );
   files["archive.json"] = json;
+  files["checksums.json"] = await buildChecksums(files);
   const zip = zipSync(files, { level: 0 });
   if (zip.length > 16 * 1024 * 1024)
     throw new Error("حجم خروجی بیش از ۱۶ مگابایت است.");

@@ -102,9 +102,13 @@ describe("document backup", () => {
       from,
       storage: { from: () => ({ download }) },
     } as unknown as SupabaseClient;
-    const zip = unzipSync(
-      await exportMobileBackup(client, new Date("2026-01-01")),
-    );
+    const bytes = await exportMobileBackup(client, new Date("2026-01-01"));
+    const { inspectBackup } = await import("./backup-integrity");
+    expect(await inspectBackup(bytes)).toMatchObject({
+      documents: 1,
+      integrity: "verified",
+    });
+    const zip = unzipSync(bytes);
     expect(strFromU8(zip[`documents/${id}.pdf`])).toBe("file");
     const manifest = JSON.parse(strFromU8(zip["archive.json"]));
     expect(manifest.tables.documents[0].archive_file).toBe(

@@ -161,7 +161,7 @@ export function Reminders({
       await fn();
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "عملیات یادآور ناموفق بود.",
+        `${error instanceof Error ? error.message : "عملیات یادآور تأیید نشد."} پیش از تلاش دوباره فهرست را تازه کنید.`,
       );
     } finally {
       setBusy(false);

@@ -264,7 +264,9 @@ export function Chores({
         );
       }
     } catch {
-      setMessage("بایگانی کار خانه ناموفق بود.");
+      setMessage(
+        "بایگانی کار خانه تأیید نشد؛ پیش از تلاش دوباره فهرست را تازه کنید.",
+      );
     } finally {
       setBusy(false);
     }

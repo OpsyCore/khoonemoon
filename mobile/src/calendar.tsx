@@ -207,7 +207,9 @@ export function CalendarEvents({
       await api.remove(id);
       setEvents((previous) => previous.filter((event) => event.id !== id));
     } catch {
-      setMessage("حذف رویداد ناموفق بود.");
+      setMessage(
+        "حذف رویداد تأیید نشد؛ پیش از تلاش دوباره تقویم را تازه کنید.",
+      );
     } finally {
       setBusy(false);
     }
