@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { disableBrowserPush, enableBrowserPush } from "./web-push";
 
@@ -12,8 +12,29 @@ export function BrowserPushSettings({
 }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const key = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY as string | undefined;
-  const configured = import.meta.env.VITE_WEB_PUSH_ENABLED === "true" && !!key;
+  const [key, setKey] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    void client
+      .rpc("standalone_push_public_key")
+      .then(({ data, error }) => {
+        if (active)
+          setKey(
+            !error &&
+              typeof data === "string" &&
+              /^[A-Za-z0-9_-]{87}$/.test(data)
+              ? data
+              : null,
+          );
+      })
+      .catch(() => {
+        if (active) setKey(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [client]);
+  const configured = !!key;
   const supported =
     typeof window !== "undefined" &&
     window.isSecureContext &&

@@ -1191,3 +1191,20 @@ do $$ declare v jsonb; begin
  begin perform public.mobile_restore_signed_shared(v->'payload',v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff','parents'); raise exception 'demoted owner accepted'; exception when others then if sqlerrm<>'CURRENT_OWNER_REQUIRED' then raise; end if; end;
 end $$;
 rollback;
+
+-- Push runtime keys are service-only and cron nonces can be consumed only once.
+begin;
+insert into backup_private.push_nonces(digest,expires_at) values (sha256(convert_to(repeat('a',64),'UTF8')),now()+interval '2 minutes');
+do $$ begin
+ if has_function_privilege('anon','public.standalone_push_vapid(text,text)','execute') or has_function_privilege('authenticated','public.standalone_push_consume_nonce(text)','execute') or has_table_privilege('authenticated','backup_private.push_vapid','select') then raise exception 'push runtime secrets exposed'; end if;
+end $$;
+set local role service_role;
+do $$ declare pair jsonb; begin
+ pair:=public.standalone_push_vapid(repeat('A',87),repeat('B',43));
+ if pair->>'public_key'<>repeat('A',87) then raise exception 'vapid initialization failed'; end if;
+ pair:=public.standalone_push_vapid(repeat('C',87),repeat('D',43));
+ if pair->>'public_key'<>repeat('A',87) then raise exception 'vapid key rotated on retry'; end if;
+ if not public.standalone_push_consume_nonce(repeat('a',64)) then raise exception 'nonce rejected'; end if;
+ if public.standalone_push_consume_nonce(repeat('a',64)) then raise exception 'nonce replay accepted'; end if;
+end $$;
+rollback;
