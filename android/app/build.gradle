@@ -27,6 +27,12 @@ android {
         }
     }
     buildTypes {
+        // Test installs alongside the existing app; it cannot replace it or
+        // erase its local journal when the CI debug certificate changes.
+        debug {
+            applicationIdSuffix '.trial'
+            resValue 'string', 'app_name', 'خونه‌مون آزمایشی'
+        }
         release {
             minifyEnabled false
             if (signingFile) signingConfig signingConfigs.release
