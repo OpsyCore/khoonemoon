@@ -149,3 +149,20 @@
 - ایجاد تسک و کار خانه در کلاینت مستقل با شناسهٔ درخواست پایدار و رسید تراکنشی تحت RLS انجام می‌شود؛ همان درخواست با همان داده، نتیجهٔ قبلی را برمی‌گرداند و payload متفاوت با همان شناسه رد می‌شود. migration `0047` پس از موفقیت CI روی Supabase فعال اعمال شد؛ آزمون PostgreSQL دو اتصال هم‌زمان و rollback و جداسازی حساب موفق بود.
 - ایجاد رویداد، رکورد مالی، لیست و آیتم خرید و گروه یادآورها از شناسهٔ ثابت محلی در تلاش مجدد استفاده می‌کند؛ مدارک نیز مسیر ثابت دارند و فایل موجود فقط پس از تطبیق SHA-256 استفاده می‌شود. پیوند مدرک قید یکتایی دارد. نتیجهٔ نامعلوم به کاربر اعلام می‌شود؛ ذخیره‌سازی محلی فقط شناسه و hash ورودی نگه می‌دارد، نه متن فرم.
 - این محافظ به ثابت‌ماندن دادهٔ ورودی و حفظ ذخیره‌سازی محلی در همان دستگاه وابسته است. حذف دادهٔ برنامه، دستگاه دیگر، تغییر ورودی، رقابت میان تب‌ها یا تلاش پس از موفقیتِ نمایش‌داده‌شده را پوشش نمی‌دهد. همهٔ عملیات هنوز پوشش ندارند: از جمله ایجاد دعوت‌نامه، بعضی تغییرات/عملیات وب قدیمی و سناریوهای چنددستگاهی. اعلان تحویل‌داده‌شده هم ممکن است تکرار شود. آزمون واقعی قطع ارتباط، Storage و گوشی باقی است؛ این بخش را کامل یا تضمین سراسری تلقی نکنید.
+
+### Project recovery key groundwork (not a complete backup)
+
+A local WebCrypto RSA-OAEP-3072 recovery-key primitive now encrypts its private
+PKCS#8 key with the existing PBKDF2/AES-GCM envelope. A synthetic test checks
+that this browser-generated key can unwrap the streaming project envelope and
+that a modified envelope is rejected. The primitive is not exposed in the app,
+does not save anything to the phone, does not provision a workflow, and does not
+restore a project. JavaScript cannot guarantee erasure of all copies of key
+material. Losing the private key or its passphrase would make backups unreadable.
+
+On the hosted project, the `postgres` role is not a superuser and cannot set
+`session_replication_role`. Therefore a restore procedure relying on disabling
+all triggers has not been established for managed Supabase. Auth records,
+Storage bytes, project configuration and privileges still require an isolated,
+production-like recovery drill; existing fixture success does not establish a
+safe managed-project restore. No production restore or backup was performed.
