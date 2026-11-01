@@ -1,0 +1,23 @@
+name: Compare test APK signatures
+on:
+  push:
+    branches: [arena/00d965b0-khoonemoon]
+    paths: [".github/workflows/apk-compat-check-once.yml"]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Compare old and new test signatures
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh run download 41358694677 --name khoonemoon-test-apk --dir old
+          gh run download 41361437293 --name khoonemoon-test-apk --dir new
+          old=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs old/app-debug.apk | grep 'Signer #1 certificate SHA-256 digest:' | awk '{print $NF}')
+          new=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs new/app-debug.apk | grep 'Signer #1 certificate SHA-256 digest:' | awk '{print $NF}')
+          if [ "$old" = "$new" ]; then echo '::notice title=APK compatibility::Same signing certificate'; else echo '::notice title=APK compatibility::Different signing certificates; cannot update in place'; fi
