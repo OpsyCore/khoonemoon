@@ -722,3 +722,27 @@ begin
   if found then raise exception 'outsider can pay private successor'; end if;
 end $$;
 rollback;
+
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare cid uuid; completed uuid; n integer;
+begin
+  cid := public.mobile_create_chore('{"title":"guarded occurrence","nextDueAt":"2026-03-01T14:00:00Z","frequency":"DAILY","rotationMode":"FIXED","recurrenceTimezone":"UTC"}'::jsonb);
+  completed := public.complete_chore_expected_due(cid, '2026-03-01 14:00+00');
+  if completed is null then raise exception 'completion missing'; end if;
+  begin
+    perform public.complete_chore_expected_due(cid, '2026-03-01 14:00+00');
+    raise exception 'stale occurrence accepted';
+  exception when raise_exception then if sqlerrm <> 'CHORE_OCCURRENCE_CHANGED' then raise; end if; end;
+  select count(*) into n from public.chore_completions where chore_id=cid;
+  if n <> 1 then raise exception 'duplicate completion'; end if;
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+  begin
+    perform public.complete_chore_expected_due(cid, '2026-03-02 14:00+00');
+    raise exception 'outsider accepted';
+  exception when raise_exception then if sqlerrm <> 'CHORE_NOT_FOUND_OR_FORBIDDEN' then raise; end if; end;
+  if has_function_privilege('anon', 'public.complete_chore_expected_due(uuid,timestamptz)', 'execute') then raise exception 'anon can complete'; end if;
+end $$;
+rollback;

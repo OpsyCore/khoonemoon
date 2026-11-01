@@ -8,6 +8,7 @@ import type {
 } from "@/features/tasks/types";
 import { MemberFields, RepeatFields } from "./schedule-fields";
 import { reloadAfterSave } from "./after-save";
+import { taskEditTime } from "./task-edit-time";
 
 export function Tasks({
   client,
@@ -49,10 +50,20 @@ export function Tasks({
     setBusy(true);
     setMessage("");
     try {
+      const original = editing
+        ? tasks.find((task) => task.id === editing)
+        : null;
+      if (editing && !original) throw new Error("تسک برای ویرایش یافت نشد.");
+      const time = taskEditTime(
+        due,
+        original?.due_at ?? null,
+        original?.task_recurrences?.[0]?.recurrence_timezone,
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      );
       const payload = {
         title: newTitle,
         description,
-        dueAt: due ? new Date(due).toISOString() : null,
+        dueAt: time.dueAt,
         visibility: shared ? "HOUSEHOLD_SHARED" : "PRIVATE",
         priority,
         status: "PENDING",
@@ -65,7 +76,7 @@ export function Tasks({
           ...(frequency === "WEEKLY" ? { weekdays: days } : {}),
         },
       };
-      if (editing) await api.update(editing, payload);
+      if (editing) await api.update(editing, payload, time.recurrenceTimezone);
       else await api.create(payload);
       resetForm();
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
@@ -76,7 +87,9 @@ export function Tasks({
         );
       }
     } catch {
-      setMessage("ذخیره تسک ناموفق بود؛ اطلاعات و تنظیم تکرار را بررسی کنید.");
+      setMessage(
+        "ذخیره تسک تأیید نشد؛ اطلاعات و اتصال را بررسی کنید و پیش از تلاش دوباره فهرست را تازه کنید.",
+      );
     } finally {
       setBusy(false);
     }
@@ -202,6 +215,12 @@ export function Tasks({
             onChange={(e) => setDue(e.target.value)}
           />
         </label>
+        {editing && frequency !== "NONE" && (
+          <p>
+            تکرار با منطقه زمانی ثبت‌شده انجام می‌شود؛ تغییر سررسید منطقه زمانی
+            این دستگاه را اعمال می‌کند.
+          </p>
+        )}
         <label>
           اولویت
           <select

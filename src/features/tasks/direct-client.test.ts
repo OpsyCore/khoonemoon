@@ -136,7 +136,11 @@ describe("atomic task update", () => {
         headers: { "content-type": "application/json" },
       }),
     );
-    await api.update("task-1", input);
+    await api.update("task-1", input, "America/New_York");
+    expect(
+      JSON.parse(String(fetcher.mock.calls[0][1]?.body)).p_input
+        .recurrenceTimezone,
+    ).toBe("America/New_York");
     expect(String(fetcher.mock.calls[0][0])).toContain(
       "rpc/mobile_update_task",
     );

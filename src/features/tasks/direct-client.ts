@@ -5,7 +5,7 @@ import { createTaskSchema } from "./schemas";
 import type { TaskRecord } from "./types";
 
 const COLUMNS =
-  "id, title, description, creator_id, owner_id, household_id, visibility, status, priority, due_at, completed_at, archived_at, created_at, updated_at, task_assignees(assignee_id), task_recurrences(frequency, interval_days, weekdays)";
+  "id, title, description, creator_id, owner_id, household_id, visibility, status, priority, due_at, completed_at, archived_at, created_at, updated_at, task_assignees(assignee_id), task_recurrences(frequency, interval_days, weekdays, recurrence_timezone)";
 
 /** User-scoped task operations. Completion atomically creates a successor when recurring. */
 export function directTasks(client: SupabaseClient) {
@@ -22,25 +22,40 @@ export function directTasks(client: SupabaseClient) {
         throw new Error("ساخت تسک ناموفق بود.");
       return data;
     },
-    async update(id: string, input: unknown): Promise<void> {
+    async update(
+      id: string,
+      input: unknown,
+      recurrenceTimezone?: string,
+    ): Promise<void> {
       const task = createTaskSchema.parse(input);
       const { data, error } = await client.rpc("mobile_update_task", {
         p_id: id,
         p_input: {
           ...task,
-          recurrenceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          recurrenceTimezone:
+            recurrenceTimezone ??
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
       });
       if (error || data !== id) throw new Error("ویرایش تسک ناموفق بود.");
     },
     async list(): Promise<TaskRecord[]> {
-      const { data, error } = await client
-        .from("tasks")
-        .select(COLUMNS)
-        .is("archived_at", null)
-        .order("created_at", { ascending: false });
-      if (error) throw new Error("دریافت تسک‌ها ناموفق بود.");
-      return (data ?? []) as TaskRecord[];
+      const rows: TaskRecord[] = [];
+      for (let offset = 0; offset <= 10000; offset += 500) {
+        const { data, error } = await client
+          .from("tasks")
+          .select(COLUMNS)
+          .is("archived_at", null)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(offset, offset + 499);
+        if (error) throw new Error("دریافت تسک‌ها ناموفق بود.");
+        if (offset === 10000 && data?.length)
+          throw new Error("تعداد تسک‌ها بیش از حد مجاز است.");
+        rows.push(...((data ?? []) as TaskRecord[]));
+        if (!data || data.length < 500) return rows;
+      }
+      return rows;
     },
     async rename(id: string, title: string): Promise<void> {
       const name = z.string().trim().min(2).max(180).parse(title);

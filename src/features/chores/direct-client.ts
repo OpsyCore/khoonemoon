@@ -31,14 +31,23 @@ export function directChores(client: SupabaseClient) {
       if (error || data !== id) throw new Error("ویرایش کار خانه ناموفق بود.");
     },
     async list(householdId: string): Promise<ChoreRecord[]> {
-      const { data, error } = await client
-        .from("chores")
-        .select(COLUMNS)
-        .eq("household_id", householdId)
-        .is("archived_at", null)
-        .order("next_due_at", { ascending: true, nullsFirst: false });
-      if (error) throw new Error("دریافت کارهای خانه ناموفق بود.");
-      return (data ?? []) as ChoreRecord[];
+      const rows: ChoreRecord[] = [];
+      for (let offset = 0; offset <= 10000; offset += 500) {
+        const { data, error } = await client
+          .from("chores")
+          .select(COLUMNS)
+          .eq("household_id", householdId)
+          .is("archived_at", null)
+          .order("next_due_at", { ascending: true, nullsFirst: false })
+          .order("id", { ascending: true })
+          .range(offset, offset + 499);
+        if (error) throw new Error("دریافت کارهای خانه ناموفق بود.");
+        if (offset === 10000 && data?.length)
+          throw new Error("تعداد کارهای خانه بیش از حد مجاز است.");
+        rows.push(...((data ?? []) as ChoreRecord[]));
+        if (!data || data.length < 500) return rows;
+      }
+      return rows;
     },
     async history(choreIds: string[]): Promise<ChoreCompletion[]> {
       if (!choreIds.length) return [];

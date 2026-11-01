@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { directCalendar } from "@/features/calendar/direct-client";
+import { eventDays } from "@/features/calendar/event-days";
 import { directTasks } from "@/features/tasks/direct-client";
 import { directChores } from "@/features/chores/direct-client";
 import {
@@ -46,51 +47,50 @@ export function CalendarEvents({
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [calendarError, setCalendarError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [loadVersion, setLoadVersion] = useState(0);
 
   useEffect(() => {
     let active = true;
-    void api
-      .list()
-      .then((rows) => {
-        if (active) setEvents(rows);
+    void Promise.all([
+      api.list(),
+      directTasks(client).list(),
+      householdId
+        ? directChores(client).list(householdId)
+        : Promise.resolve([]),
+    ])
+      .then(([eventRows, taskRows, choreRows]) => {
+        if (!active) return;
+        setEvents(eventRows);
+        setTasks(taskRows);
+        setChores(choreRows);
+        setCalendarError("");
+        setLoading(false);
       })
       .catch(() => {
-        if (active) setMessage("دریافت رویدادها ناموفق بود.");
+        if (!active) return;
+        setEvents([]);
+        setTasks([]);
+        setChores([]);
+        setCalendarError(
+          "دریافت کامل تقویم ناموفق بود؛ اتصال را بررسی و دوباره تلاش کنید.",
+        );
+        setLoading(false);
       });
     return () => {
       active = false;
     };
-  }, [api]);
-
+  }, [api, client, householdId, loadVersion]);
   useEffect(() => {
-    let active = true;
-    const load = () => {
-      void directTasks(client)
-        .list()
-        .then((rows) => {
-          if (active) setTasks(rows);
-        })
-        .catch(() => {
-          if (active) setMessage("دریافت تسک‌های تقویم ناموفق بود.");
-        });
-      if (householdId)
-        void directChores(client)
-          .list(householdId)
-          .then((rows) => {
-            if (active) setChores(rows);
-          })
-          .catch(() => {
-            if (active) setMessage("دریافت کارهای خانه برای تقویم ناموفق بود.");
-          });
-      else setChores([]);
+    const refresh = () => {
+      setLoading(true);
+      setLoadVersion((n) => n + 1);
     };
-    load();
-    window.addEventListener("khoonemoon:schedule-changed", load);
-    return () => {
-      active = false;
-      window.removeEventListener("khoonemoon:schedule-changed", load);
-    };
-  }, [client, householdId]);
+    window.addEventListener("khoonemoon:schedule-changed", refresh);
+    return () =>
+      window.removeEventListener("khoonemoon:schedule-changed", refresh);
+  }, []);
 
   const calendarItems = useMemo(() => {
     const first =
@@ -110,13 +110,15 @@ export function CalendarEvents({
       end.getDate() + (view === "month" ? 1 : view === "week" ? 7 : 90),
     );
     end.setHours(0, 0, 0, 0);
-    const eventItems = events.map((e) => ({
-      key: `event-${e.id}`,
-      title: e.title,
-      date: new Date(e.start_at),
-      kind: "رویداد",
-      projected: false,
-    }));
+    const eventItems = events.flatMap((e) =>
+      eventDays(e.start_at, e.end_at, first, end).map((date) => ({
+        key: `event-${e.id}-${date.toISOString()}`,
+        title: e.title,
+        date,
+        kind: "رویداد",
+        projected: false,
+      })),
+    );
     const taskItems = tasks
       .filter((t) => t.due_at && t.status !== "ARCHIVED")
       .map((t) => ({
@@ -174,7 +176,9 @@ export function CalendarEvents({
         setDescription("");
         setEditing(null);
       } catch {
-        setMessage("ثبت رویداد ناموفق بود؛ زمان‌ها و اتصال را بررسی کنید.");
+        setMessage(
+          "ثبت رویداد تأیید نشد؛ زمان و اتصال را بررسی کنید و پیش از تلاش دوباره تقویم را تازه کنید.",
+        );
       } finally {
         setBusy(false);
       }
@@ -212,6 +216,24 @@ export function CalendarEvents({
     <section>
       <h2>تقویم</h2>
       <p>رویدادها، تسک‌ها و کارهای خانه؛ تکرارهای آینده تخمینی‌اند.</p>
+      {loading && <p role="status">در حال دریافت اطلاعات تقویم…</p>}
+      {calendarError && (
+        <p role="alert" className="error">
+          {calendarError}
+        </p>
+      )}
+      <button
+        type="button"
+        className="minor"
+        disabled={loading}
+        onClick={() => {
+          setCalendarError("");
+          setLoading(true);
+          setLoadVersion((n) => n + 1);
+        }}
+      >
+        تازه‌سازی تقویم
+      </button>
       <div className="month-header" role="group" aria-label="نمای تقویم">
         <button
           className="minor"
@@ -244,7 +266,11 @@ export function CalendarEvents({
             <button
               type="button"
               className="minor"
-              onClick={() => setCursor((date) => shiftJalaliMonth(date, -1))}
+              onClick={() => {
+                const date = shiftJalaliMonth(cursor, -1);
+                setCursor(date);
+                setSelected(date);
+              }}
             >
               ماه قبل
             </button>
@@ -252,7 +278,11 @@ export function CalendarEvents({
             <button
               type="button"
               className="minor"
-              onClick={() => setCursor((date) => shiftJalaliMonth(date, 1))}
+              onClick={() => {
+                const date = shiftJalaliMonth(cursor, 1);
+                setCursor(date);
+                setSelected(date);
+              }}
             >
               ماه بعد
             </button>
@@ -270,7 +300,10 @@ export function CalendarEvents({
                 aria-label={formatJalaliLongDate(date)}
                 aria-pressed={isSameDay(date, selected)}
                 className={`calendar-day${isCurrentMonth ? "" : " outside"}`}
-                onClick={() => setSelected(date)}
+                onClick={() => {
+                  setSelected(date);
+                  setCursor(date);
+                }}
               >
                 {formatJalaliDayNumber(date)}
                 {calendarItems.some((item) => isSameDay(item.date, date)) && (
@@ -407,7 +440,7 @@ export function CalendarEvents({
             اشتراک با خانه
           </label>
         )}
-        <button disabled={busy}>
+        <button disabled={busy || loading || !!calendarError}>
           {editing ? "ذخیره تغییرات" : "افزودن رویداد"}
         </button>
         {editing && (
@@ -441,14 +474,14 @@ export function CalendarEvents({
             </div>
             <button
               className="minor"
-              disabled={busy}
+              disabled={busy || loading}
               onClick={() => edit(event)}
             >
               ویرایش
             </button>
             <button
               className="minor"
-              disabled={busy}
+              disabled={busy || loading}
               onClick={() => {
                 if (window.confirm("این رویداد حذف شود؟"))
                   void remove(event.id);

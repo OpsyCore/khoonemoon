@@ -9,12 +9,21 @@ const COLUMNS =
 export function directCalendar(client: SupabaseClient) {
   return {
     async list(): Promise<EventRecord[]> {
-      const { data, error } = await client
-        .from("events")
-        .select(COLUMNS)
-        .order("start_at", { ascending: true });
-      if (error) throw new Error("دریافت رویدادها ناموفق بود.");
-      return (data ?? []) as EventRecord[];
+      const rows: EventRecord[] = [];
+      for (let offset = 0; offset <= 10000; offset += 500) {
+        const { data, error } = await client
+          .from("events")
+          .select(COLUMNS)
+          .order("start_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(offset, offset + 499);
+        if (error) throw new Error("دریافت رویدادها ناموفق بود.");
+        if (offset === 10000 && data?.length)
+          throw new Error("تعداد رویدادها بیش از حد مجاز است.");
+        rows.push(...((data ?? []) as EventRecord[]));
+        if (!data || data.length < 500) return rows;
+      }
+      return rows;
     },
     async create(input: unknown): Promise<EventRecord> {
       const event = createEventSchema.parse(input);

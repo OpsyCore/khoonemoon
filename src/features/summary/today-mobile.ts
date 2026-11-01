@@ -1,3 +1,4 @@
+import { eventOverlaps } from "@/features/calendar/event-days";
 export type TodayTask = {
   id: string;
   title: string;
@@ -5,7 +6,12 @@ export type TodayTask = {
   status: string;
   priority?: "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
 };
-export type TodayEvent = { id: string; title: string; start_at: string };
+export type TodayEvent = {
+  id: string;
+  title: string;
+  start_at: string;
+  end_at: string;
+};
 export type TodayChore = {
   id: string;
   title: string;
@@ -43,7 +49,10 @@ export function deriveToday(input: {
     date(v) >= start.getTime() && date(v) < end.getTime();
   const overdue = (v: string | null) => date(v) < start.getTime();
   const pending = (s: string) =>
-    s !== "COMPLETED" && s !== "ARCHIVED" && s !== "CANCELED";
+    s !== "COMPLETED" &&
+    s !== "ARCHIVED" &&
+    s !== "CANCELED" &&
+    s !== "SKIPPED";
   const bills = new Set(["BILL", "SUBSCRIPTION", "INSTALLMENT"]);
   return {
     tasks: input.tasks
@@ -61,7 +70,7 @@ export function deriveToday(input: {
         );
       }),
     events: input.events
-      .filter((e) => today(e.start_at))
+      .filter((e) => eventOverlaps(e.start_at, e.end_at, start, end))
       .sort((a, b) => date(a.start_at) - date(b.start_at)),
     chores: input.chores
       .filter(

@@ -147,6 +147,8 @@ function App() {
   const [household, setHousehold] = useState<string | null | undefined>(
     undefined,
   );
+  const [householdError, setHouseholdError] = useState(false);
+  const [householdAttempt, setHouseholdAttempt] = useState(0);
   const [houseName, setHouseName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const houses = useMemo(() => (client ? directHousehold(client) : null), []);
@@ -234,23 +236,29 @@ function App() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHousehold(undefined);
     setJoinCode("");
+    setHouseholdError(false);
     if (!userId || !client) return;
     let alive = true;
-    void client
-      .from("household_members")
-      .select("household_id")
-      .eq("user_id", userId)
-      .is("left_at", null)
-      .maybeSingle()
+    void Promise.resolve(
+      client
+        .from("household_members")
+        .select("household_id")
+        .eq("user_id", userId)
+        .is("left_at", null)
+        .maybeSingle(),
+    )
       .then(({ data, error }) => {
         if (!alive) return;
-        if (error) setMessage("دریافت اطلاعات خانه ناموفق بود.");
+        if (error) setHouseholdError(true);
         else setHousehold(data?.household_id ?? null);
+      })
+      .catch(() => {
+        if (alive) setHouseholdError(true);
       });
     return () => {
       alive = false;
     };
-  }, [userId]);
+  }, [userId, householdAttempt]);
 
   async function action(fn: () => Promise<void>) {
     setMessage("");
@@ -261,7 +269,7 @@ function App() {
       setMessage(
         error instanceof ZodError
           ? (error.issues[0]?.message ?? "اطلاعات معتبر وارد کنید.")
-          : "عملیات انجام نشد؛ اطلاعات و اتصال اینترنت را بررسی کنید.",
+          : "عملیات تأیید نشد؛ اطلاعات و اتصال را بررسی کنید و پیش از تلاش دوباره وضعیت را تازه کنید.",
       );
     } finally {
       setBusy(false);
@@ -522,7 +530,21 @@ function App() {
             <section>
               <h2>خانه و اعضا</h2>
               {household === undefined ? (
-                <p>در حال دریافت اطلاعات خانه…</p>
+                householdError ? (
+                  <>
+                    <p role="alert">
+                      دریافت اطلاعات خانه ناموفق بود؛ اتصال را بررسی کنید.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setHouseholdAttempt((n) => n + 1)}
+                    >
+                      تلاش دوباره
+                    </button>
+                  </>
+                ) : (
+                  <p role="status">در حال دریافت اطلاعات خانه…</p>
+                )
               ) : household ? (
                 <HouseholdDetails
                   key={household}
@@ -573,12 +595,25 @@ function App() {
               householdId={household}
             />
           )}
-          {page === "shopping" && !household && (
+          {page === "shopping" && household === null && (
             <section>
               <p>
                 برای استفاده از لیست خرید ابتدا در بخش خانه یک خانه بسازید یا به
                 آن بپیوندید.
               </p>
+            </section>
+          )}
+          {household === undefined && householdError && page !== "house" && (
+            <section>
+              <p role="alert">
+                وضعیت خانه دریافت نشد؛ اطلاعات مشترک ممکن است نمایش داده نشود.
+              </p>
+              <button
+                type="button"
+                onClick={() => setHouseholdAttempt((n) => n + 1)}
+              >
+                تلاش دوباره
+              </button>
             </section>
           )}
           {page === "tasks" && (

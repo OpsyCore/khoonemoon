@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getToday } from "@/features/summary/today-client";
+import { completeTodayChore, payTodayBill } from "./today-actions";
 type Today = Awaited<ReturnType<typeof getToday>>;
 type Page = "tasks" | "calendar" | "finance" | "reminders";
 export function Today({
@@ -40,6 +41,21 @@ export function Today({
       setError(
         "وضعیت انجام تسک تأیید نشد؛ پیش از تلاش دوباره امروز را تازه‌سازی کنید.",
       );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function doTodayAction(action: () => Promise<void>) {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await action();
+      onTaskChanged();
+      window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
+    } catch {
+      setValue(null);
+      setError("عملیات تأیید نشد؛ پیش از تلاش دوباره وضعیت را تازه‌سازی کنید.");
     } finally {
       setBusy(false);
     }
@@ -170,6 +186,36 @@ export function Today({
                             onClick={() => void completeTask(item.id)}
                           >
                             انجام شد
+                          </button>
+                        )}
+                        {group.section === "chore-list" && item.at && (
+                          <button
+                            type="button"
+                            className="minor"
+                            disabled={busy}
+                            onClick={() => {
+                              if (window.confirm("انجام این کار خانه ثبت شود؟"))
+                                void doTodayAction(() =>
+                                  completeTodayChore(client, item.id, item.at!),
+                                );
+                            }}
+                          >
+                            انجام شد
+                          </button>
+                        )}
+                        {group.page === "finance" && (
+                          <button
+                            type="button"
+                            className="minor"
+                            disabled={busy}
+                            onClick={() => {
+                              if (window.confirm("این قبض پرداخت شده است؟"))
+                                void doTodayAction(() =>
+                                  payTodayBill(client, item.id),
+                                );
+                            }}
+                          >
+                            پرداخت شد
                           </button>
                         )}
                         <button

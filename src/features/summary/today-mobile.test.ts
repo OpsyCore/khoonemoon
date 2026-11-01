@@ -11,10 +11,21 @@ describe("today dashboard", () => {
         { id: "a", title: "late", status: "PENDING", due_at: stamp(9) },
         { id: "b", title: "done", status: "COMPLETED", due_at: stamp(10) },
         { id: "c", title: "future", status: "PENDING", due_at: stamp(11) },
+        {
+          id: "skipped",
+          title: "skipped",
+          status: "SKIPPED",
+          due_at: stamp(10),
+        },
       ],
       events: [
-        { id: "e", title: "event", start_at: stamp(10) },
-        { id: "f", title: "tomorrow", start_at: stamp(11) },
+        { id: "e", title: "event", start_at: stamp(10), end_at: stamp(10, 13) },
+        {
+          id: "f",
+          title: "tomorrow",
+          start_at: stamp(11),
+          end_at: stamp(11, 13),
+        },
       ],
       chores: [
         { id: "c", title: "chore", is_active: true, next_due_at: stamp(9) },

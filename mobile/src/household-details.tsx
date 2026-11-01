@@ -58,7 +58,9 @@ export function HouseholdDetails({
     try {
       await fn();
     } catch {
-      setMessage("عملیات خانه انجام نشد؛ دسترسی و اتصال را بررسی کنید.");
+      setMessage(
+        "عملیات خانه تأیید نشد؛ پیش از تلاش دوباره وضعیت را تازه کنید.",
+      );
     } finally {
       setBusy(false);
     }
@@ -100,7 +102,7 @@ export function HouseholdDetails({
         تازه‌سازی خانه
       </button>
       {!details ? (
-        <p>در حال دریافت اطلاعات خانه…</p>
+        !message && <p role="status">در حال دریافت اطلاعات خانه…</p>
       ) : (
         <>
           <p>خانه: {details.house.name}</p>
