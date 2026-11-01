@@ -66,8 +66,8 @@ notification preferences and document links in addition to the previously
 selected data; local database checks validate the selected columns and grants.
 They still do not include all account/household metadata or provide restore.
 Migration 0022 implements zoned wall-clock recurrence and validates local DST,
-weekday and month-end cases. It has NOT been applied to production. Deploy it
-before installing this client: it reads the added timezone columns. Existing
+weekday and month-end cases. An equivalent migration was applied to the connected
+Supabase project; local migration is idempotent. Existing
 schedules inherit the creator profile timezone (UTC fallback), their current due
 dates are preserved and only the derived next task occurrence is recalculated.
 Real two-device testing is still required. Financial

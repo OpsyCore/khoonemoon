@@ -55,11 +55,20 @@ begin
 end $$;
 revoke all on function public.set_recurrence_timezone() from public, anon, authenticated;
 
+-- A second run must not recalculate existing schedules.
+drop trigger if exists chore_recurrence_zone on public.chores;
+drop trigger if exists task_recurrence_zone on public.task_recurrences;
 update public.chores c set recurrence_timezone = coalesce((select p.timezone from public.profiles p where p.id=c.created_by and exists(select 1 from pg_timezone_names t where t.name=p.timezone)), 'UTC') where recurrence_timezone is null;
-update public.task_recurrences r set recurrence_timezone = coalesce((select p.timezone from public.tasks t join public.profiles p on p.id=t.creator_id where t.id=r.task_id and exists(select 1 from pg_timezone_names z where z.name=p.timezone)), 'UTC') where recurrence_timezone is null;
--- Repair the derived *next* task occurrence without changing current tasks.
-update public.task_recurrences r set next_occurrence_at = public.next_zoned_recurrence(coalesce(t.due_at,now()),r.frequency,r.interval_days,r.weekdays,r.recurrence_timezone)
-  from public.tasks t where t.id=r.task_id and t.status <> 'COMPLETED' and r.frequency <> 'NONE';
+with zones as (
+  select r.id, t.due_at, t.status, coalesce((select p.timezone from public.profiles p where p.id=t.creator_id and exists(select 1 from pg_timezone_names z where z.name=p.timezone)), 'UTC') as zone
+  from public.task_recurrences r join public.tasks t on t.id=r.task_id where r.recurrence_timezone is null
+)
+update public.task_recurrences r
+set recurrence_timezone=z.zone,
+    next_occurrence_at=case when z.status <> 'COMPLETED' and r.frequency <> 'NONE'
+      then public.next_zoned_recurrence(coalesce(z.due_at,now()),r.frequency,r.interval_days,r.weekdays,z.zone)
+      else r.next_occurrence_at end
+from zones z where r.id=z.id;
 alter table public.chores alter column recurrence_timezone set not null;
 alter table public.task_recurrences alter column recurrence_timezone set not null;
 create trigger chore_recurrence_zone before insert or update of recurrence_timezone on public.chores for each row execute function public.set_recurrence_timezone();
