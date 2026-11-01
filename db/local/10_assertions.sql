@@ -982,3 +982,36 @@ do $$ declare snapshot jsonb; begin
  if has_function_privilege('anon','public.mobile_export_snapshot()','execute') then raise exception 'anonymous snapshot allowed'; end if;
 end $$;
 rollback;
+
+-- Recovery is bounded, idempotent and atomic under the caller's own RLS.
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare tid uuid; snapshot jsonb; broken jsonb; result jsonb;
+begin
+ insert into public.tasks(title,creator_id,owner_id,visibility,priority) values ('restore-owned','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','PRIVATE','NORMAL') returning id into tid;
+ snapshot:=public.mobile_export_snapshot()->'tables';
+ delete from public.tasks where id=tid;
+ delete from public.documents where id='00000000-0000-4000-8000-0000000000e1';
+ broken:=jsonb_set(snapshot,'{chore_completions}',(snapshot->'chore_completions') || '[{"id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}]'::jsonb);
+ begin perform public.mobile_restore_missing(broken); raise exception 'missing history accepted'; exception when others then if sqlerrm<>'RESTORE_PARENT_OR_HISTORY_MISSING' then raise; end if; end;
+ if exists(select 1 from public.tasks where id=tid) then raise exception 'partial restore was not rolled back'; end if;
+ delete from storage.objects where bucket_id='documents' and name='user/00000000-0000-4000-8000-00000000000a/doc/file.pdf';
+ begin perform public.mobile_restore_missing(snapshot); raise exception 'missing file accepted'; exception when others then if sqlerrm<>'RESTORE_DOCUMENT_FILE_MISSING' then raise; end if; end;
+ if exists(select 1 from public.tasks where id=tid) then raise exception 'file failure did not roll back'; end if;
+ insert into storage.objects(bucket_id,name) values ('documents','user/00000000-0000-4000-8000-00000000000a/doc/file.pdf');
+ result:=public.mobile_restore_missing(snapshot);
+ if (result->>'inserted')::integer<2 or not exists(select 1 from public.tasks where id=tid and title='restore-owned') or not exists(select 1 from public.documents where id='00000000-0000-4000-8000-0000000000e1') then raise exception 'restore failed'; end if;
+ result:=public.mobile_restore_missing(snapshot);
+ if (result->>'inserted')::integer<>0 then raise exception 'repeat restore created duplicates'; end if;
+ perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+ begin perform public.mobile_restore_missing(snapshot); raise exception 'other user accepted'; exception when others then if sqlerrm not in ('RESTORE_PARENT_OR_HISTORY_MISSING','new row violates row-level security policy for table "tasks"') and sqlstate <> '23505' then raise; end if; end;
+ -- An attacker can submit arbitrary JSON directly, so RLS must independently reject a forged owner.
+ broken:=(select jsonb_object_agg(k,'[]'::jsonb) from jsonb_object_keys(snapshot) k);
+ broken:=jsonb_set(broken,'{tasks}',jsonb_build_array((select value from jsonb_array_elements(snapshot->'tasks') where value->>'id'=tid::text)));
+ delete from public.tasks where id=tid; -- other account cannot see or delete it
+ begin perform public.mobile_restore_missing(broken); raise exception 'forged task accepted'; exception when insufficient_privilege or unique_violation then null; end;
+ if has_function_privilege('anon','public.mobile_restore_missing(jsonb)','execute') then raise exception 'anonymous recovery allowed'; end if;
+end $$;
+rollback;

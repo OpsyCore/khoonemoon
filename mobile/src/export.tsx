@@ -10,13 +10,18 @@ import {
   type BackupPreview,
 } from "@/features/export/backup-integrity";
 import { saveBackupNative } from "./save-backup";
+import { restoreMissing } from "@/features/export/restore-client";
 
 export function ExportData({ client }: { client: SupabaseClient }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [preview, setPreview] = useState<BackupPreview | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
   async function inspect(file: File | undefined) {
     setPreview(null);
+    setSelectedFile(null);
+    setConfirmed(false);
     setMessage("");
     if (!file) return;
     if (file.size > 16 * 1024 * 1024) {
@@ -28,7 +33,10 @@ export function ExportData({ client }: { client: SupabaseClient }) {
       const result = await inspectBackup(
         new Uint8Array(await file.arrayBuffer()),
       );
-      if (active.current) setPreview(result);
+      if (active.current) {
+        setPreview(result);
+        setSelectedFile(file);
+      }
     } catch (error) {
       if (active.current)
         setMessage(
@@ -45,6 +53,32 @@ export function ExportData({ client }: { client: SupabaseClient }) {
       active.current = false;
     };
   }, []);
+  async function restore() {
+    if (!selectedFile || !confirmed) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const result = await restoreMissing(
+        client,
+        new Uint8Array(await selectedFile.arrayBuffer()),
+      );
+      if (active.current) {
+        setMessage(
+          `بازیابی انجام شد: ${result.inserted} ردیف اضافه شد و ${result.skipped} ردیف موجود دست‌نخورده ماند. فهرست‌ها را تازه کنید.`,
+        );
+        setConfirmed(false);
+      }
+    } catch (error) {
+      if (active.current)
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "نتیجه بازیابی تأیید نشد؛ ممکن است فایل موقت باقی مانده باشد.",
+        );
+    } finally {
+      if (active.current) setBusy(false);
+    }
+  }
   async function download(format: "json" | "csv") {
     setBusy(true);
     setMessage("");
@@ -118,7 +152,7 @@ export function ExportData({ client }: { client: SupabaseClient }) {
         خروجی ZIP شامل داده‌های قابل مشاهده و فایل‌های مدارک است (حداکثر ۲۰۰
         فایل و ۱۲ مگابایت فایل). JSON و CSV فایل مدارک ندارند. این خروجی‌ها نسخه
         پشتیبان کامل نیستند، شامل همه اطلاعات حساب و خانه نمی‌شوند و بازیابی
-        خودکار ندارند. داده‌های JSON و ZIP از یک لحظهٔ پایگاه داده هستند، اما
+        کامل حساب ندارند. داده‌های JSON و ZIP از یک لحظهٔ پایگاه داده هستند، اما
         فایل‌های مدارک جداگانه خوانده می‌شوند؛ CSV نیز صفحه‌بندی می‌شود. فایل را
         در جای امن نگه دارید.
       </p>
@@ -172,6 +206,42 @@ export function ExportData({ client }: { client: SupabaseClient }) {
               این بررسی بازیابی داده نیست و خروجی همچنان گزیده است؛ فایل‌ها جدا
               از داده‌ها خوانده می‌شوند.
             </p>
+            {preview.integrity === "verified" &&
+              preview.tableCount === 19 &&
+              preview.rowCount <= 500 && (
+                <div>
+                  <h3>بازیابی محدود داده‌های حذف‌شده</h3>
+                  <p>
+                    فقط با همان حساب و تا ۵۰۰ ردیف؛ خانه، عضویت و تاریخچه باید
+                    همچنان موجود باشند. ردیف‌های موجود تغییر نمی‌کنند. بازیابی
+                    کامل حساب یا سایر اعضا نیست. فایل‌ها جداگانه بارگذاری
+                    می‌شوند و در صورت خطا ممکن است فایل موقت باقی بماند. مجموع
+                    کنترلی اصالت فایل را اثبات نمی‌کند؛ فقط فایل مورداعتماد
+                    خودتان را انتخاب کنید.
+                  </p>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={confirmed}
+                      disabled={busy}
+                      onChange={(e) => setConfirmed(e.target.checked)}
+                    />{" "}
+                    محدودیت‌ها را خوانده‌ام و می‌خواهم ردیف‌های حذف‌شده را اضافه
+                    کنم.
+                  </label>
+                  <button
+                    disabled={busy || !confirmed}
+                    onClick={() => void restore()}
+                  >
+                    بازیابی محدود
+                  </button>
+                </div>
+              )}
+            {(preview.tableCount !== 19 ||
+              preview.rowCount > 500 ||
+              preview.integrity !== "verified") && (
+              <p>این فایل شرایط بازیابی محدود را ندارد؛ فقط قابل بررسی است.</p>
+            )}
           </div>
         )}
       </details>

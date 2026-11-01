@@ -159,7 +159,12 @@ export type BackupPreview = {
   integrity: "verified" | "legacy";
 };
 /** A valid checksum detects accidental corruption, not malicious replacement. */
-export async function inspectBackup(bytes: Uint8Array): Promise<BackupPreview> {
+export type VerifiedBackup = {
+  preview: BackupPreview;
+  tables: Record<string, unknown[]>;
+  files: Record<string, Uint8Array>;
+};
+export async function readBackup(bytes: Uint8Array): Promise<VerifiedBackup> {
   const files = parseStoredZip(bytes);
   let archive: { exported_at?: unknown; tables?: unknown; counts?: unknown };
   try {
@@ -268,10 +273,17 @@ export async function inspectBackup(bytes: Uint8Array): Promise<BackupPreview> {
     integrity = "verified";
   }
   return {
-    exportedAt: archive.exported_at,
-    tableCount: names.length,
-    rowCount,
-    documents: references.size,
-    integrity,
+    preview: {
+      exportedAt: archive.exported_at,
+      tableCount: names.length,
+      rowCount,
+      documents: references.size,
+      integrity,
+    },
+    tables: tables as Record<string, unknown[]>,
+    files,
   };
+}
+export async function inspectBackup(bytes: Uint8Array): Promise<BackupPreview> {
+  return (await readBackup(bytes)).preview;
 }

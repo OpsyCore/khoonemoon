@@ -1,0 +1,182 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { digestBytes, readBackup } from "./backup-integrity";
+
+const TABLES = [
+  "profiles",
+  "households",
+  "household_members",
+  "shopping_lists",
+  "tasks",
+  "events",
+  "chores",
+  "financial_records",
+  "reminders",
+  "notification_preferences",
+  "task_assignees",
+  "task_recurrences",
+  "chore_rotation_steps",
+  "shopping_items",
+  "documents",
+  "document_attachments",
+  "task_recurrence_instances",
+  "finance_recurrence_instances",
+  "chore_completions",
+] as const;
+const READ_ONLY: Record<string, string> = {
+  profiles: "id",
+  households: "id",
+  household_members: "id",
+  task_recurrence_instances: "completed_task_id",
+  finance_recurrence_instances: "paid_record_id",
+  chore_completions: "id",
+};
+const KEY: Record<string, string> = {
+  task_recurrence_instances: "completed_task_id",
+  finance_recurrence_instances: "paid_record_id",
+};
+const idPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type Row = Record<string, unknown>;
+async function currentUser(client: SupabaseClient): Promise<string> {
+  const { data, error } = await client.auth.getUser();
+  if (error || !data.user) throw new Error("ابتدا وارد حساب اصلی خروجی شوید.");
+  return data.user.id;
+}
+/** Explicit opt-in operation: existing records are never modified, including on retries.
+ * DB writes are atomic, Storage uploads are separate and may leave orphaned objects. */
+export async function restoreMissing(
+  client: SupabaseClient,
+  bytes: Uint8Array,
+): Promise<{ inserted: number; skipped: number }> {
+  const user = await currentUser(client);
+  const backup = await readBackup(bytes);
+  if (backup.preview.integrity !== "verified")
+    throw new Error(
+      "فقط خروجی جدید دارای مجموع کنترلی قابل بازیابی است؛ فایل قدیمی را صرفاً می‌توانید بررسی کنید.",
+    );
+  if (backup.preview.rowCount > 500)
+    throw new Error(
+      "بازیابی یک‌مرحله‌ای حداکثر ۵۰۰ ردیف را می‌پذیرد؛ داده‌ای تغییر نکرد.",
+    );
+  const names = Object.keys(backup.tables);
+  if (
+    names.length !== TABLES.length ||
+    TABLES.some((name) => !Object.hasOwn(backup.tables, name))
+  )
+    throw new Error("این نسخه همه بخش‌های لازم برای بازیابی را ندارد.");
+  const tables: Record<string, Row[]> = Object.create(null);
+  for (const name of TABLES) {
+    const rows = backup.tables[name];
+    if (
+      rows.some((row) => !row || typeof row !== "object" || Array.isArray(row))
+    )
+      throw new Error("ردیف خروجی معتبر نیست.");
+    tables[name] = rows.map((row) => ({ ...(row as Row) }));
+    const key = KEY[name] ?? "id";
+    if (
+      tables[name].some(
+        (row) =>
+          typeof row[key] !== "string" || !idPattern.test(row[key] as string),
+      )
+    )
+      throw new Error("شناسهٔ یکی از ردیف‌ها معتبر نیست.");
+  }
+  if (tables.profiles.length !== 1 || tables.profiles[0].id !== user)
+    throw new Error(
+      "این خروجی متعلق به حساب واردشده نیست؛ داده‌ای تغییر نکرد.",
+    );
+  const current = await client.rpc("mobile_export_snapshot");
+  if (current.error || !current.data?.tables)
+    throw new Error("بررسی اطلاعات فعلی ناموفق بود؛ داده‌ای تغییر نکرد.");
+  for (const [table, key] of Object.entries(READ_ONLY)) {
+    const existing = current.data.tables[table];
+    if (!Array.isArray(existing))
+      throw new Error("بررسی اطلاعات فعلی ناموفق بود؛ داده‌ای تغییر نکرد.");
+    const ids = new Set(existing.map((row: Row) => row[key]));
+    if (tables[table].some((row) => !ids.has(row[key])))
+      throw new Error(
+        "خانه، عضویت یا تاریخچهٔ لازم دیگر موجود نیست؛ بازیابی ایمن ممکن نیست و داده‌ای تغییر نکرد.",
+      );
+  }
+  const existingDocs = current.data.tables.documents;
+  if (!Array.isArray(existingDocs))
+    throw new Error("بررسی مدارک فعلی ناموفق بود.");
+  const docMap = new Map<string, Row>(
+    existingDocs.map((row: Row) => [row.id as string, row]),
+  );
+  const uploads: { row: Row; path: string; content: Uint8Array }[] = [];
+  for (const row of tables.documents) {
+    const existing = docMap.get(row.id as string);
+    if (existing) {
+      row.storage_path = existing.storage_path;
+      continue;
+    }
+    if (
+      row.created_by !== user ||
+      typeof row.archive_file !== "string" ||
+      typeof row.mime_type !== "string"
+    )
+      throw new Error("مدرک متعلق به حساب دیگر است و بازیابی خودکار امن نیست.");
+    const ext = row.archive_file.split(".").at(-1);
+    let prefix: string;
+    if (row.visibility === "PRIVATE" && row.household_id === null)
+      prefix = `user/${user}`;
+    else if (
+      row.visibility === "HOUSEHOLD_SHARED" &&
+      typeof row.household_id === "string" &&
+      idPattern.test(row.household_id)
+    )
+      prefix = `household/${row.household_id}`;
+    else throw new Error("دسترسی یا خانهٔ مدرک معتبر نیست.");
+    const path = `${prefix}/${row.id}/restore.${ext}`;
+    const content = backup.files[row.archive_file];
+    if (!content) throw new Error("فایل مدرک در خروجی موجود نیست.");
+    row.storage_path = path;
+    uploads.push({ row, path, content });
+  }
+  for (const item of uploads) {
+    if ((await currentUser(client)) !== user)
+      throw new Error("حساب در حین بازیابی تغییر کرد؛ عملیات متوقف شد.");
+    const bucket = client.storage.from("documents");
+    const { error } = await bucket.upload(
+      item.path,
+      new Blob([new Uint8Array(item.content)], {
+        type: item.row.mime_type as string,
+      }),
+      { upsert: false, contentType: item.row.mime_type as string },
+    );
+    if (error) {
+      // A previous attempt or a lost response may have created the object. Reuse
+      // it only after confirming exact bytes. Never overwrite or delete an object.
+      const existing = await bucket.download(item.path);
+      if (
+        existing.error ||
+        !existing.data ||
+        existing.data.size !== item.content.length ||
+        (await digestBytes(
+          new Uint8Array(await existing.data.arrayBuffer()),
+        )) !== (await digestBytes(item.content))
+      )
+        throw new Error(
+          "ثبت یکی از فایل‌ها تأیید نشد؛ فایل موجود تغییر نکرد. ممکن است فایل موقت باقی مانده باشد.",
+        );
+    }
+  }
+  if ((await currentUser(client)) !== user)
+    throw new Error(
+      "حساب در حین بازیابی تغییر کرد؛ داده‌ها ثبت نشدند و ممکن است فایل موقت باقی مانده باشد.",
+    );
+  const { data, error } = await client.rpc("mobile_restore_missing", {
+    p_tables: tables,
+  });
+  if (
+    error ||
+    !data ||
+    !Number.isSafeInteger(data.inserted) ||
+    !Number.isSafeInteger(data.skipped)
+  )
+    throw new Error(
+      "نتیجهٔ بازیابی تأیید نشد؛ فهرست‌ها را تازه کنید و پیش از تلاش دوباره بررسی کنید. ممکن است فایل موقت باقی مانده باشد.",
+    );
+  return { inserted: data.inserted, skipped: data.skipped };
+}
