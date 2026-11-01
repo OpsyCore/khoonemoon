@@ -216,7 +216,7 @@ public class MainActivity extends Activity {
                 if (pendingBinaryExport == null) return false;
                 try {
                     byte[] part = android.util.Base64.decode(base64, android.util.Base64.NO_WRAP);
-                    if (pendingBinaryExport.size() + part.length > 16 * 1024 * 1024) return false;
+                    if (pendingBinaryExport.size() + part.length > 16 * 1024 * 1024 + 64) return false;
                     pendingBinaryExport.write(part);
                     return true;
                 } catch (Exception error) { return false; }
@@ -226,7 +226,7 @@ public class MainActivity extends Activity {
             synchronized (MainActivity.this) { pendingBinaryExport = null; }
         }
         @JavascriptInterface public boolean finishBinaryExport(String name) {
-            if (name == null || !name.matches("khoonemoon-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.zip")) return false;
+            if (name == null || !name.matches("khoonemoon-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.(zip|kbackup)")) return false;
             synchronized (MainActivity.this) {
                 if (pendingBinaryExport == null || pendingExport != null) return false;
                 pendingExport = pendingBinaryExport.toByteArray(); pendingBinaryExport = null;
@@ -234,7 +234,7 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> {
                 try {
                     Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
-                        .setType("application/zip").putExtra(Intent.EXTRA_TITLE, name);
+                        .setType(name.endsWith(".zip") ? "application/zip" : "application/octet-stream").putExtra(Intent.EXTRA_TITLE, name);
                     startActivityForResult(intent, EXPORT_REQUEST);
                 } catch (ActivityNotFoundException error) {
                     synchronized (MainActivity.this) { pendingExport = null; }

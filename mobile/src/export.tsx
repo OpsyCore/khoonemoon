@@ -9,6 +9,12 @@ import {
   inspectBackup,
   type BackupPreview,
 } from "@/features/export/backup-integrity";
+import {
+  encryptBackup,
+  decryptBackup,
+  isEncryptedBackup,
+  MAX_ENCRYPTED_BACKUP,
+} from "@/features/export/backup-encryption";
 import { saveBackupNative } from "./save-backup";
 import { restoreMissing } from "@/features/export/restore-client";
 
@@ -16,28 +22,44 @@ export function ExportData({ client }: { client: SupabaseClient }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [preview, setPreview] = useState<BackupPreview | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedBytes, setSelectedBytes] = useState<Uint8Array | null>(null);
+  const [encryptedFile, setEncryptedFile] = useState<File | null>(null);
+  const [backupPassword, setBackupPassword] = useState("");
+  const [backupPasswordConfirm, setBackupPasswordConfirm] = useState("");
+  const [openPassword, setOpenPassword] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [allowHouseholdCopy, setAllowHouseholdCopy] = useState(false);
-  async function inspect(file: File | undefined) {
+  async function inspect(file: File | undefined, password?: string) {
     setPreview(null);
-    setSelectedFile(null);
+    setSelectedBytes(null);
+    if (password === undefined) {
+      setEncryptedFile(null);
+      setOpenPassword("");
+    }
     setConfirmed(false);
     setAllowHouseholdCopy(false);
     setMessage("");
     if (!file) return;
-    if (file.size > 16 * 1024 * 1024) {
+    if (file.size > MAX_ENCRYPTED_BACKUP) {
       setMessage("فایل برای بررسی بیش از ۱۶ مگابایت است.");
       return;
     }
     setBusy(true);
     try {
-      const result = await inspectBackup(
-        new Uint8Array(await file.arrayBuffer()),
-      );
+      const raw = new Uint8Array(await file.arrayBuffer());
+      if (isEncryptedBackup(raw) && password === undefined) {
+        if (active.current) setEncryptedFile(file);
+        return;
+      }
+      const bytes = isEncryptedBackup(raw)
+        ? await decryptBackup(raw, password ?? "")
+        : raw;
+      const result = await inspectBackup(bytes);
       if (active.current) {
         setPreview(result);
-        setSelectedFile(file);
+        setSelectedBytes(bytes);
+        setEncryptedFile(null);
+        setOpenPassword("");
       }
     } catch (error) {
       if (active.current)
@@ -56,13 +78,13 @@ export function ExportData({ client }: { client: SupabaseClient }) {
     };
   }, []);
   async function restore() {
-    if (!selectedFile || !confirmed) return;
+    if (!selectedBytes || !confirmed) return;
     setBusy(true);
     setMessage("");
     try {
       const result = await restoreMissing(
         client,
-        new Uint8Array(await selectedFile.arrayBuffer()),
+        selectedBytes,
         allowHouseholdCopy,
       );
       if (active.current) {
@@ -121,19 +143,29 @@ export function ExportData({ client }: { client: SupabaseClient }) {
     }
   }
   async function backup() {
+    if (
+      backupPassword.length < 12 ||
+      backupPassword !== backupPasswordConfirm
+    ) {
+      setMessage("رمز باید حداقل ۱۲ نویسه باشد و تکرار آن یکسان باشد.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
       const now = new Date();
-      const bytes = await exportMobileBackup(client, now);
+      const zip = await exportMobileBackup(client, now);
+      const bytes = await encryptBackup(zip, backupPassword);
       if (!active.current) return;
-      const name = `khoonemoon-${now.toISOString().slice(0, 10)}.zip`;
+      setBackupPassword("");
+      setBackupPasswordConfirm("");
+      const name = `khoonemoon-${now.toISOString().slice(0, 10)}.kbackup`;
       if (window.KhoonemoonNotifications) {
         saveBackupNative(bytes, name);
         setMessage("محل ذخیره را در پنجرهٔ اندروید انتخاب کنید.");
       } else {
         const blob = new Blob([new Uint8Array(bytes)], {
-          type: "application/zip",
+          type: "application/octet-stream",
         });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -162,9 +194,36 @@ export function ExportData({ client }: { client: SupabaseClient }) {
         فایل‌های مدارک جداگانه خوانده می‌شوند؛ CSV نیز صفحه‌بندی می‌شود. فایل را
         در جای امن نگه دارید.
       </p>
+      <p>
+        پشتیبان با رمزی که خودتان تعیین می‌کنید روی دستگاه رمزگذاری می‌شود. رمز
+        را در جای امن نگه دارید؛ بدون آن بازیابی ممکن نیست. این فایل همچنان
+        پشتیبان کامل حساب یا کل پروژه نیست.
+      </p>
+      <label>
+        رمز پشتیبان (حداقل ۱۲ نویسه)
+        <input
+          type="password"
+          autoComplete="new-password"
+          maxLength={1024}
+          value={backupPassword}
+          disabled={busy}
+          onChange={(e) => setBackupPassword(e.target.value)}
+        />
+      </label>
+      <label>
+        تکرار رمز پشتیبان
+        <input
+          type="password"
+          autoComplete="new-password"
+          maxLength={1024}
+          value={backupPasswordConfirm}
+          disabled={busy}
+          onChange={(e) => setBackupPasswordConfirm(e.target.value)}
+        />
+      </label>
       <div className="search-filters">
         <button disabled={busy} onClick={() => void backup()}>
-          خروجی داده و فایل مدارک (ZIP)
+          ذخیرهٔ پشتیبان رمزگذاری‌شده روی دستگاه
         </button>
         <button disabled={busy} onClick={() => void download("json")}>
           دریافت داده‌ها (JSON)
@@ -180,14 +239,14 @@ export function ExportData({ client }: { client: SupabaseClient }) {
       <details>
         <summary>بررسی فایل خروجی ذخیره‌شده</summary>
         <p>
-          فایل ZIP ساخته‌شده توسط برنامه را انتخاب کنید؛ فقط روی دستگاه بررسی
-          می‌شود و چیزی بازیابی یا بارگذاری نمی‌شود.
+          فایل پشتیبان رمزگذاری‌شده یا ZIP قدیمی برنامه را انتخاب کنید؛ فقط روی
+          دستگاه بررسی می‌شود و چیزی بازیابی یا بارگذاری نمی‌شود.
         </p>
         <label>
-          انتخاب فایل ZIP{" "}
+          انتخاب فایل پشتیبان{" "}
           <input
             type="file"
-            accept=".zip,application/zip"
+            accept=".kbackup,.zip,application/zip,application/octet-stream"
             disabled={busy}
             onChange={(event) => {
               void inspect(event.target.files?.[0]);
@@ -195,6 +254,27 @@ export function ExportData({ client }: { client: SupabaseClient }) {
             }}
           />
         </label>
+        {encryptedFile && (
+          <div>
+            <label>
+              رمز این پشتیبان
+              <input
+                type="password"
+                autoComplete="off"
+                maxLength={1024}
+                value={openPassword}
+                disabled={busy}
+                onChange={(e) => setOpenPassword(e.target.value)}
+              />
+            </label>
+            <button
+              disabled={busy || !openPassword}
+              onClick={() => void inspect(encryptedFile, openPassword)}
+            >
+              باز کردن و بررسی
+            </button>
+          </div>
+        )}
         {preview && (
           <div role="status">
             <p>
