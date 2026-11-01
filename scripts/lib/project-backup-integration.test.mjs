@@ -3,6 +3,8 @@ import pg from "pg";
 import { spawn } from "node:child_process";
 import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
+import { createReadStream, createWriteStream } from "node:fs";
+import { pipeline } from "node:stream/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { captureProjectData } from "./project-backup-capture.mjs";
@@ -10,17 +12,27 @@ import { packageProjectCapture } from "./project-backup-package.mjs";
 import { decryptForProjectOwner } from "./project-backup-public-key.mjs";
 
 const testUrl = process.env.PROJECT_BACKUP_TEST_DATABASE_URL;
-function run(command, args, env = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      env: { ...process.env, ...env },
-      stdio: ["ignore", "ignore", "ignore"],
-    });
+async function run(command, args, env = {}, { input, output } = {}) {
+  const child = spawn(command, args, {
+    env: { ...process.env, ...env },
+    stdio: [input ? "pipe" : "ignore", output ? "pipe" : "ignore", "ignore"],
+  });
+  const exited = new Promise((resolve, reject) => {
     child.on("error", reject);
     child.on("close", (code) =>
       code === 0 ? resolve() : reject(new Error(`${command} failed (${code})`)),
     );
   });
+  const streams = [];
+  if (input) streams.push(pipeline(createReadStream(input), child.stdin));
+  if (output)
+    streams.push(
+      pipeline(
+        child.stdout,
+        createWriteStream(output, { flags: "wx", mode: 0o600 }),
+      ),
+    );
+  await Promise.all([exited, ...streams]);
 }
 
 describe.skipIf(!testUrl)("PostgreSQL snapshot capture drill", () => {
@@ -66,9 +78,9 @@ describe.skipIf(!testUrl)("PostgreSQL snapshot capture drill", () => {
               "--schema=auth",
               "--schema=storage",
               `--snapshot=${snapshot}`,
-              `--file=${path}`,
             ],
             env,
+            { output: path },
           ),
         fetchObject: async () => {
           await liveClient.query(
@@ -97,9 +109,9 @@ describe.skipIf(!testUrl)("PostgreSQL snapshot capture drill", () => {
           "--no-acl",
           "--exit-on-error",
           `--dbname=${restoreName}`,
-          join(unpack, "database.dump"),
         ],
         env,
+        { input: join(unpack, "database.dump") },
       );
       const restoredUrl = new URL(testUrl);
       restoredUrl.pathname = `/${restoreName}`;
