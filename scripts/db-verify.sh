@@ -39,4 +39,7 @@ bash scripts/db-create-concurrency.sh
 echo "==> checking concurrent invitation retries and one-time use"
 bash scripts/db-invitation-concurrency.sh
 
+echo "==> checking two-device chore completion race"
+bash scripts/db-chore-concurrency.sh
+
 echo "==> database verification passed"

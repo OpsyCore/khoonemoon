@@ -9,6 +9,7 @@ export type CalendarChore = {
   interval_days: number | null;
   weekdays: number[] | null;
   recurrence_timezone: string;
+  completion_revision?: number;
 };
 
 /** Project in the schedule's stored zone. The server remains authoritative. */

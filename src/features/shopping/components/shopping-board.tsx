@@ -1,5 +1,7 @@
 "use client";
 
+import { directShopping } from "@/features/shopping/direct-client";
+
 import {
   Check,
   Plus,
@@ -144,25 +146,20 @@ export function ShoppingBoard({
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const response = await fetch("/api/shopping/items", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listId: activeListId, name }),
-    });
-
-    setIsSubmitting(false);
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        message?: string;
-      } | null;
-      setErrorMessage(payload?.message ?? "افزودن آیتم ناموفق بود.");
-      return;
+    try {
+      const item = await directShopping(createSupabaseBrowserClient()).addItem({
+        listId: activeListId,
+        name,
+      });
+      setNewItemName("");
+      setItems((current) => mergeShoppingItems(current, item));
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "افزودن آیتم تأیید نشد.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const payload = (await response.json()) as { item: ShoppingItem };
-    setNewItemName("");
-    setItems((current) => mergeShoppingItems(current, payload.item));
   };
 
   const deleteItem = async (item: ShoppingItem) => {
@@ -194,30 +191,36 @@ export function ShoppingBoard({
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const response = await fetch("/api/shopping/lists", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-
-    setIsSubmitting(false);
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        message?: string;
-      } | null;
-      setErrorMessage(payload?.message ?? "ایجاد لیست خرید ناموفق بود.");
-      return;
+    try {
+      const client = createSupabaseBrowserClient();
+      const { data: auth, error: authError } = await client.auth.getUser();
+      if (authError || !auth.user) throw new Error("ابتدا وارد حساب خود شوید.");
+      const { data: membership, error: memberError } = await client
+        .from("household_members")
+        .select("household_id")
+        .eq("user_id", auth.user.id)
+        .is("left_at", null)
+        .maybeSingle();
+      if (memberError || !membership?.household_id)
+        throw new Error("برای ساخت لیست عضو خانه شوید.");
+      const list = await directShopping(client).createList(
+        membership.household_id,
+        { name },
+      );
+      setNewListName("");
+      requestSequence.current += 1;
+      activeListIdRef.current = list.id;
+      setActiveListId(list.id);
+      setItems([]);
+      setShowNewList(false);
+      router.refresh();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "ایجاد لیست تأیید نشد.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const payload = (await response.json()) as { list: ShoppingList };
-    setNewListName("");
-    requestSequence.current += 1;
-    activeListIdRef.current = payload.list.id;
-    setActiveListId(payload.list.id);
-    setItems([]);
-    setShowNewList(false);
-    router.refresh();
   };
 
   if (!activeListId) {

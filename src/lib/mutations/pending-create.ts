@@ -54,6 +54,12 @@ async function journalKey(user: string, kind: string, input: unknown) {
 type Result<T> = { data: T | null; error: unknown };
 async function acquire(user: string, kind: string, input: unknown) {
   const key = await journalKey(user, kind, input);
+  const run = () => acquireFromJournal(key);
+  if (typeof navigator !== "undefined" && navigator.locks)
+    return navigator.locks.request(key, run);
+  return run();
+}
+function acquireFromJournal(key: string) {
   const storage = journal();
   let id: string;
   try {

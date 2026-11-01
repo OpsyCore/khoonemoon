@@ -59,7 +59,7 @@ export default async function CalendarPage() {
     ? await supabase
         .from("chores")
         .select(
-          "id, title, next_due_at, frequency, interval_days, weekdays, recurrence_timezone",
+          "id, title, next_due_at, frequency, interval_days, weekdays, recurrence_timezone, completion_revision",
         )
         .eq("household_id", householdId)
         .eq("is_active", true)

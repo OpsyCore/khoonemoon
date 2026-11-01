@@ -1,5 +1,8 @@
 "use client";
 
+import { directChores } from "@/features/chores/direct-client";
+import { directCalendar } from "@/features/calendar/direct-client";
+
 import {
   projectChoreDates,
   type CalendarChore,
@@ -225,21 +228,22 @@ export function CalendarBoard({
   const onSubmit = async (values: CreateEventInput) => {
     setErrorMessage(null);
 
-    const response = await fetch(
-      editingEvent ? `/api/events/${editingEvent.id}` : "/api/events",
-      {
-        method: editingEvent ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      },
-    );
-
-    const result = (await response.json().catch(() => ({}))) as {
-      message?: string;
-    };
-
-    if (!response.ok) {
-      setErrorMessage(result.message ?? "ذخیره رویداد ناموفق بود.");
+    try {
+      if (editingEvent) {
+        const response = await fetch(`/api/events/${editingEvent.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        });
+        if (!response.ok)
+          throw new Error("ویرایش رویداد تأیید نشد؛ فهرست را تازه کنید.");
+      } else {
+        await directCalendar(supabase).create(values);
+      }
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "ذخیره رویداد تأیید نشد.",
+      );
       return;
     }
 
@@ -286,14 +290,17 @@ export function CalendarBoard({
     if (completingChore) return;
     setCompletingChore(id);
     try {
-      const response = await fetch(`/api/chores/${id}/complete`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("completion failed");
+      const revision = chores.find(
+        (item) => item.id === id,
+      )?.completion_revision;
+      if (typeof revision !== "number") throw new Error("missing revision");
+      await directChores(supabase).completeVersion(id, revision);
       setErrorMessage(null);
       router.refresh();
     } catch {
-      setErrorMessage("ثبت انجام کار خانه ناموفق بود.");
+      setErrorMessage(
+        "نتیجهٔ ثبت انجام مشخص نیست یا کار تغییر کرده؛ فهرست را تازه کنید.",
+      );
     } finally {
       setCompletingChore(null);
     }

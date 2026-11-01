@@ -1,5 +1,8 @@
 "use client";
 
+import { directChores } from "@/features/chores/direct-client";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 import { Check, Plus, Repeat, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -100,25 +103,20 @@ export function ChoreBoard({
     setIsSubmitting(true);
     setMessage(null);
 
-    const response = await fetch("/api/chores", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await directChores(createSupabaseBrowserClient()).create({
         title: title.trim(),
         rotationMode,
         frequency,
         assigneeIds: members.map((member) => member.user_id),
-      }),
-    });
-
-    setIsSubmitting(false);
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        message?: string;
-      } | null;
-      setMessage(payload?.message ?? "ایجاد کار خانه ناموفق بود.");
+      });
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "ایجاد کار خانه تأیید نشد.",
+      );
       return;
+    } finally {
+      setIsSubmitting(false);
     }
 
     setTitle("");
@@ -129,21 +127,21 @@ export function ChoreBoard({
     setBusyChoreId(chore.id);
     setMessage(null);
 
-    const response = await fetch(`/api/chores/${chore.id}/complete`, {
-      method: "POST",
-    });
-
-    setBusyChoreId(null);
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        message?: string;
-      } | null;
-      setMessage(payload?.message ?? "ثبت انجام کار ناموفق بود.");
-      return;
+    try {
+      if (typeof chore.completion_revision !== "number")
+        throw new Error("نسخه کار مشخص نیست؛ فهرست را تازه کنید.");
+      await directChores(createSupabaseBrowserClient()).completeVersion(
+        chore.id,
+        chore.completion_revision,
+      );
+      router.refresh();
+    } catch {
+      setMessage(
+        "نتیجهٔ ثبت انجام مشخص نیست یا کار تغییر کرده؛ فهرست را تازه کنید.",
+      );
+    } finally {
+      setBusyChoreId(null);
     }
-
-    router.refresh();
   };
 
   const toggleActive = async (chore: ChoreRecord) => {

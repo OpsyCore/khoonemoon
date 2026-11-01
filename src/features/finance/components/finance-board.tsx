@@ -1,5 +1,8 @@
 "use client";
 
+import { directFinance } from "@/features/finance/direct-client";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 import { Backpack, Plus, Receipt, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -69,26 +72,21 @@ export function FinanceBoard({
     setIsSubmitting(true);
     setMessage(null);
 
-    const response = await fetch("/api/finance", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await directFinance(createSupabaseBrowserClient()).create({
         title: title.trim(),
         amount: parsedAmount,
         recordType,
         visibility: canShare ? "HOUSEHOLD_SHARED" : "PRIVATE",
         dueAt: dueAt ? new Date(dueAt).toISOString() : null,
-      }),
-    });
-
-    setIsSubmitting(false);
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        message?: string;
-      } | null;
-      setMessage(payload?.message ?? "ثبت رکورد مالی ناموفق بود.");
+      });
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "ثبت رکورد مالی تأیید نشد.",
+      );
       return;
+    } finally {
+      setIsSubmitting(false);
     }
 
     setTitle("");

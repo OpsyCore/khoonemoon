@@ -2,6 +2,9 @@
 # Two independent database sessions, disposable CI database only.
 set -euo pipefail
 : "${DATABASE_URL:?}"
+if [[ ! "$DATABASE_URL" =~ ^postgres(ql)?://[^/]+@(127\.0\.0\.1|localhost)(:[0-9]+)?/khoonemoon_check$ ]]; then
+  echo 'refusing invitation concurrency test outside disposable database' >&2; exit 1
+fi
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q <<'SQL'

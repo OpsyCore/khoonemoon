@@ -1,5 +1,7 @@
 "use client";
 
+import { directTasks } from "@/features/tasks/direct-client";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CalendarClock,
@@ -155,28 +157,22 @@ export function TaskManager({
       dueAt: values.dueAt ?? null,
     };
 
-    const response = await fetch(
-      editingTask ? `/api/tasks/${editingTask.id}` : "/api/tasks",
-      {
-        method: editingTask ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          editingTask
-            ? {
-                action: "update",
-                data: payload,
-              }
-            : payload,
-        ),
-      },
-    );
-
-    const result = (await response.json().catch(() => ({}))) as {
-      message?: string;
-    };
-
-    if (!response.ok) {
-      setErrorMessage(result.message ?? "ذخیره تسک ناموفق بود.");
+    try {
+      if (editingTask) {
+        const response = await fetch(`/api/tasks/${editingTask.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "update", data: payload }),
+        });
+        if (!response.ok)
+          throw new Error("ویرایش تسک تأیید نشد؛ فهرست را تازه کنید.");
+      } else {
+        await directTasks(supabase).create(payload);
+      }
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "ذخیره تسک تأیید نشد.",
+      );
       return;
     }
 

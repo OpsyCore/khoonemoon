@@ -49,7 +49,7 @@ export default async function ListsPage() {
       ? supabase
           .from("chores")
           .select(
-            "id, household_id, title, description, created_by, rotation_mode, current_rotation_index, frequency, interval_days, weekdays, next_due_at, is_active, archived_at, created_at, updated_at, chore_rotation_steps(id, chore_id, position, assignee_id)",
+            "id, household_id, title, description, created_by, rotation_mode, current_rotation_index, frequency, interval_days, weekdays, next_due_at, is_active, completion_revision, archived_at, created_at, updated_at, chore_rotation_steps(id, chore_id, position, assignee_id)",
           )
           .eq("household_id", householdId)
           .is("archived_at", null)

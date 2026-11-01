@@ -1,5 +1,8 @@
 "use client";
 
+import { directDocuments } from "@/features/documents/direct-client";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 import { Eye, FileText, Info, Loader2, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -111,21 +114,13 @@ export function DocumentsManager() {
     setBusy(true);
     setErrorMessage(null);
     try {
-      const body = new FormData();
-      body.set("title", title);
-      body.set("description", description);
-      body.set("visibility", canShare ? visibility : "PRIVATE");
-      body.set("file", file);
-      const response = await fetch("/api/documents", {
-        method: "POST",
-        body,
+      await directDocuments(createSupabaseBrowserClient()).create({
+        file,
+        title,
+        description,
+        visibility: canShare ? visibility : "PRIVATE",
+        category: "OTHER",
       });
-      const data = (await response.json().catch(() => ({}))) as {
-        message?: string;
-      };
-      if (!response.ok) {
-        throw new Error(data.message || "بارگذاری مدرک ناموفق بود.");
-      }
       setShowForm(false);
       setTitle("");
       setDescription("");
@@ -232,17 +227,11 @@ export function DocumentsManager() {
     setBusy(true);
     setErrorMessage(null);
     try {
-      const response = await fetch(`/api/documents/${id}/attachments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ entityType, entityId }),
-      });
-      const data = (await response.json().catch(() => ({}))) as {
-        message?: string;
-      };
-      if (!response.ok) {
-        throw new Error(data.message || "ثبت پیوست ناموفق بود.");
-      }
+      await directDocuments(createSupabaseBrowserClient()).attach(
+        id,
+        entityType,
+        entityId,
+      );
       setEntityId("");
       await loadDetail(id);
     } catch (error) {
