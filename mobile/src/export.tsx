@@ -15,6 +15,11 @@ import {
   isEncryptedBackup,
   MAX_ENCRYPTED_BACKUP,
 } from "@/features/export/backup-encryption";
+import {
+  memberDocumentAuthors,
+  makeMemberDocumentBundle,
+  restoreOwnSharedDocuments,
+} from "@/features/export/member-documents";
 import { saveBackupNative } from "./save-backup";
 import { restoreMissing } from "@/features/export/restore-client";
 
@@ -28,6 +33,11 @@ export function ExportData({ client }: { client: SupabaseClient }) {
   const [backupPasswordConfirm, setBackupPasswordConfirm] = useState("");
   const [openPassword, setOpenPassword] = useState("");
   const [confirmed, setConfirmed] = useState(false);
+  const [authors, setAuthors] = useState<{ id: string; titles: string[] }[]>(
+    [],
+  );
+  const [author, setAuthor] = useState("");
+  const [memberConfirmed, setMemberConfirmed] = useState(false);
   const [allowHouseholdCopy, setAllowHouseholdCopy] = useState(false);
   async function inspect(file: File | undefined, password?: string) {
     setPreview(null);
@@ -37,6 +47,9 @@ export function ExportData({ client }: { client: SupabaseClient }) {
       setOpenPassword("");
     }
     setConfirmed(false);
+    setAuthors([]);
+    setAuthor("");
+    setMemberConfirmed(false);
     setAllowHouseholdCopy(false);
     setMessage("");
     if (!file) return;
@@ -55,9 +68,12 @@ export function ExportData({ client }: { client: SupabaseClient }) {
         ? await decryptBackup(raw, password ?? "")
         : raw;
       const result = await inspectBackup(bytes);
+      const docAuthors = await memberDocumentAuthors(bytes);
       if (active.current) {
         setPreview(result);
         setSelectedBytes(bytes);
+        setAuthors(docAuthors);
+        setAuthor(docAuthors[0]?.id ?? "");
         setEncryptedFile(null);
         setOpenPassword("");
       }
@@ -89,7 +105,7 @@ export function ExportData({ client }: { client: SupabaseClient }) {
       );
       if (active.current) {
         setMessage(
-          `${result.deferred ? "بازیابی کامل نشد." : "بازیابی موارد قابل بازگردانی انجام شد."} ${result.inserted} ردیف اضافه شد، ${result.skipped} ردیف موجود دست‌نخورده ماند و ${result.repairedFiles} فایل گم‌شده برگردانده یا تأیید شد. ${result.householdCopy ? "یک خانهٔ جدید مستقل ساخته شد؛ اعضا باید دوباره دعوت شوند." : ""} ${result.deferred ? `${result.deferred} مورد هنوز باز است؛ تخصیص‌ها به پیوستن دوباره اعضا نیاز دارند و فایل مدارک اعضای دیگر هنوز خودکار بازیابی نمی‌شود.` : ""} فهرست‌ها را تازه کنید.`,
+          `${result.deferred ? "بازیابی کامل نشد." : "بازیابی موارد قابل بازگردانی انجام شد."} ${result.inserted} ردیف اضافه شد، ${result.skipped} ردیف موجود دست‌نخورده ماند و ${result.repairedFiles} فایل گم‌شده برگردانده یا تأیید شد. ${result.householdCopy ? "یک خانهٔ جدید مستقل ساخته شد؛ اعضا باید دوباره دعوت شوند." : ""} ${result.deferred ? `${result.deferred} مورد هنوز باز است؛ اعضا باید دوباره بپیوندند؛ برای مدارک آن‌ها از فایل جداگانه و تأیید خودشان استفاده کنید.` : ""} فهرست‌ها را تازه کنید.`,
         );
         setConfirmed(false);
       }
@@ -142,6 +158,74 @@ export function ExportData({ client }: { client: SupabaseClient }) {
       if (active.current) setBusy(false);
     }
   }
+  function saveEncryptedFile(bytes: Uint8Array, name: string) {
+    if (window.KhoonemoonNotifications) {
+      saveBackupNative(bytes, name);
+      setMessage("محل ذخیره را در پنجرهٔ اندروید انتخاب کنید.");
+    } else {
+      const url = URL.createObjectURL(
+        new Blob([new Uint8Array(bytes)], { type: "application/octet-stream" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      setMessage("درخواست ذخیرهٔ فایل ارسال شد.");
+    }
+  }
+  async function makeMemberBundle() {
+    if (!selectedBytes || !author) return;
+    if (
+      backupPassword.length < 12 ||
+      backupPassword !== backupPasswordConfirm
+    ) {
+      setMessage("رمز باید حداقل ۱۲ نویسه باشد و تکرار آن یکسان باشد.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      const now = new Date();
+      const zip = await makeMemberDocumentBundle(selectedBytes, author, now);
+      const encrypted = await encryptBackup(zip, backupPassword);
+      if (!active.current) return;
+      setBackupPassword("");
+      setBackupPasswordConfirm("");
+      saveEncryptedFile(
+        encrypted,
+        `khoonemoon-member-${now.toISOString().slice(0, 10)}.kbackup`,
+      );
+    } catch (error) {
+      if (active.current)
+        setMessage(
+          error instanceof Error ? error.message : "ساخت فایل عضو ناموفق بود.",
+        );
+    } finally {
+      if (active.current) setBusy(false);
+    }
+  }
+  async function restoreMemberDocuments() {
+    if (!selectedBytes || !memberConfirmed) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const result = await restoreOwnSharedDocuments(client, selectedBytes);
+      if (active.current) {
+        setMessage(
+          `${result.inserted} مدرک اضافه شد، ${result.skipped} مدرک موجود دست‌نخورده ماند و ${result.repaired} فایل گم‌شده برگردانده یا تأیید شد. برای بازیابی پیوندهای مدارک، مالک باید بازیابی پشتیبان اصلی را دوباره اجرا کند.`,
+        );
+        setMemberConfirmed(false);
+      }
+    } catch (error) {
+      if (active.current)
+        setMessage(
+          error instanceof Error ? error.message : "بازیابی مدارک تأیید نشد.",
+        );
+    } finally {
+      if (active.current) setBusy(false);
+    }
+  }
   async function backup() {
     if (
       backupPassword.length < 12 ||
@@ -159,22 +243,10 @@ export function ExportData({ client }: { client: SupabaseClient }) {
       if (!active.current) return;
       setBackupPassword("");
       setBackupPasswordConfirm("");
-      const name = `khoonemoon-${now.toISOString().slice(0, 10)}.kbackup`;
-      if (window.KhoonemoonNotifications) {
-        saveBackupNative(bytes, name);
-        setMessage("محل ذخیره را در پنجرهٔ اندروید انتخاب کنید.");
-      } else {
-        const blob = new Blob([new Uint8Array(bytes)], {
-          type: "application/octet-stream",
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = name;
-        link.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-        setMessage("درخواست ذخیرهٔ فایل ارسال شد.");
-      }
+      saveEncryptedFile(
+        bytes,
+        `khoonemoon-${now.toISOString().slice(0, 10)}.kbackup`,
+      );
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "ساخت پشتیبان ناموفق بود.",
@@ -300,6 +372,74 @@ export function ExportData({ client }: { client: SupabaseClient }) {
             </p>
             {preview.integrity === "verified" &&
               preview.tableCount === 19 &&
+              authors.length > 0 && (
+                <div>
+                  <h3>فایل جداگانه برای بازیابی مدارک یک عضو</h3>
+                  <p>
+                    اگر مدرک عضو دیگری بازنگشته، فایل جداگانه بسازید و فقط به
+                    همان عضو بدهید. این فایل داده‌های خصوصی شما یا مدارک دیگران
+                    را ندارد. رمز فایل را در دو کادر بالای صفحه وارد کنید و از
+                    راه امن جداگانه به عضو بدهید.
+                  </p>
+                  <label>
+                    مدارک کدام عضو؟
+                    <select
+                      value={author}
+                      disabled={busy}
+                      onChange={(e) => setAuthor(e.target.value)}
+                    >
+                      {authors.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.titles.slice(0, 3).join("، ")} (
+                          {item.titles.length} مدرک · {item.id})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    disabled={busy || !author}
+                    onClick={() => void makeMemberBundle()}
+                  >
+                    ساخت فایل رمزگذاری‌شده برای این عضو
+                  </button>
+                </div>
+              )}
+            {preview.integrity === "verified" &&
+              preview.tableCount === 1 &&
+              authors.length === 1 && (
+                <div>
+                  <h3>بازیابی مدارک خودم</h3>
+                  <p>
+                    فقط سازندهٔ مدارک، پس از پیوستن به خانه، می‌تواند آن‌ها را
+                    بازیابی کند. این فایل ممکن است دستکاری شده باشد؛ فقط از فرد
+                    مورداعتماد بپذیرید. مدارک موجود جایگزین نمی‌شوند. در صورت
+                    خطا ممکن است فایل موقت باقی بماند.
+                  </p>
+                  <ul>
+                    {authors[0].titles.map((title, index) => (
+                      <li key={index}>{title}</li>
+                    ))}
+                  </ul>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={memberConfirmed}
+                      disabled={busy}
+                      onChange={(e) => setMemberConfirmed(e.target.checked)}
+                    />{" "}
+                    من سازندهٔ این مدارک هستم، به فایل اعتماد دارم و می‌خواهم
+                    آن‌ها را در خانهٔ فعلی بازیابی کنم.
+                  </label>
+                  <button
+                    disabled={busy || !memberConfirmed}
+                    onClick={() => void restoreMemberDocuments()}
+                  >
+                    بازیابی مدارک خودم
+                  </button>
+                </div>
+              )}
+            {preview.integrity === "verified" &&
+              preview.tableCount === 19 &&
               preview.rowCount <= 50000 && (
                 <div>
                   <h3>بازیابی محدود داده‌های حذف‌شده</h3>
@@ -353,7 +493,10 @@ export function ExportData({ client }: { client: SupabaseClient }) {
             {(preview.tableCount !== 19 ||
               preview.rowCount > 50000 ||
               preview.integrity !== "verified") && (
-              <p>این فایل شرایط بازیابی محدود را ندارد؛ فقط قابل بررسی است.</p>
+              <p>
+                این فایل شرایط بازیابی عمومی را ندارد؛ اگر بستهٔ مدارک خودتان
+                باشد، گزینهٔ جداگانهٔ بالا را بررسی کنید.
+              </p>
             )}
           </div>
         )}

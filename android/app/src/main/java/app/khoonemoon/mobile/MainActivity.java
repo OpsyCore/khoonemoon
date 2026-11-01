@@ -226,7 +226,7 @@ public class MainActivity extends Activity {
             synchronized (MainActivity.this) { pendingBinaryExport = null; }
         }
         @JavascriptInterface public boolean finishBinaryExport(String name) {
-            if (name == null || !name.matches("khoonemoon-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.(zip|kbackup)")) return false;
+            if (name == null || !name.matches("khoonemoon-(member-)?[0-9]{4}-[0-9]{2}-[0-9]{2}\\.(zip|kbackup)")) return false;
             synchronized (MainActivity.this) {
                 if (pendingBinaryExport == null || pendingExport != null) return false;
                 pendingExport = pendingBinaryExport.toByteArray(); pendingBinaryExport = null;

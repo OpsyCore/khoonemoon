@@ -106,6 +106,7 @@ export async function restoreMissing(
       "این خروجی متعلق به حساب واردشده نیست؛ داده‌ای تغییر نکرد.",
     );
   const signed = backup.signedSnapshot;
+  const originalMembers = tables.household_members.map((row) => ({ ...row }));
   const sourceHouse =
     tables.households.length === 1 ? (tables.households[0].id as string) : null;
   const signedOwner =
@@ -236,7 +237,24 @@ export async function restoreMissing(
     typeof targetHome === "string" &&
     tables.households.length === 1 &&
     tables.households[0].id === targetHome;
-  let deferred = 0;
+  // Membership is never silently re-created. Count absent active members even
+  // if they had no assignments, so the UI cannot call a partial recovery full.
+  const currentMembers = current.data.tables.household_members as Row[];
+  let deferred =
+    signed && sourceHouse
+      ? originalMembers.filter(
+          (row) =>
+            row.household_id === sourceHouse &&
+            row.left_at === null &&
+            row.user_id !== user &&
+            !currentMembers.some(
+              (m) =>
+                m.user_id === row.user_id &&
+                m.household_id === targetHome &&
+                m.left_at === null,
+            ),
+        ).length
+      : 0;
   if (sharedMode) {
     const sharedTasks = new Set(
       tables.tasks

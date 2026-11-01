@@ -7,6 +7,12 @@ import { buildChecksums } from "./backup-integrity";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { exportMobileBackup } from "./direct-client";
 import { restoreMissing } from "./restore-client";
+import {
+  makeMemberDocumentBundle,
+  restoreOwnSharedDocuments,
+} from "./member-documents";
+import { readBackup } from "./backup-integrity";
+import { encryptBackup, decryptBackup } from "./backup-encryption";
 Object.defineProperty(globalThis.crypto, "subtle", {
   value: webcrypto.subtle,
   configurable: true,
@@ -96,9 +102,13 @@ describe("real ZIP through recovery against isolated PGlite", () => {
           return { error: { message: "timeout" } };
         },
       };
+      let actingUser = user;
       const client = {
         auth: {
-          getUser: async () => ({ data: { user: { id: user } }, error: null }),
+          getUser: async () => ({
+            data: { user: { id: actingUser } },
+            error: null,
+          }),
         },
         storage: { from: () => bucket },
         rpc: async (
@@ -315,7 +325,7 @@ describe("real ZIP through recovery against isolated PGlite", () => {
       const recovered = await restoreMissing(client, otherZip, true);
       expect(recovered.householdCopy).toBe(true);
       expect(recovered.inserted).toBe(8);
-      expect(recovered.deferred).toBe(3);
+      expect(recovered.deferred).toBe(4);
       const home = await db.query(
         "select household_id from public.household_members where user_id=$1 and left_at is null",
         [user],
@@ -340,7 +350,23 @@ describe("real ZIP through recovery against isolated PGlite", () => {
           )
         ).rows,
       ).toEqual([{ n: 0 }]);
-      expect((await restoreMissing(client, otherZip, true)).deferred).toBe(3);
+      expect((await restoreMissing(client, otherZip, true)).deferred).toBe(4);
+      const beforeJoin = await makeMemberDocumentBundle(
+        otherZip,
+        other,
+        new Date("2026-01-03T00:00:00Z"),
+      );
+      actingUser = other;
+      await db.query("select set_config('request.jwt.claims',$1,false)", [
+        JSON.stringify({ sub: other, role: "authenticated" }),
+      ]);
+      await expect(
+        restoreOwnSharedDocuments(client, beforeJoin),
+      ).rejects.toThrow("ابتدا دوباره به خانه بپیوندید");
+      actingUser = user;
+      await db.query("select set_config('request.jwt.claims',$1,false)", [
+        JSON.stringify({ sub: user, role: "authenticated" }),
+      ]);
       await db.exec("reset role");
       await db.query(
         "insert into public.household_members(household_id,user_id,role) values ($1,$2,'MEMBER')",
@@ -350,6 +376,56 @@ describe("real ZIP through recovery against isolated PGlite", () => {
       const completed = await restoreMissing(client, otherZip, true);
       expect(completed.deferred).toBe(2);
       expect(completed.inserted).toBe(1);
+      const bundle = await makeMemberDocumentBundle(
+        otherZip,
+        other,
+        new Date("2026-01-03T00:00:00Z"),
+      );
+      const protectedBundle = await encryptBackup(
+        bundle,
+        "member secret password",
+      );
+      const openedBundle = await decryptBackup(
+        protectedBundle,
+        "member secret password",
+      );
+      expect(openedBundle).toEqual(bundle);
+      const bundleContents = await readBackup(openedBundle);
+      expect(Object.keys(bundleContents.tables)).toEqual(["documents"]);
+      expect(bundleContents.tables.documents).toHaveLength(1);
+      expect(new TextDecoder().decode(bundle)).not.toContain("بازگشت کار");
+      await expect(restoreOwnSharedDocuments(client, bundle)).rejects.toThrow(
+        "حساب شما",
+      );
+      actingUser = other;
+      await db.query("select set_config('request.jwt.claims',$1,false)", [
+        JSON.stringify({ sub: other, role: "authenticated" }),
+      ]);
+      const restored = await restoreOwnSharedDocuments(client, bundle);
+      expect(restored.inserted).toBe(1);
+      const otherNewPath = `household/${newHome}/${otherDoc}/restore.pdf`;
+      expect(objects.get(otherNewPath)).toEqual(new Uint8Array([7, 8, 9]));
+      expect((await restoreOwnSharedDocuments(client, bundle)).inserted).toBe(
+        0,
+      );
+      objects.set(otherNewPath, new Uint8Array([9, 9, 9]));
+      await restoreOwnSharedDocuments(client, bundle);
+      expect(objects.get(otherNewPath)).toEqual(new Uint8Array([9, 9, 9]));
+      await db.query("delete from storage.objects where name=$1", [
+        otherNewPath,
+      ]);
+      objects.delete(otherNewPath);
+      expect((await restoreOwnSharedDocuments(client, bundle)).repaired).toBe(
+        1,
+      );
+      expect(objects.get(otherNewPath)).toEqual(new Uint8Array([7, 8, 9]));
+      actingUser = user;
+      await db.query("select set_config('request.jwt.claims',$1,false)", [
+        JSON.stringify({ sub: user, role: "authenticated" }),
+      ]);
+      const final = await restoreMissing(client, otherZip, true);
+      expect(final.deferred).toBe(0);
+      expect(final.inserted).toBe(1); // original signed attachment restored by owner
       expect((await restoreMissing(client, otherZip, true)).inserted).toBe(0);
     } finally {
       await db.close();
