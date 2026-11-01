@@ -7,6 +7,7 @@ import {
 } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { directHousehold } from "@/features/households/direct-client";
+import { reloadAfterSave } from "./after-save";
 
 type Details = Awaited<
   ReturnType<ReturnType<typeof directHousehold>["details"]>
@@ -28,6 +29,7 @@ export function HouseholdDetails({
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [needsRefresh, setNeedsRefresh] = useState(false);
   const load = useCallback(async () => {
     const data = await api.details(householdId, userId);
     setDetails(data);
@@ -61,11 +63,20 @@ export function HouseholdDetails({
       setBusy(false);
     }
   }
+  async function refreshAfterChange() {
+    if (await reloadAfterSave(load)) setNeedsRefresh(false);
+    else {
+      setNeedsRefresh(true);
+      setMessage(
+        "تغییر انجام شد اما اطلاعات خانه تازه نشد؛ دوباره همان عملیات را ثبت نکنید.",
+      );
+    }
+  }
   function rename(event: FormEvent) {
     event.preventDefault();
     void action(async () => {
       await api.rename(householdId, name);
-      await load();
+      await refreshAfterChange();
     });
   }
   return (
@@ -75,6 +86,19 @@ export function HouseholdDetails({
           {message}
         </p>
       )}
+      <button
+        type="button"
+        className="minor"
+        disabled={busy}
+        onClick={() =>
+          void action(async () => {
+            await load();
+            setNeedsRefresh(false);
+          })
+        }
+      >
+        تازه‌سازی خانه
+      </button>
       {!details ? (
         <p>در حال دریافت اطلاعات خانه…</p>
       ) : (
@@ -100,15 +124,15 @@ export function HouseholdDetails({
                     maxLength={80}
                   />
                 </label>
-                <button disabled={busy}>تغییر نام خانه</button>
+                <button disabled={busy || needsRefresh}>تغییر نام خانه</button>
               </form>
               <button
-                disabled={busy}
+                disabled={busy || needsRefresh}
                 onClick={() =>
                   void action(async () => {
                     const invite = await api.invite();
                     setCode(invite.code);
-                    await load();
+                    await refreshAfterChange();
                   })
                 }
               >
@@ -139,12 +163,12 @@ export function HouseholdDetails({
                     {invitation.status === "PENDING" && (
                       <button
                         className="minor"
-                        disabled={busy}
+                        disabled={busy || needsRefresh}
                         onClick={() =>
                           void action(async () => {
                             await api.cancel(invitation.id);
                             setCode("");
-                            await load();
+                            await refreshAfterChange();
                           })
                         }
                       >

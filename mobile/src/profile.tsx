@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { directProfile } from "@/features/profile/direct-client";
+import { ZodError } from "zod";
 
 export function Profile({ client }: { client: SupabaseClient }) {
   const api = useMemo(() => directProfile(client), [client]);
@@ -35,7 +36,13 @@ export function Profile({ client }: { client: SupabaseClient }) {
     void api
       .update({ full_name: name, timezone, locale })
       .then(() => setMessage("پروفایل ذخیره شد."))
-      .catch(() => setMessage("ذخیره پروفایل ناموفق بود."))
+      .catch((error: unknown) =>
+        setMessage(
+          error instanceof ZodError
+            ? (error.issues[0]?.message ?? "اطلاعات معتبر وارد کنید.")
+            : "ذخیره پروفایل ناموفق بود.",
+        ),
+      )
       .finally(() => setBusy(false));
   }
   return (
@@ -59,13 +66,22 @@ export function Profile({ client }: { client: SupabaseClient }) {
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
               required
+              dir="ltr"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="Asia/Tehran"
             />
+            <small>برای نمونه Asia/Tehran یا Europe/Istanbul</small>
           </label>
           <label>
             زبان
             <input
               value={locale}
               onChange={(e) => setLocale(e.target.value)}
+              dir="ltr"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="fa-IR"
               required
             />
           </label>
