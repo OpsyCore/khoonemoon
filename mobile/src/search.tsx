@@ -1,3 +1,4 @@
+import { searchUrl } from "./search-url";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState, type FormEvent } from "react";
 import { searchWorkspaceFiltered } from "@/features/search/direct-client";
@@ -33,16 +34,12 @@ function initial() {
   };
 }
 function saveSearch(query: string, filters: SearchFilters) {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("search_q");
-  url.searchParams.delete("search_kind");
-  url.searchParams.delete("search_range");
-  if (query) url.searchParams.set("search_q", query);
-  filters.kinds.forEach((kind) => url.searchParams.append("search_kind", kind));
-  if (filters.range !== "ANY")
-    url.searchParams.set("search_range", filters.range);
   try {
-    window.history.replaceState(window.history.state, "", url);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      searchUrl(new URL(window.location.href), query, filters),
+    );
   } catch {
     /* URL persistence is optional */
   }

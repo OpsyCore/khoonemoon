@@ -845,3 +845,33 @@ begin
   if v_result <> v_id or not exists(select 1 from public.chores where id=v_id and title='عنوان اصلاح‌شده') then raise exception 'guarded current update failed'; end if;
 end $$;
 rollback;
+
+-- Guard a task edit using the displayed timestamp while preserving RLS.
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_id uuid; v_time timestamptz; v_result uuid;
+begin
+  insert into public.tasks(title,creator_id,owner_id,visibility,priority)
+    values ('تسک ویرایشی','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','PRIVATE','NORMAL') returning id,updated_at into v_id,v_time;
+  begin
+    perform public.mobile_update_task_guarded(v_id,'{}'::jsonb,'2000-01-01'::timestamptz);
+    raise exception 'stale task update was not rejected';
+  exception when others then
+    if sqlerrm <> 'STALE_TASK' then raise; end if;
+  end;
+  v_result := public.mobile_update_task_guarded(v_id,jsonb_build_object('title','تسک اصلاح‌شده','visibility','PRIVATE','priority','NORMAL','assigneeIds',jsonb_build_array(),'recurrence',jsonb_build_object('frequency','NONE'),'recurrenceTimezone','UTC'),v_time);
+  if v_result <> v_id or not exists (select 1 from public.tasks where id=v_id and title='تسک اصلاح‌شده') then raise exception 'guarded task update failed'; end if;
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+  begin
+    perform public.mobile_update_task_guarded(v_id,'{}'::jsonb,v_time);
+    raise exception 'unauthorized task update was not rejected';
+  exception when others then
+    if sqlerrm <> 'STALE_TASK' then raise; end if;
+  end;
+end $$;
+rollback;
+do $$ begin
+  if has_function_privilege('anon','public.mobile_update_task_guarded(uuid,jsonb,timestamptz)','execute') then raise exception 'anonymous task update must be denied'; end if;
+end $$;

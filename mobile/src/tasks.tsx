@@ -21,7 +21,7 @@ export function Tasks({
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [editing, setEditing] = useState<string | null>(null);
+  const [editing, setEditing] = useState<TaskRecord | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [description, setDescription] = useState("");
   const [due, setDue] = useState("");
@@ -50,10 +50,7 @@ export function Tasks({
     setBusy(true);
     setMessage("");
     try {
-      const original = editing
-        ? tasks.find((task) => task.id === editing)
-        : null;
-      if (editing && !original) throw new Error("تسک برای ویرایش یافت نشد.");
+      const original = editing;
       const time = taskEditTime(
         due,
         original?.due_at ?? null,
@@ -76,7 +73,13 @@ export function Tasks({
           ...(frequency === "WEEKLY" ? { weekdays: days } : {}),
         },
       };
-      if (editing) await api.update(editing, payload, time.recurrenceTimezone);
+      if (editing)
+        await api.update(
+          editing.id,
+          payload,
+          time.recurrenceTimezone,
+          editing.updated_at,
+        );
       else await api.create(payload);
       resetForm();
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
@@ -127,7 +130,7 @@ export function Tasks({
         .slice(0, 16);
     };
     const recurrence = task.task_recurrences?.[0];
-    setEditing(task.id);
+    setEditing(task);
     setNewTitle(task.title);
     setDescription(task.description ?? "");
     setDue(task.due_at ? local(task.due_at) : "");

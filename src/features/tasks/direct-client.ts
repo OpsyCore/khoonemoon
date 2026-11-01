@@ -25,11 +25,13 @@ export function directTasks(client: SupabaseClient) {
     async update(
       id: string,
       input: unknown,
-      recurrenceTimezone?: string,
+      recurrenceTimezone: string,
+      expectedUpdatedAt: string,
     ): Promise<void> {
       const task = createTaskSchema.parse(input);
-      const { data, error } = await client.rpc("mobile_update_task", {
+      const { data, error } = await client.rpc("mobile_update_task_guarded", {
         p_id: id,
+        p_expected_updated_at: expectedUpdatedAt,
         p_input: {
           ...task,
           recurrenceTimezone:
@@ -37,7 +39,10 @@ export function directTasks(client: SupabaseClient) {
             Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
       });
-      if (error || data !== id) throw new Error("ویرایش تسک ناموفق بود.");
+      if (error || data !== id)
+        throw new Error(
+          "ویرایش تأیید نشد یا تسک تغییر کرده است؛ پیش از تلاش دوباره فهرست را تازه کنید.",
+        );
     },
     async list(): Promise<TaskRecord[]> {
       const rows: TaskRecord[] = [];

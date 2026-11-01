@@ -819,3 +819,17 @@ section > p,
   padding: 0 0.2rem;
   text-align: center;
 }
+
+dialog {
+  max-width: min(94vw, 34rem);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--paper, #f6f1e7);
+  color: inherit;
+  border: 1px solid #cbbba2;
+  border-radius: 1.2rem;
+  padding: 1rem;
+}
+dialog::backdrop {
+  background: rgba(35, 29, 22, 0.55);
+}

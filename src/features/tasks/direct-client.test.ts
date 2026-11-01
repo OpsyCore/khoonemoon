@@ -136,18 +136,26 @@ describe("atomic task update", () => {
         headers: { "content-type": "application/json" },
       }),
     );
-    await api.update("task-1", input, "America/New_York");
+    await api.update(
+      "task-1",
+      input,
+      "America/New_York",
+      "2026-10-01T00:00:00Z",
+    );
     expect(
       JSON.parse(String(fetcher.mock.calls[0][1]?.body)).p_input
         .recurrenceTimezone,
     ).toBe("America/New_York");
     expect(String(fetcher.mock.calls[0][0])).toContain(
-      "rpc/mobile_update_task",
+      "rpc/mobile_update_task_guarded",
     );
     expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({
       p_id: "task-1",
+      p_expected_updated_at: "2026-10-01T00:00:00Z",
       p_input: { title: "تسک", priority: "HIGH" },
     });
-    await expect(api.update("task-1", input)).rejects.toThrow();
+    await expect(
+      api.update("task-1", input, "UTC", "2026-10-01T00:00:00Z"),
+    ).rejects.toThrow();
   });
 });

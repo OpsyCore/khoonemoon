@@ -12,12 +12,23 @@ export function ledgerFromUrl(url: URL): LedgerFilters {
   }
   return parseLedgerFilters(params);
 }
-export function ledgerUrl(url: URL, filters: LedgerFilters): URL {
+export function ledgerCurrency(url: URL): string {
+  const currency = url.searchParams.get("ledger_currency") ?? "";
+  return /^[A-Z]{3}$/.test(currency) ? currency : "IRR";
+}
+export function ledgerUrl(
+  url: URL,
+  filters: LedgerFilters,
+  currency = "IRR",
+): URL {
   const next = new URL(url);
   for (const key of ["type", "paid", "days", "q"])
     next.searchParams.delete(`ledger_${key}`);
   for (const [key, value] of new URLSearchParams(toLedgerQuery(filters)))
     next.searchParams.set(`ledger_${key}`, value);
+  next.searchParams.delete("ledger_currency");
+  if (/^[A-Z]{3}$/.test(currency) && currency !== "IRR")
+    next.searchParams.set("ledger_currency", currency);
   next.searchParams.set("page", "finance");
   return next;
 }

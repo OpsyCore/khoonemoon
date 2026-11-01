@@ -46,6 +46,8 @@ export function QuickAdd({
     [financialKind, setFinancialKind] = useState<"expense" | "bill">("expense");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const typeRef = useRef<HTMLSelectElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const restoreFocus = useRef(false);
   const [start, setStart] = useState(() =>
       toDateTimeLocal(defaultEventWindow(new Date()).start),
     ),
@@ -57,19 +59,22 @@ export function QuickAdd({
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   useEffect(() => {
-    if (open) typeRef.current?.focus();
-  }, [open]);
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) {
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
+    const dialog = dialogRef.current;
+    if (open) {
+      if (dialog && !dialog.open) dialog.showModal();
+      typeRef.current?.focus();
+    } else if (restoreFocus.current) {
+      restoreFocus.current = false;
+      triggerRef.current?.focus();
+    }
+    return () => {
+      if (dialog?.open) dialog.close();
     };
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
-  }, [open, busy]);
+  }, [open]);
+  function closeDialog() {
+    restoreFocus.current = true;
+    setOpen(false);
+  }
   useEffect(() => {
     if (!open || kind !== "shopping" || !householdId) return;
     let alive = true;
@@ -141,8 +146,7 @@ export function QuickAdd({
       setTitle("");
       setAmount("");
       setDue("");
-      setOpen(false);
-      triggerRef.current?.focus();
+      closeDialog();
       onDone();
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
       setMessage("مورد ثبت شد.");
@@ -174,161 +178,169 @@ export function QuickAdd({
       >
         افزودن سریع
       </button>
-      {message && <p role="status">{message}</p>}
+      {!open && message && <p role="status">{message}</p>}
       {open && (
-        <form id="quick-add-form" onSubmit={submit}>
-          <label>
-            نوع
-            <select
-              ref={typeRef}
-              value={kind}
-              onChange={(e) => {
-                setKind(e.target.value as QuickAddKind);
-                setMessage("");
-              }}
-            >
-              {Object.entries(labels).map(([id, label]) => (
-                <option key={id} value={id}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            عنوان
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              minLength={2}
-              maxLength={180}
-            />
-          </label>
-          {(kind === "task" || kind === "event" || kind === "bill") &&
-            householdId && (
-              <label>
-                <span>مشترک با خانه</span>
-                <input
-                  type="checkbox"
-                  checked={shared}
-                  onChange={(e) => setShared(e.target.checked)}
-                />
-              </label>
-            )}
-          {kind === "task" && (
+        <dialog
+          ref={dialogRef}
+          aria-labelledby="quick-add-heading"
+          onCancel={(event) => {
+            event.preventDefault();
+            if (!busy) closeDialog();
+          }}
+        >
+          <form id="quick-add-form" onSubmit={submit}>
+            <h2 id="quick-add-heading">افزودن سریع</h2>
+            {message && <p role="alert">{message}</p>}
             <label>
-              زمان دلخواه
-              <input
-                type="datetime-local"
-                value={due}
-                onChange={(e) => setDue(e.target.value)}
-              />
-            </label>
-          )}
-          {kind === "event" && (
-            <>
-              <label>
-                شروع
-                <input
-                  type="datetime-local"
-                  required
-                  value={start}
-                  onChange={(e) => setStart(e.target.value)}
-                />
-              </label>
-              <label>
-                پایان
-                <input
-                  type="datetime-local"
-                  required
-                  value={end}
-                  onChange={(e) => setEnd(e.target.value)}
-                />
-              </label>
-            </>
-          )}
-          {kind === "shopping" && (
-            <label>
-              لیست خرید
+              نوع
               <select
-                required
-                value={listId}
-                onChange={(e) => setListId(e.target.value)}
+                ref={typeRef}
+                value={kind}
+                onChange={(e) => {
+                  setKind(e.target.value as QuickAddKind);
+                  setMessage("");
+                }}
               >
-                <option value="">انتخاب لیست</option>
-                {lists.map((list) => (
-                  <option key={list.id} value={list.id}>
-                    {list.name}
+                {Object.entries(labels).map(([id, label]) => (
+                  <option key={id} value={id}>
+                    {label}
                   </option>
                 ))}
               </select>
             </label>
-          )}
-          {kind === "bill" && (
-            <>
-              <label>
-                نوع مالی
-                <select
-                  value={financialKind}
-                  onChange={(e) =>
-                    setFinancialKind(e.target.value as "expense" | "bill")
-                  }
-                >
-                  <option value="expense">هزینه پرداخت‌شده</option>
-                  <option value="bill">قبض سررسیددار</option>
-                </select>
-              </label>
-              {financialKind === "bill" && (
+            <label>
+              عنوان
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                minLength={2}
+                maxLength={180}
+              />
+            </label>
+            {(kind === "task" || kind === "event" || kind === "bill") &&
+              householdId && (
                 <label>
-                  سررسید قبض
+                  <span>مشترک با خانه</span>
                   <input
-                    type="datetime-local"
-                    required
-                    value={due}
-                    onChange={(e) => setDue(e.target.value)}
+                    type="checkbox"
+                    checked={shared}
+                    onChange={(e) => setShared(e.target.checked)}
                   />
                 </label>
               )}
+            {kind === "task" && (
               <label>
-                مبلغ
+                زمان دلخواه
                 <input
-                  inputMode="decimal"
-                  required
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  type="datetime-local"
+                  value={due}
+                  onChange={(e) => setDue(e.target.value)}
                 />
               </label>
+            )}
+            {kind === "event" && (
+              <>
+                <label>
+                  شروع
+                  <input
+                    type="datetime-local"
+                    required
+                    value={start}
+                    onChange={(e) => setStart(e.target.value)}
+                  />
+                </label>
+                <label>
+                  پایان
+                  <input
+                    type="datetime-local"
+                    required
+                    value={end}
+                    onChange={(e) => setEnd(e.target.value)}
+                  />
+                </label>
+              </>
+            )}
+            {kind === "shopping" && (
               <label>
-                واحد پول
-                <input
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                  maxLength={3}
-                  minLength={3}
+                لیست خرید
+                <select
                   required
-                />
+                  value={listId}
+                  onChange={(e) => setListId(e.target.value)}
+                >
+                  <option value="">انتخاب لیست</option>
+                  {lists.map((list) => (
+                    <option key={list.id} value={list.id}>
+                      {list.name}
+                    </option>
+                  ))}
+                </select>
               </label>
-            </>
-          )}
-          {kind === "chore" && (
-            <p>
-              کار خانه به‌صورت هفتگی ثبت می‌شود؛ تنظیمات بیشتر در بخش کارها در
-              دسترس است.
-            </p>
-          )}
-          <button disabled={busy}>ثبت {labels[kind]}</button>
-          <button
-            type="button"
-            className="minor"
-            disabled={busy}
-            onClick={() => {
-              setOpen(false);
-              triggerRef.current?.focus();
-            }}
-          >
-            بستن
-          </button>
-        </form>
+            )}
+            {kind === "bill" && (
+              <>
+                <label>
+                  نوع مالی
+                  <select
+                    value={financialKind}
+                    onChange={(e) =>
+                      setFinancialKind(e.target.value as "expense" | "bill")
+                    }
+                  >
+                    <option value="expense">هزینه پرداخت‌شده</option>
+                    <option value="bill">قبض سررسیددار</option>
+                  </select>
+                </label>
+                {financialKind === "bill" && (
+                  <label>
+                    سررسید قبض
+                    <input
+                      type="datetime-local"
+                      required
+                      value={due}
+                      onChange={(e) => setDue(e.target.value)}
+                    />
+                  </label>
+                )}
+                <label>
+                  مبلغ
+                  <input
+                    inputMode="decimal"
+                    required
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                </label>
+                <label>
+                  واحد پول
+                  <input
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+                    maxLength={3}
+                    minLength={3}
+                    required
+                  />
+                </label>
+              </>
+            )}
+            {kind === "chore" && (
+              <p>
+                کار خانه به‌صورت هفتگی ثبت می‌شود؛ تنظیمات بیشتر در بخش کارها در
+                دسترس است.
+              </p>
+            )}
+            <button disabled={busy}>ثبت {labels[kind]}</button>
+            <button
+              type="button"
+              className="minor"
+              disabled={busy}
+              onClick={closeDialog}
+            >
+              بستن
+            </button>
+          </form>
+        </dialog>
       )}
     </section>
   );

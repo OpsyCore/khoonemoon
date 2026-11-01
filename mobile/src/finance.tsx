@@ -1,4 +1,4 @@
-import { ledgerFromUrl, ledgerUrl } from "./ledger-url";
+import { ledgerCurrency, ledgerFromUrl, ledgerUrl } from "./ledger-url";
 import { financeCorrection, financePatchLabels } from "./finance-correction";
 import { FinanceChart } from "./finance-chart";
 import { taskEditTime } from "./task-edit-time";
@@ -81,7 +81,9 @@ export function Finance({
   const [recurrenceRule, setRecurrenceRule] = useState<
     "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY"
   >("MONTHLY");
-  const [currency, setCurrency] = useState("IRR");
+  const [currency, setCurrency] = useState(() =>
+    ledgerCurrency(new URL(window.location.href)),
+  );
   const [recordCurrency, setRecordCurrency] = useState("IRR");
   const [filters, setFilters] = useState(() =>
     ledgerFromUrl(new URL(window.location.href)),
@@ -92,7 +94,7 @@ export function Finance({
       window.history.replaceState(
         window.history.state,
         "",
-        ledgerUrl(new URL(window.location.href), next),
+        ledgerUrl(new URL(window.location.href), next, currency),
       );
     } catch {
       /* link persistence is optional */
@@ -564,10 +566,26 @@ export function Finance({
             ارز گزارش و دفتر
             <select
               value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setCurrency(value);
+                try {
+                  window.history.replaceState(
+                    window.history.state,
+                    "",
+                    ledgerUrl(new URL(window.location.href), filters, value),
+                  );
+                } catch {
+                  /* optional link persistence */
+                }
+              }}
             >
               {Array.from(
-                new Set(["IRR", ...records.map((record) => record.currency)]),
+                new Set([
+                  "IRR",
+                  currency,
+                  ...records.map((record) => record.currency),
+                ]),
               ).map((code) => (
                 <option key={code} value={code}>
                   {code === "IRR" ? "تومان" : code}
