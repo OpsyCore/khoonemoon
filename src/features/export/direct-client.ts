@@ -8,6 +8,12 @@ import {
 } from "./archive";
 
 const TABLES: Record<string, string> = {
+  profiles: "id,full_name,timezone,locale,created_at,updated_at",
+  households: "id,name,created_by,created_at,updated_at",
+  household_members:
+    "id,household_id,user_id,role,joined_at,left_at,created_at",
+  task_recurrence_instances: "completed_task_id,next_task_id,created_at",
+  finance_recurrence_instances: "paid_record_id,next_record_id,created_at",
   tasks:
     "id,title,description,creator_id,owner_id,household_id,visibility,status,priority,due_at,completed_at,archived_at,created_at,updated_at",
   task_assignees: "id,task_id,assignee_id,created_at",
@@ -36,17 +42,23 @@ const TABLES: Record<string, string> = {
     "id,document_id,entity_type,entity_id,created_by,created_at",
 };
 
+const SORT_KEYS: Record<string, string> = {
+  task_recurrence_instances: "completed_task_id",
+  finance_recurrence_instances: "paid_record_id",
+};
+
 /** Explicit columns, JWT/RLS, stable pagination; never silently exports a partial table. */
 async function readTable(
   client: SupabaseClient,
   table: keyof typeof TABLES,
 ): Promise<Record<string, unknown>[]> {
   const records: Record<string, unknown>[] = [];
+  const sortKey = SORT_KEYS[table] ?? "id";
   for (let offset = 0; offset < 10000; offset += 500) {
     const { data, error } = await client
       .from(table)
       .select(TABLES[table])
-      .order("id", { ascending: true })
+      .order(sortKey, { ascending: true })
       .range(offset, offset + 499);
     if (error) throw new Error("استخراج اطلاعات ناموفق بود.");
     const page = (data ?? []) as unknown as Record<string, unknown>[];
@@ -56,8 +68,8 @@ async function readTable(
   // Check for one more row rather than mislabeling an exact boundary as truncated.
   const { data, error } = await client
     .from(table)
-    .select("id")
-    .order("id", { ascending: true })
+    .select(sortKey)
+    .order(sortKey, { ascending: true })
     .range(10000, 10000);
   if (error || (data?.length ?? 0) > 0)
     throw new Error("تعداد داده‌ها برای خروجی بیش از حد مجاز است.");

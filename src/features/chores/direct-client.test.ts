@@ -140,27 +140,20 @@ describe("atomic chore update", () => {
     });
     await directChores(client).update(
       "chore-1",
-      {
-        title: "کار",
-        rotationMode: "FIXED",
-        assigneeIds: [],
-        frequency: "DAILY",
-      },
-      "America/New_York",
+      { title: "کار" },
       "2026-10-01T12:00:00Z",
     );
-    expect(
-      JSON.parse(String(fetcher.mock.calls[0][1]?.body)).p_input
-        .recurrenceTimezone,
-    ).toBe("America/New_York");
     expect(String(fetcher.mock.calls[0][0])).toContain(
-      "rpc/mobile_update_chore_guarded",
+      "rpc/mobile_patch_chore",
     );
-    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
       p_id: "chore-1",
       p_expected_updated_at: "2026-10-01T12:00:00Z",
-      p_input: { frequency: "DAILY" },
+      p_patch: { title: "کار" },
     });
+    await expect(
+      directChores(client).update("chore-1", {}, "2026-10-01T12:00:00Z"),
+    ).rejects.toThrow();
   });
 });
 

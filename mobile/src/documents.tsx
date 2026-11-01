@@ -57,6 +57,21 @@ export function Documents({
   const [targets, setTargets] = useState<{ id: string; title: string }[]>([]);
   const [target, setTarget] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [orphans, setOrphans] = useState<
+    { path: string; uploaded_at: string }[] | null
+  >(null);
+  async function scanOrphans() {
+    setBusy(true);
+    setError("");
+    try {
+      setOrphans(await api.possibleOrphans());
+    } catch {
+      setOrphans(null);
+      setError("بررسی فایل‌های احتمالی ناموفق بود؛ اتصال را بررسی کنید.");
+    } finally {
+      setBusy(false);
+    }
+  }
   const load = useCallback(async () => {
     const data = await api.list();
     setItems(data);
@@ -204,6 +219,40 @@ export function Documents({
           <small>افزودن مدرک</small>
         </button>
       </div>
+      <details>
+        <summary>بررسی فایل‌های خصوصی احتمالی بدون مدرک</summary>
+        <p>
+          این بررسی فقط فایل‌های خصوصی بیش از هفت روز پیش را نشان می‌دهد؛ نتیجه
+          قطعی نیست و هیچ فایلی حذف نمی‌شود. فایل‌های مشترک بررسی نمی‌شوند.
+        </p>
+        <button
+          type="button"
+          className="minor"
+          disabled={busy}
+          onClick={() => void scanOrphans()}
+        >
+          بررسی فایل‌های احتمالی
+        </button>
+        {orphans &&
+          (orphans.length === 0 ? (
+            <p role="status">موردی یافت نشد.</p>
+          ) : (
+            <div role="status">
+              <p>
+                {orphans.length} مورد احتمالی؛ حداکثر ۱۰۰ مورد نمایش داده
+                می‌شود.
+              </p>
+              <ul>
+                {orphans.map((item) => (
+                  <li key={item.path}>
+                    <bdi>{item.path.split("/").at(-1)}</bdi> ·{" "}
+                    {formatPersianDate(item.uploaded_at)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+      </details>
       {error && (
         <p className="error" role="alert">
           {error}{" "}

@@ -58,31 +58,28 @@ async function buildDatabase() {
 const AUTH_TABLES = ["auth.users"];
 
 const TABLES = [
+  "profiles",
   "households",
+  "household_members",
+  "household_invitations",
   "shopping_lists",
   "shopping_items",
   "tasks",
+  "task_assignees",
+  "task_recurrences",
   "events",
   "chores",
+  "chore_rotation_steps",
+  "chore_completions",
   "financial_records",
   "reminders",
+  "notification_preferences",
+  "documents",
+  "document_attachments",
 ];
 
-/**
- * Order matters on restore: parents before children, or the foreign keys refuse
- * the insert. That ordering is exactly what a naive restore gets wrong.
- */
-const RESTORE_ORDER = [
-  "auth.users",
-  "households",
-  "shopping_lists",
-  "shopping_items",
-  "tasks",
-  "events",
-  "chores",
-  "financial_records",
-  "reminders",
-];
+/** Parents before children. This local drill excludes credentials, Storage bytes and production auth. */
+const RESTORE_ORDER = [...AUTH_TABLES, ...TABLES];
 
 function fail(message) {
   console.error(`✖ ${message}`);
@@ -103,13 +100,22 @@ console.log("۲) درج داده‌ی نمونه…");
 await source.exec(`
   insert into auth.users (id, email) values ('${USER_A}', 'a@example.com');
   insert into public.households (id, name, created_by) values ('${HOUSEHOLD}', 'خانهٔ آزمایشی', '${USER_A}');
-  insert into public.tasks (household_id, owner_id, creator_id, title, visibility)
-    values ('${HOUSEHOLD}', '${USER_A}', '${USER_A}', 'خرید نان', 'HOUSEHOLD_SHARED');
+  insert into public.household_members(household_id,user_id,role) values ('${HOUSEHOLD}','${USER_A}','OWNER');
+  insert into public.household_invitations(household_id,invited_by,invite_code_hash,expires_at) values ('${HOUSEHOLD}','${USER_A}','local-test-hash',now()+interval '1 day');
+  insert into public.tasks (household_id, owner_id, creator_id, title, visibility,due_at)
+    values ('${HOUSEHOLD}', '${USER_A}', '${USER_A}', 'خرید نان', 'HOUSEHOLD_SHARED','2030-01-01T09:00:00Z');
+  insert into public.task_assignees(task_id,assignee_id) select id,'${USER_A}' from public.tasks limit 1;
+  insert into public.task_recurrences(task_id,frequency,recurrence_timezone) select id,'DAILY','Asia/Tehran' from public.tasks limit 1;
   insert into public.shopping_lists (household_id, name, created_by)
     values ('${HOUSEHOLD}', 'لیست هفتگی', '${USER_A}');
   insert into public.shopping_items (list_id, name, added_by) select id, 'شیر', '${USER_A}' from public.shopping_lists limit 1;
   insert into public.events (owner_id,creator_id,title,visibility,start_at,end_at) values ('${USER_A}','${USER_A}','گردهمایی','PRIVATE','2026-11-01T10:00:00Z','2026-11-01T11:00:00Z');
   insert into public.chores (household_id,created_by,title,frequency) values ('${HOUSEHOLD}','${USER_A}','ظرف‌ها','WEEKLY');
+  insert into public.chore_rotation_steps(chore_id,position,assignee_id) select id,0,'${USER_A}' from public.chores limit 1;
+  insert into public.chore_completions(chore_id,completed_by,note) select id,'${USER_A}','نمونه' from public.chores limit 1;
+  insert into public.notification_preferences(user_id,quiet_hours_enabled,quiet_hours_start,quiet_hours_end) values ('${USER_A}',true,'22:00','08:00');
+  insert into public.documents(id,created_by,title,mime_type,file_size,storage_path,visibility,category) values ('33333333-3333-4333-8333-333333333333','${USER_A}','سند نمونه','application/pdf',12,'user/${USER_A}/33333333-3333-4333-8333-333333333333/file.pdf','PRIVATE','OTHER');
+  insert into public.document_attachments(document_id,entity_type,entity_id,created_by) select '33333333-3333-4333-8333-333333333333','TASK',id,'${USER_A}' from public.tasks limit 1;
   insert into public.reminders (user_id,household_id,target_type,target_id,remind_at) select '${USER_A}','${HOUSEHOLD}','TASK',id,'2026-11-01T09:00:00Z' from public.tasks limit 1;
   insert into public.financial_records (household_id, owner_id, created_by, title, amount, visibility, record_type)
     values ('${HOUSEHOLD}', '${USER_A}', '${USER_A}', 'قبض برق', 450000, 'HOUSEHOLD_SHARED', 'BILL');
@@ -146,6 +152,9 @@ for (const table of RESTORE_ORDER) {
   const rows = snapshot[table];
 
   for (const row of rows) {
+    // auth.users insertion creates an automatic profile in this isolated shim.
+    if (table === "profiles")
+      await target.query("delete from public.profiles where id=$1", [row.id]);
     const columns = Object.keys(row);
     const placeholders = columns.map((_, index) => `$${index + 1}`).join(", ");
     const values = columns.map((column) => row[column]);

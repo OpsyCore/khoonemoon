@@ -1,4 +1,4 @@
-import { choreChanges } from "./chore-correction";
+import { choreChanges, chorePatch } from "./chore-correction";
 import { useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -146,8 +146,7 @@ export function Chores({
       if (editing)
         await api.update(
           editing.id,
-          payload,
-          recurrenceTimezone,
+          chorePatch(editing, payload, recurrenceTimezone),
           editing.updated_at,
         );
       else await api.create(payload);

@@ -33,6 +33,12 @@ async function currentUser(client: SupabaseClient) {
 }
 export function directDocuments(client: SupabaseClient) {
   return {
+    async possibleOrphans(): Promise<{ path: string; uploaded_at: string }[]> {
+      const { data, error } = await client.rpc("possible_orphan_documents");
+      if (error || !Array.isArray(data))
+        throw new Error("بررسی فایل‌های احتمالی ناموفق بود.");
+      return data as { path: string; uploaded_at: string }[];
+    },
     async list(): Promise<MobileDocument[]> {
       const rows: MobileDocument[] = [];
       for (let offset = 0; ; offset += 500) {

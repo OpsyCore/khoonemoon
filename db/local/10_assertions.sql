@@ -921,3 +921,47 @@ begin
   if (select status from public.reminders where id=rid) <> 'PENDING' then raise exception 'push must not mark reminder SENT'; end if;
 end $$;
 rollback;
+
+-- Minimal chore edits must not recreate rotation steps or modify due dates.
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare cid uuid; version timestamptz; step_ids uuid[]; result uuid;
+begin
+ cid := public.mobile_create_chore('{"title":"پچ کار","rotationMode":"ROTATING","frequency":"DAILY","nextDueAt":"2030-01-01T09:00:00Z","assigneeIds":["00000000-0000-4000-8000-00000000000a","00000000-0000-4000-8000-00000000000b"],"recurrenceTimezone":"UTC"}'::jsonb);
+ update public.chores set current_rotation_index=1 where id=cid;
+ select updated_at into version from public.chores where id=cid;
+ select array_agg(id order by position) into step_ids from public.chore_rotation_steps where chore_id=cid;
+ result := public.mobile_patch_chore(cid,'{"title":"نام جدید"}'::jsonb,version);
+ if result<>cid or not exists(select 1 from public.chores where id=cid and title='نام جدید' and current_rotation_index=1 and next_due_at='2030-01-01T09:00:00Z'::timestamptz and recurrence_timezone='UTC') then raise exception 'patch changed unrelated fields'; end if;
+ if step_ids is distinct from (select array_agg(id order by position) from public.chore_rotation_steps where chore_id=cid) then raise exception 'patch recreated rotation steps'; end if;
+ begin perform public.mobile_patch_chore(cid,'{"title":"stale"}'::jsonb,'2000-01-01'); raise exception 'stale patch accepted'; exception when others then if sqlerrm<>'STALE_CHORE' then raise; end if; end;
+ begin perform public.mobile_patch_chore(cid,'{"is_active":false}'::jsonb,version); raise exception 'unknown patch field accepted'; exception when others then if sqlerrm<>'INVALID_PATCH' then raise; end if; end;
+ begin perform public.mobile_patch_chore(cid,'{"assigneeIds":["00000000-0000-4000-8000-00000000000a","00000000-0000-4000-8000-00000000000c"]}'::jsonb,version); raise exception 'outsider added'; exception when others then if sqlerrm<>'INVALID_ASSIGNEES' then raise; end if; end;
+ result := public.mobile_patch_chore(cid,'{"nextDueAt":null,"recurrenceTimezone":"Asia/Tehran"}'::jsonb,version);
+ if not exists(select 1 from public.chores where id=cid and next_due_at is null and recurrence_timezone='Asia/Tehran') then raise exception 'clear due patch failed'; end if;
+ perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+ begin perform public.mobile_patch_chore(cid,'{"title":"forbidden"}'::jsonb,version); raise exception 'outsider edited'; exception when others then if sqlerrm<>'STALE_CHORE' then raise; end if; end;
+end $$;
+rollback;
+do $$ begin
+  if has_function_privilege('anon','public.mobile_patch_chore(uuid,jsonb,timestamptz)','execute') then raise exception 'anonymous chore patch must be denied'; end if;
+end $$;
+
+-- An orphan scan is read-only, delayed and isolated to the caller's prefix.
+begin;
+insert into storage.objects(bucket_id,name,created_at) values
+ ('documents','user/00000000-0000-4000-8000-00000000000a/old/lost.pdf',now()-interval '8 days'),
+ ('documents','user/00000000-0000-4000-8000-00000000000a/new/pending.pdf',now()-interval '1 day'),
+ ('documents','user/00000000-0000-4000-8000-00000000000a/old/linked.pdf',now()-interval '8 days'),
+ ('documents','user/00000000-0000-4000-8000-00000000000c/old/private.pdf',now()-interval '8 days');
+insert into public.documents(created_by,title,mime_type,file_size,storage_path,visibility) values ('00000000-0000-4000-8000-00000000000a','linked','application/pdf',1,'user/00000000-0000-4000-8000-00000000000a/old/linked.pdf','PRIVATE');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n integer; begin
+ select count(*) into n from public.possible_orphan_documents();
+ if n<>1 or not exists(select 1 from public.possible_orphan_documents() where path like '%/lost.pdf') then raise exception 'orphan scan leaked or missed files'; end if;
+ if has_function_privilege('anon','public.possible_orphan_documents()','execute') then raise exception 'anonymous orphan scan allowed'; end if;
+end $$;
+rollback;

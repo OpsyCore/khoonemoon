@@ -146,13 +146,11 @@ describe("document removal safety", () => {
     storageError: unknown = null,
   ) {
     const remove = vi.fn().mockResolvedValue({ error: storageError });
-    const dbDelete = vi
-      .fn()
-      .mockReturnValue({
-        eq: () => ({
-          select: () => ({ maybeSingle: () => Promise.resolve(result) }),
-        }),
-      });
+    const dbDelete = vi.fn().mockReturnValue({
+      eq: () => ({
+        select: () => ({ maybeSingle: () => Promise.resolve(result) }),
+      }),
+    });
     return {
       remove,
       dbDelete,
@@ -187,5 +185,21 @@ describe("document removal safety", () => {
       { message: "network" },
     );
     await expect(api.remove(row)).rejects.toThrow("ممکن است");
+  });
+});
+
+describe("read-only orphan scan", () => {
+  it("requests the RLS protected diagnostic without deleting anything", async () => {
+    const rpc = vi
+      .fn()
+      .mockResolvedValue({
+        data: [{ path: "user/me/file", uploaded_at: "2026-01-01T00:00:00Z" }],
+        error: null,
+      });
+    const api = directDocuments({ rpc } as never);
+    expect(await api.possibleOrphans()).toHaveLength(1);
+    expect(rpc).toHaveBeenCalledWith("possible_orphan_documents");
+    rpc.mockResolvedValueOnce({ data: null, error: {} });
+    await expect(api.possibleOrphans()).rejects.toThrow();
   });
 });

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ChoreRecord, ChoreCompletion } from "./types";
 import { createChoreSchema, updateChoreSchema } from "./schemas";
@@ -22,19 +23,18 @@ export function directChores(client: SupabaseClient) {
     async update(
       id: string,
       input: unknown,
-      recurrenceTimezone: string,
       expectedUpdatedAt: string,
     ): Promise<void> {
-      const chore = createChoreSchema.parse(input);
-      const { data, error } = await client.rpc("mobile_update_chore_guarded", {
+      const patch = updateChoreSchema
+        .extend({ recurrenceTimezone: z.string().min(1).max(100).optional() })
+        .strict()
+        .parse(input);
+      if (!Object.keys(patch).length)
+        throw new Error("تغییری برای ذخیره وجود ندارد.");
+      const { data, error } = await client.rpc("mobile_patch_chore", {
         p_id: id,
+        p_patch: patch,
         p_expected_updated_at: expectedUpdatedAt,
-        p_input: {
-          ...chore,
-          recurrenceTimezone:
-            recurrenceTimezone ??
-            Intl.DateTimeFormat().resolvedOptions().timeZone,
-        },
       });
       if (error || data !== id)
         throw new Error(

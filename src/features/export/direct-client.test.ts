@@ -40,7 +40,12 @@ describe("mobile archive", () => {
     expect(archive.tables.financial_records).toHaveLength(1);
     expect(archive.tables.documents).toEqual([]);
     expect(archive.note).toContain("فایل‌های مدارک");
-    expect(ranges).toHaveLength(14);
+    expect(ranges).toHaveLength(19);
+    expect(archive.tables.profiles).toEqual([]);
+    expect(archive.tables.households).toEqual([]);
+    expect(archive.tables.household_members).toEqual([]);
+    expect(archive.tables.task_recurrence_instances).toEqual([]);
+    expect(archive.tables.finance_recurrence_instances).toEqual([]);
     expect(archive.tables.task_recurrences).toEqual([]);
     expect(archive.tables.chore_rotation_steps).toEqual([]);
     expect(archive.tables.document_attachments).toEqual([]);

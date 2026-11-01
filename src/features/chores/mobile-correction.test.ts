@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { choreChanges } from "../../../mobile/src/chore-correction";
+import { choreChanges, chorePatch } from "../../../mobile/src/chore-correction";
 import type { ChoreRecord } from "./types";
 const member = "00000000-0000-4000-8000-00000000000a";
 const other = "00000000-0000-4000-8000-00000000000b";
@@ -43,5 +43,24 @@ describe("chore correction preview", () => {
     expect(() =>
       choreChanges(original, { ...form, assigneeIds: [member] }),
     ).toThrow();
+  });
+  it("sends only changed fields, preserving the due timezone and ordered members", () => {
+    expect(
+      chorePatch(original, { ...form, assigneeIds: [member, other] }, "UTC"),
+    ).toEqual({});
+    expect(
+      chorePatch(
+        original,
+        { ...form, title: "آشپزی", assigneeIds: [member, other] },
+        "UTC",
+      ),
+    ).toEqual({ title: "آشپزی" });
+    expect(
+      chorePatch(
+        original,
+        { ...form, nextDueAt: null, assigneeIds: [member, other] },
+        "Asia/Tehran",
+      ),
+    ).toEqual({ nextDueAt: null, recurrenceTimezone: "Asia/Tehran" });
   });
 });
