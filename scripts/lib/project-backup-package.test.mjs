@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateKeyPairSync } from "node:crypto";
+import { generateKeyPairSync, randomBytes } from "node:crypto";
 import {
   mkdtemp,
   mkdir,
@@ -30,7 +30,8 @@ describe("project capture packaging", () => {
         tar = join(dir, "data.tar"),
         restored = join(dir, "restored");
       await mkdir(capture);
-      await writeFile(join(capture, "database.dump"), "fixture");
+      const fixture = randomBytes(256 * 1024);
+      await writeFile(join(capture, "database.dump"), fixture);
       await packageProjectCapture(capture, encrypted, pair.publicKey);
       await expect(
         packageProjectCapture(capture, encrypted, pair.publicKey),
@@ -41,9 +42,9 @@ describe("project capture packaging", () => {
       await decryptForProjectOwner(encrypted, tar, pair.privateKey);
       await mkdir(restored);
       await run("tar", ["-C", restored, "-xf", tar]);
-      expect(await readFile(join(restored, "database.dump"), "utf8")).toBe(
-        "fixture",
-      );
+      expect(
+        (await readFile(join(restored, "database.dump"))).equals(fixture),
+      ).toBe(true);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
