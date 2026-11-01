@@ -160,20 +160,22 @@ describe.skipIf(!dbUrl)("local Supabase account and file backup drill", () => {
       expect(
         (await anonymous.auth.signInWithPassword({ email, password })).error,
       ).toBeTruthy();
-      await run(
-        "pg_restore",
-        [
-          "--data-only",
-          "--no-owner",
-          "--no-acl",
-          "--exit-on-error",
-          "--dbname=postgres",
-          "--table=users",
-          "--table=identities",
-        ],
-        env,
-        { input: join(unpack, "database.dump") },
-      );
+      // The managed auth schema already has foreign keys, so restore parents first.
+      for (const table of ["users", "identities"]) {
+        await run(
+          "pg_restore",
+          [
+            "--data-only",
+            "--no-owner",
+            "--no-acl",
+            "--exit-on-error",
+            "--dbname=postgres",
+            `--table=${table}`,
+          ],
+          env,
+          { input: join(unpack, "database.dump") },
+        );
+      }
       const signedIn = await anonymous.auth.signInWithPassword({
         email,
         password,
