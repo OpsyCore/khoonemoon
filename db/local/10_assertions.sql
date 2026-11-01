@@ -875,3 +875,49 @@ rollback;
 do $$ begin
   if has_function_privilege('anon','public.mobile_update_task_guarded(uuid,jsonb,timestamptz)','execute') then raise exception 'anonymous task update must be denied'; end if;
 end $$;
+
+-- Standalone queue is service-only, deduplicated per snapshot, and never marks
+-- reminders as sent (Android still needs to discover them).
+begin;
+do $$
+declare a uuid := '00000000-0000-4000-8000-00000000000a'; rid uuid; sid uuid; job record; second_job record; n integer;
+begin
+  if has_function_privilege('anon','public.standalone_push_claim(integer)','execute') or has_function_privilege('authenticated','public.standalone_push_claim(integer)','execute') or not has_function_privilege('service_role','public.standalone_push_claim(integer)','execute') then raise exception 'invalid queue grants'; end if;
+  if has_table_privilege('authenticated','public.standalone_push_jobs','select') then raise exception 'queue must not be visible'; end if;
+  update public.profiles set timezone='UTC' where id=a;
+  insert into public.notification_preferences(user_id,web_push_enabled,quiet_hours_enabled) values(a,true,false) on conflict(user_id) do update set web_push_enabled=true,quiet_hours_enabled=false;
+  insert into public.reminders(user_id,target_type,target_id,remind_at) values(a,'TASK',gen_random_uuid(),now()-interval '1 minute') returning id into rid;
+  insert into public.push_subscriptions(user_id,endpoint,p256dh,auth) values(a,'https://updates.push.services.mozilla.com/wpush/v2/db-test','aaaaaaaaaaaaaaaaaaaa','aaaaaaaa') returning id into sid;
+  select * into job from public.standalone_push_claim(1);
+  if job.job_id is null or not public.standalone_push_validate(job.job_id,job.token) then raise exception 'queue claim failed'; end if;
+  if (select status from public.reminders where id=rid) <> 'PENDING' then raise exception 'queue changed reminder status'; end if;
+  if public.standalone_push_finish(job.job_id,gen_random_uuid(),'sent') then raise exception 'wrong lease token succeeded'; end if;
+  if not public.standalone_push_finish(job.job_id,job.token,'retry') then raise exception 'retry failed'; end if;
+  if exists(select 1 from public.standalone_push_claim(1)) then raise exception 'backoff ignored'; end if;
+  update public.standalone_push_jobs set next_attempt_at=now()-interval '1 second' where id=job.job_id;
+  select * into second_job from public.standalone_push_claim(1);
+  if second_job.job_id <> job.job_id or second_job.token=job.token then raise exception 'reclaim failed'; end if;
+  update public.reminders set status='CANCELED' where id=rid;
+  if public.standalone_push_validate(second_job.job_id,second_job.token) then raise exception 'canceled reminder still eligible'; end if;
+  if not public.standalone_push_finish(second_job.job_id,second_job.token,'stale') then raise exception 'stale finish failed'; end if;
+  update public.reminders set status='PENDING' where id=rid;
+  -- Transaction-level now() doesn't advance the updated_at trigger: reset the
+  -- test job to exercise quiet hours on the same snapshot.
+  update public.standalone_push_jobs set state='PENDING',next_attempt_at=now(),finished_at=null where id=job.job_id;
+  -- Set quiet interval around the current UTC minute; must defer.
+  update public.notification_preferences set quiet_hours_enabled=true,quiet_hours_start=to_char(now() at time zone 'UTC','HH24:MI'),quiet_hours_end=to_char((now()+interval '1 minute') at time zone 'UTC','HH24:MI') where user_id=a;
+  if exists(select 1 from public.standalone_push_claim(1)) then raise exception 'quiet hours ignored'; end if;
+  update public.notification_preferences set quiet_hours_enabled=false where user_id=a;
+  select * into second_job from public.standalone_push_claim(1);
+  if second_job.job_id is null then raise exception 'claim after quiet hours missing'; end if;
+  if not public.standalone_push_finish(second_job.job_id,second_job.token,'expired') then raise exception 'expired finish failed'; end if;
+  if (select revoked_at from public.push_subscriptions where id=sid) is null then raise exception 'expired subscription not revoked'; end if;
+  select count(*) into n from public.standalone_push_claim(1);
+  if n<>0 then raise exception 'revoked subscription claimed'; end if;
+  insert into public.push_subscriptions(user_id,endpoint,p256dh,auth) values(a,'https://push.services.mozilla.com/wpush/v2/second-db-test','aaaaaaaaaaaaaaaaaaaa','aaaaaaaa') returning id into sid;
+  select * into job from public.standalone_push_claim(1);
+  if job.job_id is null or not public.standalone_push_finish(job.job_id,job.token,'sent') then raise exception 'send finish failed'; end if;
+  if exists(select 1 from public.standalone_push_claim(1)) then raise exception 'duplicate push queued'; end if;
+  if (select status from public.reminders where id=rid) <> 'PENDING' then raise exception 'push must not mark reminder SENT'; end if;
+end $$;
+rollback;
