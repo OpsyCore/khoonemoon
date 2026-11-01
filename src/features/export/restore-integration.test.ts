@@ -52,6 +52,7 @@ describe("real ZIP through recovery against isolated PGlite", () => {
      reset role;
      insert into public.task_recurrence_instances(completed_task_id,next_task_id) values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2');
      set role authenticated;
+     insert into public.financial_records(owner_id,created_by,visibility,record_type,title,amount) values ('${user}','${user}','PRIVATE','EXPENSE','decimal',12.00), ('${user}','${user}','PRIVATE','EXPENSE','large decimal',100000000000.12);
      insert into storage.objects(bucket_id,name) values ('documents','${original}');
      insert into public.documents(id,created_by,title,mime_type,file_size,storage_path,visibility) values ('${doc}','${user}','مدرک','application/pdf',3,'${original}','PRIVATE');`);
       // Compare the DB implementation to Node's standard HMAC, using only an
