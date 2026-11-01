@@ -1,5 +1,8 @@
 "use client";
 
+import { directTasks } from "@/features/tasks/direct-client";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 import {
   AlarmClockCheck,
   CalendarClock,
@@ -77,16 +80,17 @@ export function TodayDashboard({
   const completeToggle = async (task: TaskRecord) => {
     setErrorMessage(null);
 
-    const response = await fetch(`/api/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: task.status === "COMPLETED" ? "undo" : "complete",
-      }),
-    });
-
-    if (!response.ok) {
-      setErrorMessage("بروزرسانی وضعیت تسک ناموفق بود.");
+    try {
+      await directTasks(createSupabaseBrowserClient()).completion(
+        task,
+        task.status === "COMPLETED" ? "undo" : "complete",
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "بروزرسانی وضعیت تأیید نشد؛ فهرست را تازه کنید.",
+      );
       return;
     }
 
@@ -156,10 +160,7 @@ export function TodayDashboard({
         ) : (
           <ul className="space-y-2">
             {derived.overdueTasks.map((task) => (
-              <li
-                key={task.id}
-                className="rounded-2xl border border-line p-3"
-              >
+              <li key={task.id} className="rounded-2xl border border-line p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold">{task.title}</p>
@@ -210,10 +211,7 @@ export function TodayDashboard({
         ) : (
           <ul className="space-y-2">
             {derived.todayTasks.map((task) => (
-              <li
-                key={task.id}
-                className="rounded-2xl border border-line p-3"
-              >
+              <li key={task.id} className="rounded-2xl border border-line p-3">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-semibold">{task.title}</p>
@@ -264,10 +262,7 @@ export function TodayDashboard({
         ) : (
           <ul className="space-y-2">
             {derived.upcomingEvents.map((event) => (
-              <li
-                key={event.id}
-                className="rounded-2xl border border-line p-3"
-              >
+              <li key={event.id} className="rounded-2xl border border-line p-3">
                 <p className="text-sm font-semibold">{event.title}</p>
                 <p className="text-xs text-muted">
                   {formatJalaliLongDate(new Date(event.start_at))} -{" "}

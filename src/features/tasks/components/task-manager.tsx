@@ -159,13 +159,13 @@ export function TaskManager({
 
     try {
       if (editingTask) {
-        const response = await fetch(`/api/tasks/${editingTask.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "update", data: payload }),
-        });
-        if (!response.ok)
-          throw new Error("ویرایش تسک تأیید نشد؛ فهرست را تازه کنید.");
+        await directTasks(supabase).update(
+          editingTask.id,
+          payload,
+          editingTask.task_recurrences?.[0]?.recurrence_timezone ??
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
+          editingTask.updated_at,
+        );
       } else {
         await directTasks(supabase).create(payload);
       }
@@ -226,14 +226,14 @@ export function TaskManager({
     setErrorMessage(null);
     const action = task.status === "COMPLETED" ? "undo" : "complete";
 
-    const response = await fetch(`/api/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
-
-    if (!response.ok) {
-      setErrorMessage("تغییر وضعیت تسک ناموفق بود.");
+    try {
+      await directTasks(supabase).completion(task, action);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "تغییر وضعیت تأیید نشد؛ فهرست را تازه کنید.",
+      );
       return;
     }
 

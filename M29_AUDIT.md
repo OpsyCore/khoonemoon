@@ -189,3 +189,26 @@ complete**: legacy-web task, chore, finance, shopping, event, reminder, and
 document creation paths still need equivalent retry handling and broader
 multi-device scenarios require explicit shared operation identity rather than
 merging independently intended actions.
+
+### M27 legacy-web retry coverage and two-session completion drill
+
+The current web UI now reuses the same RLS-protected retry-aware transports as
+mobile for new tasks, chores, financial records, shopping lists/items, events,
+reminders, document uploads and attachment links. Task editing uses the guarded
+atomic RPC. Web task completion uses the atomic recurring-completion RPC.
+Web chore completion uses the revision shown to the user rather than the old
+unguarded RPC; its HTTP endpoint now rejects requests without that revision.
+The browser journal acquisition uses Web Locks when available. CI 41358232236
+passed a separate-connection race between two household members, asserting
+exactly one completion for the displayed chore revision.
+
+These protections are in the branch, not necessarily in an already installed
+APK or deployed website. Existing old API create routes remain callable without
+an idempotency key and the previously distributed APK can still call the legacy
+unguarded chore RPC; revoking that RPC now would break the installed app. The
+per-device pending journal cannot identify the same logical create on another
+device, and two independently submitted identical entries may be intentional;
+they are not silently merged. Browser tabs without Web Locks also do not have an
+atomic journal acquisition guarantee. A network-disconnect test on actual
+phones and web clients remains outstanding. Consequently universal M27
+coverage and cross-device recovery must not be claimed complete.

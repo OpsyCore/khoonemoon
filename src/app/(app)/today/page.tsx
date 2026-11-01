@@ -60,7 +60,7 @@ export default async function TodayPage() {
     supabase
       .from("tasks")
       .select(
-        "id, title, description, creator_id, owner_id, household_id, visibility, status, priority, due_at, completed_at, archived_at, created_at, updated_at, task_assignees(assignee_id), task_recurrences(frequency, interval_days, weekdays)",
+        "id, title, description, creator_id, owner_id, household_id, visibility, status, priority, due_at, completed_at, archived_at, created_at, updated_at, task_assignees(assignee_id), task_recurrences(frequency, interval_days, weekdays, recurrence_timezone)",
       )
       .is("archived_at", null)
       .order("created_at", { ascending: false }),
