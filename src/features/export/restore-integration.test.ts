@@ -107,6 +107,7 @@ describe("real ZIP through recovery against isolated PGlite", () => {
             p_tables?: unknown;
             p_payload?: unknown;
             p_signature?: string;
+            p_source?: string;
           },
         ) => {
           try {
@@ -123,6 +124,15 @@ describe("real ZIP through recovery against isolated PGlite", () => {
               result = await db.query(
                 "select public.mobile_verify_snapshot_signature($1::jsonb,$2) as value",
                 [JSON.stringify(args?.p_payload), args?.p_signature],
+              );
+            else if (name === "mobile_recover_household_copy")
+              result = await db.query(
+                "select public.mobile_recover_household_copy($1::jsonb,$2,$3::uuid) as value",
+                [
+                  JSON.stringify(args?.p_payload),
+                  args?.p_signature,
+                  args?.p_source,
+                ],
               );
             else if (name === "mobile_restore_signed_history")
               result = await db.query(
@@ -194,6 +204,96 @@ describe("real ZIP through recovery against isolated PGlite", () => {
       expect(repaired.inserted).toBe(0);
       expect(repaired.repairedFiles).toBe(1);
       expect(objects.get(restoredPath)).toEqual(new Uint8Array([1, 2, 3]));
+      const oldHome = (
+        (await db.query("select public.create_household('خانهٔ آزمون') as id"))
+          .rows[0] as { id: string }
+      ).id;
+      const sharedId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+      const sharedPath = `household/${oldHome}/${sharedId}/original.pdf`;
+      await db.query(
+        "insert into storage.objects(bucket_id,name) values ('documents',$1)",
+        [sharedPath],
+      );
+      objects.set(sharedPath, new Uint8Array([4, 5, 6]));
+      await db.query(
+        `insert into public.tasks(title,creator_id,owner_id,household_id,visibility,priority) values ('shared task',$1,$1,$2,'HOUSEHOLD_SHARED','NORMAL')`,
+        [user, oldHome],
+      );
+      await db.query(
+        `insert into public.documents(id,household_id,created_by,title,mime_type,file_size,storage_path,visibility) values ($1,$2,$3,'shared doc','application/pdf',3,$4,'HOUSEHOLD_SHARED')`,
+        [sharedId, oldHome, user, sharedPath],
+      );
+      const other = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+      await db.exec("reset role");
+      await db.query(
+        "insert into auth.users(id,email) values ($1,'other@example.com')",
+        [other],
+      );
+      await db.query(
+        "insert into public.household_members(household_id,user_id,role) values ($1,$2,'MEMBER')",
+        [oldHome, other],
+      );
+      await db.query(
+        "insert into public.tasks(title,creator_id,owner_id,household_id,visibility,priority) values ('other task',$1,$1,$2,'HOUSEHOLD_SHARED','NORMAL')",
+        [other, oldHome],
+      );
+      await db.exec("set role authenticated");
+      const otherZip = await exportMobileBackup(
+        client,
+        new Date("2026-01-02T00:00:00Z"),
+      );
+      await db.exec("reset role");
+      await db.exec("delete from public.tasks where title='other task'");
+      await db.exec("set role authenticated");
+      const sharedZip = await exportMobileBackup(
+        client,
+        new Date("2026-01-02T00:00:00Z"),
+      );
+      await db.exec("reset role");
+      await db.query("delete from public.households where id=$1", [oldHome]);
+      await db.exec("set role authenticated");
+      await expect(restoreMissing(client, otherZip, true)).rejects.toThrow(
+        "اعضای دیگر",
+      );
+      expect(
+        (
+          await db.query(
+            "select count(*)::int as n from public.household_members where user_id=$1 and left_at is null",
+            [user],
+          )
+        ).rows,
+      ).toEqual([{ n: 0 }]);
+      await expect(restoreMissing(client, sharedZip)).rejects.toThrow(
+        "خانهٔ اصلی موجود نیست",
+      );
+      const recovered = await restoreMissing(client, sharedZip, true);
+      expect(recovered.householdCopy).toBe(true);
+      expect(recovered.inserted).toBe(2);
+      const home = await db.query(
+        "select household_id from public.household_members where user_id=$1 and left_at is null",
+        [user],
+      );
+      const newHome = (home.rows[0] as { household_id: string }).household_id;
+      expect(newHome).not.toBe(oldHome);
+      expect(
+        (
+          await db.query(
+            "select count(*)::int as n from public.household_members where household_id=$1",
+            [newHome],
+          )
+        ).rows,
+      ).toEqual([{ n: 1 }]);
+      const newPath = `household/${newHome}/${sharedId}/restore.pdf`;
+      expect(objects.get(newPath)).toEqual(new Uint8Array([4, 5, 6]));
+      expect(
+        (
+          await db.query(
+            "select count(*)::int as n from storage.objects where name=$1",
+            [sharedPath],
+          )
+        ).rows,
+      ).toEqual([{ n: 0 }]);
+      expect((await restoreMissing(client, sharedZip, true)).inserted).toBe(0);
     } finally {
       await db.close();
     }

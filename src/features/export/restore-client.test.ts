@@ -92,6 +92,7 @@ describe("bounded same-account recovery", () => {
       inserted: 1,
       skipped: 1,
       repairedFiles: 0,
+      householdCopy: false,
     });
     expect(m.upload).toHaveBeenCalledWith(
       `user/${user}/${doc}/restore.pdf`,

@@ -18,10 +18,12 @@ export function ExportData({ client }: { client: SupabaseClient }) {
   const [preview, setPreview] = useState<BackupPreview | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [allowHouseholdCopy, setAllowHouseholdCopy] = useState(false);
   async function inspect(file: File | undefined) {
     setPreview(null);
     setSelectedFile(null);
     setConfirmed(false);
+    setAllowHouseholdCopy(false);
     setMessage("");
     if (!file) return;
     if (file.size > 16 * 1024 * 1024) {
@@ -61,19 +63,23 @@ export function ExportData({ client }: { client: SupabaseClient }) {
       const result = await restoreMissing(
         client,
         new Uint8Array(await selectedFile.arrayBuffer()),
+        allowHouseholdCopy,
       );
       if (active.current) {
         setMessage(
-          `بازیابی انجام شد: ${result.inserted} ردیف اضافه شد و ${result.skipped} ردیف موجود دست‌نخورده ماند و ${result.repairedFiles} فایل گم‌شده برگردانده یا نسخهٔ یکسان آن تأیید شد. فهرست‌ها را تازه کنید.`,
+          `بازیابی انجام شد: ${result.inserted} ردیف اضافه شد و ${result.skipped} ردیف موجود دست‌نخورده ماند و ${result.repairedFiles} فایل گم‌شده برگردانده یا نسخهٔ یکسان آن تأیید شد. ${result.householdCopy ? "یک خانهٔ جدید مستقل ساخته شد؛ اعضا باید دوباره دعوت شوند." : ""} فهرست‌ها را تازه کنید.`,
         );
         setConfirmed(false);
       }
     } catch (error) {
       if (active.current)
         setMessage(
-          error instanceof Error
+          (error instanceof Error
             ? error.message
-            : "نتیجه بازیابی تأیید نشد؛ ممکن است فایل موقت باقی مانده باشد.",
+            : "نتیجه بازیابی تأیید نشد؛ ممکن است فایل موقت باقی مانده باشد.") +
+            (allowHouseholdCopy
+              ? " اگر ساخت خانه شروع شده باشد، ممکن است خانهٔ جدید باقی مانده باشد؛ وضعیت خانه را بررسی کنید."
+              : ""),
         );
     } finally {
       if (active.current) setBusy(false);
@@ -218,15 +224,32 @@ export function ExportData({ client }: { client: SupabaseClient }) {
                 <div>
                   <h3>بازیابی محدود داده‌های حذف‌شده</h3>
                   <p>
-                    فقط با همان حساب و تا ۵۰٬۰۰۰ ردیف؛ خانه و عضویت باید همچنان
-                    موجود باشند. تاریخچه در نسخه‌های دارای امضای معتبر و دسترسی
-                    فعلی بازیابی می‌شود؛ در نسخه‌های قدیمی باید موجود باشد.
-                    ردیف‌ها و فایل‌های موجود تغییر نمی‌کنند؛ فایل گم‌شدهٔ مدرک
-                    متعلق به شما ممکن است بازگردانده شود. بازیابی کامل حساب یا
-                    سایر اعضا نیست. فایل‌ها جداگانه بارگذاری می‌شوند و در صورت
-                    خطا ممکن است فایل موقت باقی بماند. مجموع کنترلی اصالت فایل
-                    را اثبات نمی‌کند؛ فقط فایل مورداعتماد خودتان را انتخاب کنید.
+                    فقط با همان حساب و تا ۵۰٬۰۰۰ ردیف؛ اگر خانهٔ اصلی موجود
+                    نیست، ساخت نسخهٔ جدید فقط با تأیید جداگانه ممکن است. تاریخچه
+                    در نسخه‌های دارای امضای معتبر و دسترسی فعلی بازیابی می‌شود؛
+                    در نسخه‌های قدیمی باید موجود باشد. ردیف‌ها و فایل‌های موجود
+                    تغییر نمی‌کنند؛ فایل گم‌شدهٔ مدرک متعلق به شما ممکن است
+                    بازگردانده شود. بازیابی کامل حساب یا سایر اعضا نیست. فایل‌ها
+                    جداگانه بارگذاری می‌شوند و در صورت خطا ممکن است فایل موقت
+                    باقی بماند. مجموع کنترلی اصالت فایل را اثبات نمی‌کند؛ فقط
+                    فایل مورداعتماد خودتان را انتخاب کنید.
                   </p>
+                  {preview.hasServerSignature && (
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={allowHouseholdCopy}
+                        disabled={busy}
+                        onChange={(e) =>
+                          setAllowHouseholdCopy(e.target.checked)
+                        }
+                      />{" "}
+                      اگر خانهٔ اصلی موجود نیست، با همین حساب یک خانهٔ جدید و
+                      مستقل بساز. فقط من مالک می‌شوم؛ اعضای دیگر خودکار
+                      برنمی‌گردند و باید دوباره دعوت شوند. در صورت خطا ممکن است
+                      خانهٔ جدید باقی بماند.
+                    </label>
+                  )}
                   <label>
                     <input
                       type="checkbox"

@@ -1082,3 +1082,32 @@ do $$ declare signed jsonb; begin
  begin perform public.mobile_restore_signed_history(signed->'payload',signed->>'signature'); raise exception 'revoked access accepted'; exception when others then if sqlerrm<>'BACKUP_PARENT_NOT_ACCESSIBLE' then raise; end if; end;
 end $$;
 rollback;
+
+-- A signed household copy has a fresh scope, only the caller as owner, and is
+-- idempotent. It must never revive old Storage access or another membership.
+begin;
+insert into auth.users(id,email) values ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','copy@example.com'),('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','member@example.com');
+insert into public.households(id,name,created_by) values ('ffffffff-ffff-4fff-8fff-ffffffffffff','old home','dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+insert into public.household_members(household_id,user_id,role) values ('ffffffff-ffff-4fff-8fff-ffffffffffff','dddddddd-dddd-4ddd-8ddd-dddddddddddd','OWNER'),('ffffffff-ffff-4fff-8fff-ffffffffffff','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','MEMBER');
+insert into storage.objects(bucket_id,name) values ('documents','household/ffffffff-ffff-4fff-8fff-ffffffffffff/old/file.pdf');
+create temp table copy_signed(v jsonb); grant select,insert on copy_signed to authenticated;
+select set_config('request.jwt.claims','{"sub":"dddddddd-dddd-4ddd-8ddd-dddddddddddd","role":"authenticated"}',true);
+set local role authenticated;
+insert into copy_signed select public.mobile_signed_export_snapshot();
+reset role;
+delete from public.households where id='ffffffff-ffff-4fff-8fff-ffffffffffff';
+set local role authenticated;
+do $$ declare v jsonb; new_home uuid; second_home uuid; begin
+ select copy_signed.v into v from copy_signed;
+ begin perform public.mobile_recover_household_copy(jsonb_set(v->'payload','{snapshot,tables,households,0,name}','"forged"'::jsonb),v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff'); raise exception 'forged home accepted'; exception when others then if sqlerrm<>'INVALID_BACKUP_SIGNATURE' then raise; end if; end;
+ new_home:=public.mobile_recover_household_copy(v->'payload',v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff');
+ if new_home='ffffffff-ffff-4fff-8fff-ffffffffffff' then raise exception 'old storage scope reused'; end if;
+ second_home:=public.mobile_recover_household_copy(v->'payload',v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff');
+ if new_home<>second_home or not public.is_household_owner(new_home) then raise exception 'house copy not idempotent'; end if;
+ if (select count(*) from public.household_members where household_id=new_home)<>1 then raise exception 'other membership reactivated'; end if;
+ if exists(select 1 from storage.objects where name='household/ffffffff-ffff-4fff-8fff-ffffffffffff/old/file.pdf') then raise exception 'old storage scope accessible'; end if;
+ perform set_config('request.jwt.claims','{"sub":"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee","role":"authenticated"}',true);
+ begin perform public.mobile_recover_household_copy(v->'payload',v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff'); raise exception 'cross-account house accepted'; exception when others then if sqlerrm<>'INVALID_BACKUP_SIGNATURE' then raise; end if; end;
+ if has_function_privilege('anon','public.mobile_recover_household_copy(jsonb,text,uuid)','execute') then raise exception 'anon house recovery allowed'; end if;
+end $$;
+rollback;

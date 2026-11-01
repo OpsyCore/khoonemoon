@@ -36,6 +36,19 @@ const KEY: Record<string, string> = {
 };
 const idPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const requiredOwners: Record<string, string[]> = {
+  tasks: ["creator_id", "owner_id"],
+  events: ["creator_id", "owner_id"],
+  chores: ["created_by"],
+  shopping_lists: ["created_by"],
+  shopping_items: ["added_by"],
+  financial_records: ["created_by"],
+  reminders: ["user_id"],
+  notification_preferences: ["user_id"],
+  documents: ["created_by"],
+  document_attachments: ["created_by"],
+};
+
 type Row = Record<string, unknown>;
 async function currentUser(client: SupabaseClient): Promise<string> {
   const { data, error } = await client.auth.getUser();
@@ -47,7 +60,13 @@ async function currentUser(client: SupabaseClient): Promise<string> {
 export async function restoreMissing(
   client: SupabaseClient,
   bytes: Uint8Array,
-): Promise<{ inserted: number; skipped: number; repairedFiles: number }> {
+  allowHouseholdCopy = false,
+): Promise<{
+  inserted: number;
+  skipped: number;
+  repairedFiles: number;
+  householdCopy: boolean;
+}> {
   const user = await currentUser(client);
   const backup = await readBackup(bytes);
   if (backup.preview.integrity !== "verified")
@@ -96,9 +115,99 @@ export async function restoreMissing(
         "اصالت اطلاعات این پشتیبان با حساب و سرور فعلی تأیید نشد؛ داده‌ای تغییر نکرد.",
       );
   }
-  const current = await client.rpc("mobile_export_snapshot");
+  let current = await client.rpc("mobile_export_snapshot");
   if (current.error || !current.data?.tables)
     throw new Error("بررسی اطلاعات فعلی ناموفق بود؛ داده‌ای تغییر نکرد.");
+  let householdCopy = false;
+  const currentHomes = current.data.tables.households;
+  if (!Array.isArray(currentHomes))
+    throw new Error("بررسی خانهٔ فعلی ناموفق بود.");
+  const missingHomes = tables.households.filter(
+    (row) => !currentHomes.some((home: Row) => home.id === row.id),
+  );
+  if (missingHomes.length) {
+    if (!signed)
+      throw new Error(
+        "خانهٔ اصلی موجود نیست و این پشتیبان قدیمی امضای لازم برای ساخت خانهٔ جدید را ندارد.",
+      );
+    if (
+      !allowHouseholdCopy ||
+      missingHomes.length !== 1 ||
+      tables.households.length !== 1
+    )
+      throw new Error(
+        "خانهٔ اصلی موجود نیست؛ برای ساخت نسخهٔ جداگانه باید گزینهٔ مربوط را تأیید کنید.",
+      );
+    const source = missingHomes[0].id as string;
+    if (
+      !tables.household_members.some(
+        (row) =>
+          row.household_id === source &&
+          row.user_id === user &&
+          row.role === "OWNER" &&
+          row.left_at === null,
+      )
+    )
+      throw new Error("ساخت نسخهٔ خانه فقط برای مالک پشتیبان ممکن است.");
+    // Refuse before creating anything when this copy cannot be fully inserted
+    // under the user's normal RLS, or would assign an inactive member.
+    for (const [name, fields] of Object.entries(requiredOwners)) {
+      if (
+        tables[name].some((row) => fields.some((field) => row[field] !== user))
+      )
+        throw new Error(
+          "این پشتیبان شامل داده‌های ساخته‌شده توسط اعضای دیگر است؛ ساخت خودکار خانه متوقف شد.",
+        );
+    }
+    if (
+      tables.task_assignees.some((row) => row.assignee_id !== user) ||
+      tables.chore_rotation_steps.some((row) => row.assignee_id !== user)
+    )
+      throw new Error(
+        "این پشتیبان وظایفی برای اعضای دیگر دارد؛ ساخت خودکار خانه متوقف شد.",
+      );
+    if ((await currentUser(client)) !== user)
+      throw new Error("حساب تغییر کرد؛ خانه‌ای ساخته نشد.");
+    const copied = await client.rpc("mobile_recover_household_copy", {
+      p_payload: signed.payload,
+      p_signature: signed.signature,
+      p_source: source,
+    });
+    if (
+      copied.error ||
+      typeof copied.data !== "string" ||
+      !idPattern.test(copied.data)
+    )
+      throw new Error(
+        "نتیجهٔ ساخت خانه تأیید نشد؛ ممکن است خانه‌ای ساخته شده باشد. وضعیت خانه را بررسی کنید.",
+      );
+    const target = copied.data;
+    householdCopy = true;
+    for (const name of TABLES)
+      for (const row of tables[name])
+        if (row.household_id === source) row.household_id = target;
+    current = await client.rpc("mobile_export_snapshot");
+    if (
+      current.error ||
+      !current.data?.tables ||
+      !Array.isArray(current.data.tables.households) ||
+      !Array.isArray(current.data.tables.household_members)
+    )
+      throw new Error(
+        "خانه ممکن است ساخته شده باشد، اما بررسی مجدد آن ناموفق بود.",
+      );
+    tables.households = current.data.tables.households.filter(
+      (row: Row) => row.id === target,
+    );
+    tables.household_members = current.data.tables.household_members.filter(
+      (row: Row) =>
+        row.household_id === target &&
+        row.user_id === user &&
+        row.left_at === null,
+    );
+    if (tables.households.length !== 1 || tables.household_members.length !== 1)
+      throw new Error("خانه ساخته شده است، اما عضویت مالک تأیید نشد.");
+  }
   for (const [table, key] of Object.entries(READ_ONLY)) {
     if (
       signed &&
@@ -118,18 +227,6 @@ export async function restoreMissing(
   }
   // Detect known RLS failures before staging any Storage objects. The server
   // still independently enforces RLS; this is only an early diagnostic.
-  const requiredOwners: Record<string, string[]> = {
-    tasks: ["creator_id", "owner_id"],
-    events: ["creator_id", "owner_id"],
-    chores: ["created_by"],
-    shopping_lists: ["created_by"],
-    shopping_items: ["added_by"],
-    financial_records: ["created_by"],
-    reminders: ["user_id"],
-    notification_preferences: ["user_id"],
-    documents: ["created_by"],
-    document_attachments: ["created_by"],
-  };
   for (const [name, ownerFields] of Object.entries(requiredOwners)) {
     const existing = current.data.tables[name];
     if (!Array.isArray(existing))
@@ -294,5 +391,6 @@ export async function restoreMissing(
     inserted: data.inserted + historyInserted,
     skipped: data.skipped + historySkipped,
     repairedFiles: uploads.filter((item) => item.repair).length,
+    householdCopy,
   };
 }
