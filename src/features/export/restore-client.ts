@@ -85,10 +85,28 @@ export async function restoreMissing(
     throw new Error(
       "این خروجی متعلق به حساب واردشده نیست؛ داده‌ای تغییر نکرد.",
     );
+  const signed = backup.signedSnapshot;
+  if (signed) {
+    const verified = await client.rpc("mobile_verify_snapshot_signature", {
+      p_payload: signed.payload,
+      p_signature: signed.signature,
+    });
+    if (verified.error || verified.data !== true)
+      throw new Error(
+        "اصالت اطلاعات این پشتیبان با حساب و سرور فعلی تأیید نشد؛ داده‌ای تغییر نکرد.",
+      );
+  }
   const current = await client.rpc("mobile_export_snapshot");
   if (current.error || !current.data?.tables)
     throw new Error("بررسی اطلاعات فعلی ناموفق بود؛ داده‌ای تغییر نکرد.");
   for (const [table, key] of Object.entries(READ_ONLY)) {
+    if (
+      signed &&
+      (table === "task_recurrence_instances" ||
+        table === "finance_recurrence_instances" ||
+        table === "chore_completions")
+    )
+      continue;
     const existing = current.data.tables[table];
     if (!Array.isArray(existing))
       throw new Error("بررسی اطلاعات فعلی ناموفق بود؛ داده‌ای تغییر نکرد.");
@@ -229,8 +247,16 @@ export async function restoreMissing(
     throw new Error(
       "حساب در حین بازیابی تغییر کرد؛ داده‌ها ثبت نشدند و ممکن است بعضی فایل‌ها بارگذاری شده یا فایل موقت باقی مانده باشد.",
     );
+  const restoreTables = signed
+    ? {
+        ...tables,
+        task_recurrence_instances: [],
+        finance_recurrence_instances: [],
+        chore_completions: [],
+      }
+    : tables;
   const { data, error } = await client.rpc("mobile_restore_missing", {
-    p_tables: tables,
+    p_tables: restoreTables,
   });
   if (
     error ||
@@ -241,9 +267,32 @@ export async function restoreMissing(
     throw new Error(
       "نتیجهٔ بازیابی تأیید نشد؛ فهرست‌ها را تازه کنید و پیش از تلاش دوباره بررسی کنید. ممکن است بعضی فایل‌ها بارگذاری شده یا فایل موقت باقی مانده باشد.",
     );
+  let historyInserted = 0,
+    historySkipped = 0;
+  if (signed) {
+    if ((await currentUser(client)) !== user)
+      throw new Error(
+        "حساب در حین بازیابی تغییر کرد؛ بخشی از داده‌ها ممکن است ثبت شده باشند.",
+      );
+    const history = await client.rpc("mobile_restore_signed_history", {
+      p_payload: signed.payload,
+      p_signature: signed.signature,
+    });
+    if (
+      history.error ||
+      !history.data ||
+      !Number.isSafeInteger(history.data.inserted) ||
+      !Number.isSafeInteger(history.data.skipped)
+    )
+      throw new Error(
+        "داده‌های اصلی ممکن است ثبت شده باشند، اما بازیابی تاریخچه تأیید نشد. فهرست‌ها را بررسی کنید؛ تلاش دوباره ردیف‌های موجود را بازنویسی نمی‌کند.",
+      );
+    historyInserted = history.data.inserted;
+    historySkipped = history.data.skipped;
+  }
   return {
-    inserted: data.inserted,
-    skipped: data.skipped,
+    inserted: data.inserted + historyInserted,
+    skipped: data.skipped + historySkipped,
     repairedFiles: uploads.filter((item) => item.repair).length,
   };
 }

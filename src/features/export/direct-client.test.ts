@@ -179,17 +179,23 @@ describe("document backup", () => {
     const client = {
       from,
       rpc: vi.fn().mockResolvedValue({
-        data: snapshot({
-          documents: [
-            {
-              id,
-              storage_path: "user/me/x.pdf",
-              mime_type: "application/pdf",
-              file_size: 4,
-              title: "مدرک",
-            },
-          ],
-        }),
+        data: {
+          payload: {
+            account_id: id,
+            snapshot: snapshot({
+              documents: [
+                {
+                  id,
+                  storage_path: "user/me/x.pdf",
+                  mime_type: "application/pdf",
+                  file_size: 4,
+                  title: "مدرک",
+                },
+              ],
+            }),
+          },
+          signature: "a".repeat(64),
+        },
         error: null,
       }),
       storage: { from: () => ({ download }) },
@@ -235,16 +241,22 @@ describe("document backup", () => {
     const client = {
       from,
       rpc: vi.fn().mockResolvedValue({
-        data: snapshot({
-          documents: [
-            {
-              id,
-              storage_path: "user/me/x.pdf",
-              mime_type: "application/pdf",
-              file_size: 4,
-            },
-          ],
-        }),
+        data: {
+          payload: {
+            account_id: id,
+            snapshot: snapshot({
+              documents: [
+                {
+                  id,
+                  storage_path: "user/me/x.pdf",
+                  mime_type: "application/pdf",
+                  file_size: 4,
+                },
+              ],
+            }),
+          },
+          signature: "a".repeat(64),
+        },
         error: null,
       }),
       storage: {

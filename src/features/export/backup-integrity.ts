@@ -157,16 +157,24 @@ export type BackupPreview = {
   rowCount: number;
   documents: number;
   integrity: "verified" | "legacy";
+  hasServerSignature: boolean;
 };
 /** A valid checksum detects accidental corruption, not malicious replacement. */
 export type VerifiedBackup = {
   preview: BackupPreview;
   tables: Record<string, unknown[]>;
   files: Record<string, Uint8Array>;
+  signedSnapshot?: { payload: Record<string, unknown>; signature: string };
 };
 export async function readBackup(bytes: Uint8Array): Promise<VerifiedBackup> {
   const files = parseStoredZip(bytes);
-  let archive: { exported_at?: unknown; tables?: unknown; counts?: unknown };
+  let archive: {
+    exported_at?: unknown;
+    tables?: unknown;
+    counts?: unknown;
+    snapshot_at?: unknown;
+    signed_snapshot?: unknown;
+  };
   try {
     archive = JSON.parse(readName(files["archive.json"]));
   } catch {
@@ -272,6 +280,52 @@ export async function readBackup(bytes: Uint8Array): Promise<VerifiedBackup> {
         );
     integrity = "verified";
   }
+  let signedSnapshot: VerifiedBackup["signedSnapshot"];
+  if (archive.signed_snapshot !== undefined) {
+    const signed = archive.signed_snapshot as Record<string, unknown> | null;
+    if (
+      !signed ||
+      typeof signed !== "object" ||
+      signed.version !== 1 ||
+      typeof signed.account_id !== "string" ||
+      !/^[0-9a-f-]{36}$/i.test(signed.account_id) ||
+      typeof signed.signature !== "string" ||
+      !/^[0-9a-f]{64}$/.test(signed.signature) ||
+      !signed.paths ||
+      typeof signed.paths !== "object" ||
+      Array.isArray(signed.paths) ||
+      typeof archive.snapshot_at !== "string" ||
+      !Number.isFinite(Date.parse(archive.snapshot_at))
+    )
+      throw invalid();
+    const paths = signed.paths as Record<string, unknown>;
+    if (Object.keys(paths).length !== tables.documents.length) throw invalid();
+    const documents = tables.documents.map((doc: Record<string, unknown>) => {
+      if (
+        typeof doc.id !== "string" ||
+        !Object.hasOwn(paths, doc.id) ||
+        typeof paths[doc.id] !== "string"
+      )
+        throw invalid();
+      const row: Record<string, unknown> = {
+        ...doc,
+        storage_path: paths[doc.id],
+      };
+      delete row.archive_file;
+      return row;
+    });
+    signedSnapshot = {
+      payload: {
+        account_id: signed.account_id,
+        snapshot: {
+          exported_at: archive.snapshot_at,
+          tables: { ...tables, documents },
+          counts,
+        },
+      },
+      signature: signed.signature,
+    };
+  }
   return {
     preview: {
       exportedAt: archive.exported_at,
@@ -279,9 +333,11 @@ export async function readBackup(bytes: Uint8Array): Promise<VerifiedBackup> {
       rowCount,
       documents: references.size,
       integrity,
+      hasServerSignature: !!signedSnapshot,
     },
     tables: tables as Record<string, unknown[]>,
     files,
+    signedSnapshot,
   };
 }
 export async function inspectBackup(bytes: Uint8Array): Promise<BackupPreview> {

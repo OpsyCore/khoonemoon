@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { webcrypto } from "node:crypto";
+import { createHash, createHmac, webcrypto } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
+import { unzipSync, zipSync, strFromU8, strToU8 } from "fflate";
+import { buildChecksums } from "./backup-integrity";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { exportMobileBackup } from "./direct-client";
 import { restoreMissing } from "./restore-client";
@@ -34,8 +36,30 @@ describe("real ZIP through recovery against isolated PGlite", () => {
      select set_config('request.jwt.claims','{"sub":"${user}","role":"authenticated"}',false); set role authenticated;
      insert into public.tasks(title,creator_id,owner_id,visibility,priority) values ('بازگشت کار','${user}','${user}','PRIVATE','NORMAL');
      insert into public.tasks(title,creator_id,owner_id,visibility,priority) select 'کار اضافی '||g,'${user}','${user}','PRIVATE','NORMAL' from generate_series(1,600) g;
+     insert into public.tasks(id,title,creator_id,owner_id,visibility,status,priority) values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1','پیشین','${user}','${user}','PRIVATE','COMPLETED','NORMAL'), ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2','بعدی','${user}','${user}','PRIVATE','PENDING','NORMAL');
+     reset role;
+     insert into public.task_recurrence_instances(completed_task_id,next_task_id) values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2');
+     set role authenticated;
      insert into storage.objects(bucket_id,name) values ('documents','${original}');
      insert into public.documents(id,created_by,title,mime_type,file_size,storage_path,visibility) values ('${doc}','${user}','مدرک','application/pdf',3,'${original}','PRIVATE');`);
+      // Compare the DB implementation to Node's standard HMAC, using only an
+      // ephemeral key from this isolated database (never production secrets).
+      await db.exec("reset role");
+      const localKey = await db.query(
+        "select secret from backup_private.signing_key",
+      );
+      const dbMac = await db.query(
+        "select backup_private.sign_payload('local test vector') as mac",
+      );
+      const key = (localKey.rows[0] as { secret: string }).secret;
+      const expectedMac = createHmac(
+        "sha256",
+        createHash("sha256").update(key).digest(),
+      )
+        .update("local test vector")
+        .digest("hex");
+      expect(dbMac.rows).toEqual([{ mac: expectedMac }]);
+      await db.exec("set role authenticated");
       const objects = new Map<string, Uint8Array>([
         [original, new Uint8Array([1, 2, 3])],
       ]);
@@ -64,17 +88,39 @@ describe("real ZIP through recovery against isolated PGlite", () => {
           getUser: async () => ({ data: { user: { id: user } }, error: null }),
         },
         storage: { from: () => bucket },
-        rpc: async (name: string, args?: { p_tables: unknown }) => {
+        rpc: async (
+          name: string,
+          args?: {
+            p_tables?: unknown;
+            p_payload?: unknown;
+            p_signature?: string;
+          },
+        ) => {
           try {
-            const result =
-              name === "mobile_export_snapshot"
-                ? await db.query(
-                    "select public.mobile_export_snapshot() as value",
-                  )
-                : await db.query(
-                    "select public.mobile_restore_missing($1::jsonb) as value",
-                    [JSON.stringify(args?.p_tables)],
-                  );
+            let result;
+            if (name === "mobile_export_snapshot")
+              result = await db.query(
+                "select public.mobile_export_snapshot() as value",
+              );
+            else if (name === "mobile_signed_export_snapshot")
+              result = await db.query(
+                "select public.mobile_signed_export_snapshot() as value",
+              );
+            else if (name === "mobile_verify_snapshot_signature")
+              result = await db.query(
+                "select public.mobile_verify_snapshot_signature($1::jsonb,$2) as value",
+                [JSON.stringify(args?.p_payload), args?.p_signature],
+              );
+            else if (name === "mobile_restore_signed_history")
+              result = await db.query(
+                "select public.mobile_restore_signed_history($1::jsonb,$2) as value",
+                [JSON.stringify(args?.p_payload), args?.p_signature],
+              );
+            else
+              result = await db.query(
+                "select public.mobile_restore_missing($1::jsonb) as value",
+                [JSON.stringify(args?.p_tables)],
+              );
             return {
               data: (result.rows[0] as { value: unknown }).value,
               error: null,
@@ -88,16 +134,34 @@ describe("real ZIP through recovery against isolated PGlite", () => {
         client,
         new Date("2026-01-01T00:00:00Z"),
       );
+      // A modified archive with a recomputed checksum must still fail the
+      // server signature, before any file or row is touched.
+      const altered = unzipSync(zip);
+      const archive = JSON.parse(strFromU8(altered["archive.json"]));
+      archive.tables.tasks[0].title = "forged";
+      altered["archive.json"] = strToU8(JSON.stringify(archive));
+      delete altered["checksums.json"];
+      altered["checksums.json"] = new Uint8Array(await buildChecksums(altered));
+      await expect(
+        restoreMissing(client, zipSync(altered, { level: 0 })),
+      ).rejects.toThrow("اصالت اطلاعات");
       await db.exec(
         `delete from public.tasks; delete from public.documents where id='${doc}'; delete from storage.objects where name='${original}';`,
       );
       objects.delete(original);
       const result = await restoreMissing(client, zip);
-      expect(result.inserted).toBe(602);
+      expect(result.inserted).toBe(605);
       const tasks = await db.query(
         "select count(*)::int as total from public.tasks",
       );
-      expect(tasks.rows).toEqual([{ total: 601 }]);
+      expect(tasks.rows).toEqual([{ total: 603 }]);
+      expect(
+        (
+          await db.query(
+            "select count(*)::int as total from public.task_recurrence_instances",
+          )
+        ).rows,
+      ).toEqual([{ total: 1 }]);
       const documents = await db.query(
         "select title,storage_path from public.documents",
       );

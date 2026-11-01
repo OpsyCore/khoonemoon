@@ -77,11 +77,25 @@ async function readTable(
   return records;
 }
 /** One database snapshot under caller RLS; attachment bytes are read separately. */
-async function readSnapshot(client: SupabaseClient): Promise<{
+async function readSnapshot(
+  client: SupabaseClient,
+  signed = false,
+): Promise<{
   tables: { name: string; rows: Record<string, unknown>[] }[];
   snapshotAt: string;
+  signature?: {
+    version: 1;
+    account_id: string;
+    signature: string;
+    paths: Record<string, string>;
+  };
 }> {
-  const { data, error } = await client.rpc("mobile_export_snapshot");
+  const response = await client.rpc(
+    signed ? "mobile_signed_export_snapshot" : "mobile_export_snapshot",
+  );
+  const error = response.error;
+  const signedData = signed ? response.data : undefined;
+  const data = signed ? signedData?.payload?.snapshot : response.data;
   if (
     error ||
     !data ||
@@ -111,6 +125,31 @@ async function readSnapshot(client: SupabaseClient): Promise<{
       throw new Error("اطلاعات خروجی ناقص است.");
     return { name, rows: rows as Record<string, unknown>[] };
   });
+  if (signed) {
+    if (
+      typeof signedData?.payload?.account_id !== "string" ||
+      typeof signedData?.signature !== "string" ||
+      !/^[a-f0-9]{64}$/.test(signedData.signature)
+    )
+      throw new Error("امضای خروجی دریافت نشد.");
+    const paths: Record<string, string> = Object.create(null);
+    for (const row of tables.find((table) => table.name === "documents")!
+      .rows) {
+      if (typeof row.id !== "string" || typeof row.storage_path !== "string")
+        throw new Error("مسیر مدرک نامعتبر است.");
+      paths[row.id] = row.storage_path;
+    }
+    return {
+      tables,
+      snapshotAt: data.exported_at,
+      signature: {
+        version: 1,
+        account_id: signedData.payload.account_id,
+        signature: signedData.signature,
+        paths,
+      },
+    };
+  }
   return { tables, snapshotAt: data.exported_at };
 }
 export async function exportMobileData(
@@ -138,7 +177,7 @@ export async function exportMobileBackup(
   client: SupabaseClient,
   now: Date,
 ): Promise<Uint8Array> {
-  const { tables, snapshotAt } = await readSnapshot(client);
+  const { tables, snapshotAt, signature } = await readSnapshot(client, true);
   const documents = tables.find((table) => table.name === "documents")!;
   if (documents.rows.length > 200)
     throw new Error(
@@ -185,7 +224,11 @@ export async function exportMobileBackup(
     row.archive_file = name;
     delete row.storage_path;
   }
-  const archive = { ...buildArchive({ tables, now }), snapshot_at: snapshotAt };
+  const archive = {
+    ...buildArchive({ tables, now }),
+    snapshot_at: snapshotAt,
+    signed_snapshot: signature,
+  };
   archive.note =
     "این پرونده شامل داده‌های انتخاب‌شده از یک لحظهٔ پایگاه داده و فایل‌های مدارک قابل مشاهده است؛ فایل‌ها در زمان جداگانه دریافت شده‌اند. این خروجی نسخهٔ کامل حساب نیست و باید در جای امن نگهداری شود.";
   const json = strToU8(JSON.stringify(archive, null, 2));

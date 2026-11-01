@@ -1015,3 +1015,70 @@ begin
  if has_function_privilege('anon','public.mobile_restore_missing(jsonb)','execute') then raise exception 'anonymous recovery allowed'; end if;
 end $$;
 rollback;
+
+-- Signed snapshots are generated under the caller's RLS, and no client can
+-- sign arbitrary data, read the key, or reuse a signature as another account.
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare signed jsonb; forged jsonb; plain jsonb;
+begin
+ signed:=public.mobile_signed_export_snapshot();
+ plain:=public.mobile_export_snapshot();
+ if signed->'payload'->'snapshot'->'tables' is distinct from plain->'tables' then raise exception 'signed export bypassed RLS'; end if;
+ if not public.mobile_verify_snapshot_signature(signed->'payload',signed->>'signature') then raise exception 'valid signature rejected'; end if;
+ forged:=jsonb_set(signed->'payload','{snapshot,tables,profiles,0,full_name}','"forged"'::jsonb);
+ if public.mobile_verify_snapshot_signature(forged,signed->>'signature') then raise exception 'forged payload accepted'; end if;
+ if has_table_privilege('authenticated',(select c.oid from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='backup_private' and c.relname='signing_key'),'select') or has_schema_privilege('authenticated','backup_private','usage') or pg_has_role('authenticated','khoonemoon_backup_signer','member') then raise exception 'signing secret reachable'; end if;
+ if has_function_privilege('anon','public.mobile_signed_export_snapshot()','execute') or has_function_privilege('anon','public.mobile_verify_snapshot_signature(jsonb,text)','execute') then raise exception 'anonymous signature access'; end if;
+ perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+ if public.mobile_verify_snapshot_signature(signed->'payload',signed->>'signature') then raise exception 'signature reused by another account'; end if;
+end $$;
+rollback;
+
+-- Only previously signed historical rows can be reconstructed, without
+-- bypassing current household/task access or changing parent state.
+begin;
+insert into public.tasks(id,title,creator_id,owner_id,visibility,status,priority)
+ values ('11111111-1111-4111-8111-111111111110','prior','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','PRIVATE','COMPLETED','NORMAL'),
+        ('11111111-1111-4111-8111-111111111111','next','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','PRIVATE','PENDING','NORMAL');
+insert into public.task_recurrence_instances(completed_task_id,next_task_id) values ('11111111-1111-4111-8111-111111111110','11111111-1111-4111-8111-111111111111');
+insert into public.financial_records(id,owner_id,created_by,visibility,record_type,title,amount,paid_at) values
+ ('22222222-2222-4222-8222-222222222220','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','PRIVATE','BILL','prior bill',10,now()),
+ ('22222222-2222-4222-8222-222222222221','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','PRIVATE','BILL','next bill',10,null);
+insert into public.finance_recurrence_instances(paid_record_id,next_record_id) values ('22222222-2222-4222-8222-222222222220','22222222-2222-4222-8222-222222222221');
+insert into public.chore_completions(id,chore_id,completed_by,note) values ('33333333-3333-4333-8333-333333333333','00000000-0000-4000-8000-0000000000c1','00000000-0000-4000-8000-00000000000a','signed history');
+create temp table signed_test(v jsonb); grant select,insert on signed_test to authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+insert into signed_test select public.mobile_signed_export_snapshot();
+reset role;
+delete from public.task_recurrence_instances where completed_task_id='11111111-1111-4111-8111-111111111110';
+delete from public.finance_recurrence_instances where paid_record_id='22222222-2222-4222-8222-222222222220';
+delete from public.chore_completions where id='33333333-3333-4333-8333-333333333333';
+set local role authenticated;
+do $$ declare signed jsonb; forged jsonb; result jsonb; begin
+ select v into signed from signed_test;
+ forged:=jsonb_set(signed->'payload','{snapshot,tables,task_recurrence_instances,0,next_task_id}','"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"'::jsonb);
+ begin perform public.mobile_restore_signed_history(forged,signed->>'signature'); raise exception 'forged history accepted'; exception when others then if sqlerrm<>'INVALID_BACKUP_SIGNATURE' then raise; end if; end;
+ result:=public.mobile_restore_signed_history(signed->'payload',signed->>'signature');
+ if (result->>'inserted')::int<>3 or not exists(select 1 from public.finance_recurrence_instances where paid_record_id='22222222-2222-4222-8222-222222222220') or not exists(select 1 from public.chore_completions where id='33333333-3333-4333-8333-333333333333') or not exists(select 1 from public.task_recurrence_instances where completed_task_id='11111111-1111-4111-8111-111111111110') then raise exception 'signed history not restored'; end if;
+ result:=public.mobile_restore_signed_history(signed->'payload',signed->>'signature');
+ if (result->>'inserted')::int<>0 then raise exception 'signed history not idempotent'; end if;
+ perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}',true);
+ begin perform public.mobile_restore_signed_history(signed->'payload',signed->>'signature'); raise exception 'cross-user history accepted'; exception when others then if sqlerrm<>'INVALID_BACKUP_SIGNATURE' then raise; end if; end;
+ if has_function_privilege('anon','public.mobile_restore_signed_history(jsonb,text)','execute') then raise exception 'anon history restore allowed'; end if;
+end $$;
+reset role;
+-- Access may be revoked after the backup was signed. Restoring it must not
+-- reactivate the member or insert a now-inaccessible household history row.
+delete from public.chore_completions where id='33333333-3333-4333-8333-333333333333';
+update public.household_members set left_at=now() where user_id='00000000-0000-4000-8000-00000000000a' and left_at is null;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}',true);
+set local role authenticated;
+do $$ declare signed jsonb; begin
+ select v into signed from signed_test;
+ begin perform public.mobile_restore_signed_history(signed->'payload',signed->>'signature'); raise exception 'revoked access accepted'; exception when others then if sqlerrm<>'BACKUP_PARENT_NOT_ACCESSIBLE' then raise; end if; end;
+end $$;
+rollback;

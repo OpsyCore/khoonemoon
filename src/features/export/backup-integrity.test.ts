@@ -32,6 +32,7 @@ describe("bounded ZIP backup preview", () => {
       rowCount: 2,
       documents: 1,
       integrity: "verified",
+      hasServerSignature: false,
     });
   });
   it("detects a changed document or manifest", async () => {
