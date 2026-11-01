@@ -764,3 +764,24 @@ begin
   if public.current_user_can_create_reminder('CHORE',cid,'00000000-0000-4000-8000-0000000000f1') or public.current_user_can_create_reminder('BILL',bid,null) then raise exception 'unauthorized target access'; end if;
 end $$;
 rollback;
+
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare cid uuid; version bigint; result uuid;
+begin
+ cid := public.mobile_create_chore('{"title":"no due version check","frequency":"NONE","rotationMode":"FIXED","recurrenceTimezone":"UTC"}'::jsonb);
+ select completion_revision into version from public.chores where id=cid;
+ begin perform public.complete_chore_expected_version(cid,version - 1); raise exception 'stale accepted';
+ exception when raise_exception then if sqlerrm <> 'CHORE_VERSION_CHANGED' then raise; end if; end;
+ result := public.complete_chore_expected_version(cid, version);
+ if result is null then raise exception 'missing completion'; end if;
+ begin perform public.complete_chore_expected_version(cid,version); raise exception 'duplicate accepted';
+ exception when raise_exception then if sqlerrm <> 'CHORE_VERSION_CHANGED' then raise; end if; end;
+ perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+ begin perform public.complete_chore_expected_version(cid, version); raise exception 'outsider accepted';
+ exception when raise_exception then if sqlerrm <> 'CHORE_NOT_FOUND_OR_FORBIDDEN' then raise; end if; end;
+ if has_function_privilege('anon', 'public.complete_chore_expected_version(uuid,bigint)', 'execute') then raise exception 'anon can execute'; end if;
+end $$;
+rollback;

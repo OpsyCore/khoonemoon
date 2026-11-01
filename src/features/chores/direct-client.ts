@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ChoreRecord, ChoreCompletion } from "./types";
 import { createChoreSchema, updateChoreSchema } from "./schemas";
 const COLUMNS =
-  "id, household_id, title, description, created_by, rotation_mode, current_rotation_index, frequency, interval_days, weekdays, recurrence_timezone, next_due_at, is_active, archived_at, created_at, updated_at, chore_rotation_steps(id, chore_id, position, assignee_id)";
+  "id, household_id, title, description, created_by, rotation_mode, current_rotation_index, frequency, interval_days, weekdays, recurrence_timezone, next_due_at, is_active, completion_revision, archived_at, created_at, updated_at, chore_rotation_steps(id, chore_id, position, assignee_id)";
 
 /** Uses the existing transactional completion RPC and database RLS. */
 export function directChores(client: SupabaseClient) {
@@ -19,13 +19,19 @@ export function directChores(client: SupabaseClient) {
         throw new Error("ساخت کار خانه ناموفق بود.");
       return data;
     },
-    async update(id: string, input: unknown): Promise<void> {
+    async update(
+      id: string,
+      input: unknown,
+      recurrenceTimezone?: string,
+    ): Promise<void> {
       const chore = createChoreSchema.parse(input);
       const { data, error } = await client.rpc("mobile_update_chore", {
         p_id: id,
         p_input: {
           ...chore,
-          recurrenceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          recurrenceTimezone:
+            recurrenceTimezone ??
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
       });
       if (error || data !== id) throw new Error("ویرایش کار خانه ناموفق بود.");
@@ -70,6 +76,20 @@ export function directChores(client: SupabaseClient) {
         .maybeSingle();
       if (error || !data) throw new Error("ویرایش کار خانه ناموفق بود.");
     },
+    async setActive(id: string, current: boolean): Promise<void> {
+      const { data, error } = await client
+        .from("chores")
+        .update({ is_active: !current })
+        .eq("id", id)
+        .eq("is_active", current)
+        .is("archived_at", null)
+        .select("id")
+        .maybeSingle();
+      if (error || !data)
+        throw new Error(
+          "وضعیت کار تغییر کرده یا دسترسی وجود ندارد؛ فهرست را تازه کنید.",
+        );
+    },
     async archive(id: string): Promise<void> {
       const { data, error } = await client
         .from("chores")
@@ -78,6 +98,16 @@ export function directChores(client: SupabaseClient) {
         .select("id")
         .maybeSingle();
       if (error || !data) throw new Error("بایگانی کار خانه ناموفق بود.");
+    },
+    async completeVersion(id: string, revision: number): Promise<void> {
+      const { data, error } = await client.rpc(
+        "complete_chore_expected_version",
+        { p_chore_id: id, p_expected_version: revision },
+      );
+      if (error || !data)
+        throw new Error(
+          "وضعیت کار تغییر کرد یا ثبت انجام تأیید نشد؛ فهرست را تازه کنید.",
+        );
     },
     async complete(id: string): Promise<void> {
       const { error } = await client.rpc("complete_chore", { p_chore_id: id });

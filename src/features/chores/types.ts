@@ -23,6 +23,7 @@ export type ChoreRecord = {
   weekdays: number[] | null;
   next_due_at: string | null;
   is_active: boolean;
+  completion_revision?: number;
   archived_at: string | null;
   created_at: string;
   updated_at: string;

@@ -31,6 +31,61 @@ describe("direct chore transport", () => {
   });
 });
 
+describe("guarded completion", () => {
+  it("sends the displayed revision and rejects ambiguous failures", async () => {
+    const fetcher = vi.fn(
+      async (_url: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(JSON.stringify("completion-1"), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    const client = createClient("https://example.supabase.co", "anon", {
+      global: { fetch: fetcher },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    await directChores(client).completeVersion("chore-1", 4);
+    expect(String(fetcher.mock.calls[0][0])).toContain(
+      "complete_chore_expected_version",
+    );
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      p_chore_id: "chore-1",
+      p_expected_version: 4,
+    });
+  });
+});
+
+describe("pause and resume", () => {
+  it("updates only the expected active, unarchived row and rejects stale changes", async () => {
+    const fetcher = vi.fn(
+      async (_url: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(JSON.stringify({ id: "chore-1" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    const client = createClient("https://example.supabase.co", "anon", {
+      global: { fetch: fetcher },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const api = directChores(client);
+    await api.setActive("chore-1", true);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      is_active: false,
+    });
+    const url = decodeURIComponent(String(fetcher.mock.calls[0][0]));
+    expect(url).toContain("is_active=eq.true");
+    expect(url).toContain("archived_at=is.null");
+    fetcher.mockResolvedValueOnce(
+      new Response("null", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await expect(api.setActive("chore-1", true)).rejects.toThrow();
+  });
+});
+
 describe("atomic chore creation", () => {
   it("validates rotating assignees before calling RPC", async () => {
     const fetcher = vi.fn(
@@ -83,12 +138,20 @@ describe("atomic chore update", () => {
       global: { fetch: fetcher },
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    await directChores(client).update("chore-1", {
-      title: "کار",
-      rotationMode: "FIXED",
-      assigneeIds: [],
-      frequency: "DAILY",
-    });
+    await directChores(client).update(
+      "chore-1",
+      {
+        title: "کار",
+        rotationMode: "FIXED",
+        assigneeIds: [],
+        frequency: "DAILY",
+      },
+      "America/New_York",
+    );
+    expect(
+      JSON.parse(String(fetcher.mock.calls[0][1]?.body)).p_input
+        .recurrenceTimezone,
+    ).toBe("America/New_York");
     expect(String(fetcher.mock.calls[0][0])).toContain(
       "rpc/mobile_update_chore",
     );

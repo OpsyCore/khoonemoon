@@ -8,6 +8,7 @@ import type {
 } from "@/features/chores/types";
 import type { TaskRecurrenceFrequency } from "@/features/tasks/types";
 import { MemberFields, RepeatFields } from "./schedule-fields";
+import { taskEditTime } from "./task-edit-time";
 
 export function Chores({
   client,
@@ -82,17 +83,25 @@ export function Chores({
     setBusy(true);
     setMessage("");
     try {
+      const original = editing ? chores.find((c) => c.id === editing) : null;
+      if (editing && !original) throw new Error("کار خانه یافت نشد.");
+      const time = taskEditTime(
+        due,
+        original?.next_due_at ?? null,
+        original?.recurrence_timezone,
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      );
       const payload = {
         title: newTitle,
         description,
-        nextDueAt: due ? new Date(due).toISOString() : null,
+        nextDueAt: time.dueAt,
         rotationMode: mode,
         assigneeIds: assignees,
         frequency,
         intervalDays: frequency === "INTERVAL_DAYS" ? Number(interval) : null,
         weekdays: frequency === "WEEKLY" ? days : null,
       };
-      if (editing) await api.update(editing, payload);
+      if (editing) await api.update(editing, payload, time.recurrenceTimezone);
       else await api.create(payload);
       resetForm();
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
@@ -117,7 +126,9 @@ export function Chores({
     setBusy(true);
     setMessage("");
     try {
-      await api.complete(chore.id);
+      if (typeof chore.completion_revision !== "number")
+        throw new Error("نسخه کار نامشخص است.");
+      await api.completeVersion(chore.id, chore.completion_revision);
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
       try {
         setChores(await api.list(householdId));
@@ -128,7 +139,29 @@ export function Chores({
         );
       }
     } catch {
-      setMessage("ثبت کار ناموفق بود؛ پیش از تلاش دوباره وضعیت را بررسی کنید.");
+      setChores([]);
+      setMessage("ثبت کار تأیید نشد؛ پیش از تلاش دوباره فهرست را تازه کنید.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function toggleActive(chore: ChoreRecord) {
+    setBusy(true);
+    setMessage("");
+    try {
+      await api.setActive(chore.id, chore.is_active);
+      window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
+      try {
+        setChores(await api.list(householdId));
+      } catch {
+        setChores([]);
+        setMessage(
+          "وضعیت تغییر کرد اما تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید.",
+        );
+      }
+    } catch {
+      setChores([]);
+      setMessage("تغییر وضعیت تأیید نشد؛ فهرست را تازه کنید.");
     } finally {
       setBusy(false);
     }
@@ -274,12 +307,20 @@ export function Chores({
         {chores.map((chore) => (
           <li key={chore.id}>
             <span>
-              {chore.title}
+              {chore.title} {!chore.is_active && "(متوقف)"}
               {chore.next_due_at
                 ? ` — ${new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(chore.next_due_at))}`
                 : ""}
             </span>
             <div>
+              <button
+                type="button"
+                className="minor"
+                disabled={busy}
+                onClick={() => void toggleActive(chore)}
+              >
+                {chore.is_active ? "توقف" : "فعال‌سازی"}
+              </button>
               <button
                 className="minor"
                 disabled={busy}
