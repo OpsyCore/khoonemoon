@@ -190,16 +190,58 @@ describe("document removal safety", () => {
 
 describe("read-only orphan scan", () => {
   it("requests the RLS protected diagnostic without deleting anything", async () => {
-    const rpc = vi
-      .fn()
-      .mockResolvedValue({
-        data: [{ path: "user/me/file", uploaded_at: "2026-01-01T00:00:00Z" }],
-        error: null,
-      });
+    const rpc = vi.fn().mockResolvedValue({
+      data: [{ path: "user/me/file", uploaded_at: "2026-01-01T00:00:00Z" }],
+      error: null,
+    });
     const api = directDocuments({ rpc } as never);
     expect(await api.possibleOrphans()).toHaveLength(1);
     expect(rpc).toHaveBeenCalledWith("possible_orphan_documents");
+    expect(await api.possibleSharedOrphans("house-id")).toHaveLength(1);
+    expect(rpc).toHaveBeenCalledWith("possible_shared_orphan_documents", {
+      p_household: "house-id",
+    });
     rpc.mockResolvedValueOnce({ data: null, error: {} });
     await expect(api.possibleOrphans()).rejects.toThrow();
+  });
+});
+
+describe("guarded orphan cleanup", () => {
+  it("only removes after the server marks the exact path and confirms absence", async () => {
+    const rpc = vi.fn(async (name: string) => ({
+      data:
+        name === "mark_document_orphan_for_cleanup" ||
+        name === "document_cleanup_confirm",
+      error: null,
+    }));
+    const remove = vi.fn().mockResolvedValue({ error: null });
+    const api = directDocuments({
+      rpc,
+      storage: { from: () => ({ remove }) },
+    } as never);
+    await api.cleanPossibleOrphan("user/me/old/file.pdf");
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      "mark_document_orphan_for_cleanup",
+      "document_cleanup_confirm",
+    ]);
+    expect(remove).toHaveBeenCalledWith(["user/me/old/file.pdf"]);
+  });
+  it("never removes when marking fails and never reports an uncertain deletion as successful", async () => {
+    const rpc = vi.fn().mockResolvedValueOnce({ data: null, error: {} });
+    const remove = vi.fn().mockResolvedValue({ error: null });
+    const api = directDocuments({
+      rpc,
+      storage: { from: () => ({ remove }) },
+    } as never);
+    await expect(
+      api.cleanPossibleOrphan("user/me/old/file.pdf"),
+    ).rejects.toThrow();
+    expect(remove).not.toHaveBeenCalled();
+    rpc.mockResolvedValueOnce({ data: true, error: null });
+    remove.mockResolvedValueOnce({ error: {} });
+    await expect(
+      api.cleanPossibleOrphan("user/me/old/file.pdf"),
+    ).rejects.toThrow("مشخص نیست");
+    expect(rpc).toHaveBeenCalledTimes(2);
   });
 });

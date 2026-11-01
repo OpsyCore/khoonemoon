@@ -39,6 +39,38 @@ export function directDocuments(client: SupabaseClient) {
         throw new Error("بررسی فایل‌های احتمالی ناموفق بود.");
       return data as { path: string; uploaded_at: string }[];
     },
+    async possibleSharedOrphans(
+      householdId: string,
+    ): Promise<{ path: string; uploaded_at: string }[]> {
+      const { data, error } = await client.rpc(
+        "possible_shared_orphan_documents",
+        { p_household: householdId },
+      );
+      if (error || !Array.isArray(data))
+        throw new Error(
+          "بررسی فایل‌های مشترک فقط برای مالک فعلی خانه ممکن است.",
+        );
+      return data as { path: string; uploaded_at: string }[];
+    },
+    async cleanPossibleOrphan(path: string): Promise<void> {
+      const marked = await client.rpc("mark_document_orphan_for_cleanup", {
+        p_path: path,
+      });
+      if (marked.error || marked.data !== true)
+        throw new Error(
+          "فایل دیگر شرایط حذف امن را ندارد یا مجوز کافی نیست؛ چیزی حذف نشد.",
+        );
+      const removed = await client.storage.from(DOCUMENT_BUCKET).remove([path]);
+      if (removed.error)
+        throw new Error(
+          "نتیجهٔ حذف فایل مشخص نیست؛ فایل دوباره قابل استفاده نیست و می‌توانید بررسی را تکرار کنید.",
+        );
+      const confirmed = await client.rpc("document_cleanup_confirm", {
+        p_path: path,
+      });
+      if (confirmed.error || confirmed.data !== true)
+        throw new Error("نتیجهٔ حذف تأیید نشد؛ بررسی را دوباره اجرا کنید.");
+    },
     async list(): Promise<MobileDocument[]> {
       const rows: MobileDocument[] = [];
       for (let offset = 0; ; offset += 500) {

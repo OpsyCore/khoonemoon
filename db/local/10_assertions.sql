@@ -951,11 +951,11 @@ end $$;
 
 -- An orphan scan is read-only, delayed and isolated to the caller's prefix.
 begin;
-insert into storage.objects(bucket_id,name,created_at) values
- ('documents','user/00000000-0000-4000-8000-00000000000a/old/lost.pdf',now()-interval '8 days'),
- ('documents','user/00000000-0000-4000-8000-00000000000a/new/pending.pdf',now()-interval '1 day'),
- ('documents','user/00000000-0000-4000-8000-00000000000a/old/linked.pdf',now()-interval '8 days'),
- ('documents','user/00000000-0000-4000-8000-00000000000c/old/private.pdf',now()-interval '8 days');
+insert into storage.objects(bucket_id,name,created_at,updated_at) values
+ ('documents','user/00000000-0000-4000-8000-00000000000a/old/lost.pdf',now()-interval '8 days',now()-interval '8 days'),
+ ('documents','user/00000000-0000-4000-8000-00000000000a/new/pending.pdf',now()-interval '1 day',now()-interval '1 day'),
+ ('documents','user/00000000-0000-4000-8000-00000000000a/old/linked.pdf',now()-interval '8 days',now()-interval '8 days'),
+ ('documents','user/00000000-0000-4000-8000-00000000000c/old/private.pdf',now()-interval '8 days',now()-interval '8 days');
 insert into public.documents(created_by,title,mime_type,file_size,storage_path,visibility) values ('00000000-0000-4000-8000-00000000000a','linked','application/pdf',1,'user/00000000-0000-4000-8000-00000000000a/old/linked.pdf','PRIVATE');
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
 set local role authenticated;
@@ -963,6 +963,56 @@ do $$ declare n integer; begin
  select count(*) into n from public.possible_orphan_documents();
  if n<>1 or not exists(select 1 from public.possible_orphan_documents() where path like '%/lost.pdf') then raise exception 'orphan scan leaked or missed files'; end if;
  if has_function_privilege('anon','public.possible_orphan_documents()','execute') then raise exception 'anonymous orphan scan allowed'; end if;
+end $$;
+rollback;
+
+-- Only the active household owner may inspect shared candidates. Recent
+-- replacements and any globally referenced object are excluded.
+begin;
+insert into storage.objects(bucket_id,name,created_at,updated_at) values
+ ('documents','household/00000000-0000-4000-8000-0000000000f1/old/lost.pdf',now()-interval '8 days',now()-interval '8 days'),
+ ('documents','household/00000000-0000-4000-8000-0000000000f1/old/updated.pdf',now()-interval '8 days',now()),
+ ('documents','household/00000000-0000-4000-8000-0000000000f1/old/linked.pdf',now()-interval '8 days',now()-interval '8 days'),
+ ('documents','household/00000000-0000-4000-8000-0000000000f2/old/other.pdf',now()-interval '8 days',now()-interval '8 days');
+insert into public.documents(household_id,created_by,title,mime_type,file_size,storage_path,visibility)
+ values ('00000000-0000-4000-8000-0000000000f1','00000000-0000-4000-8000-00000000000b','linked shared','application/pdf',1,'household/00000000-0000-4000-8000-0000000000f1/old/linked.pdf','HOUSEHOLD_SHARED');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n integer; begin
+ select count(*) into n from public.possible_shared_orphan_documents('00000000-0000-4000-8000-0000000000f1');
+ if n<>1 or not exists(select 1 from public.possible_shared_orphan_documents('00000000-0000-4000-8000-0000000000f1') where path like '%/lost.pdf') then raise exception 'shared orphan scan leaked or missed files'; end if;
+ if has_function_privilege('anon','public.possible_shared_orphan_documents(uuid)','execute') then raise exception 'anonymous shared orphan scan allowed'; end if;
+ perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+ begin perform * from public.possible_shared_orphan_documents('00000000-0000-4000-8000-0000000000f1'); raise exception 'non-owner allowed'; exception when others then if sqlerrm <> 'OWNER_REQUIRED' then raise; end if; end;
+ perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+ begin perform * from public.possible_shared_orphan_documents('00000000-0000-4000-8000-0000000000f1'); raise exception 'outsider allowed'; exception when others then if sqlerrm <> 'OWNER_REQUIRED' then raise; end if; end;
+end $$;
+rollback;
+
+-- Tombstones make delete safe against a later metadata insert or overwrite.
+begin;
+insert into storage.objects(bucket_id,name,created_at,updated_at) values
+ ('documents','household/00000000-0000-4000-8000-0000000000f1/old/retire.pdf',now()-interval '9 days',now()-interval '9 days'),
+ ('documents','household/00000000-0000-4000-8000-0000000000f1/old/referenced.pdf',now()-interval '9 days',now()-interval '9 days'),
+ ('documents','household/00000000-0000-4000-8000-0000000000f1/old/recent.pdf',now()-interval '9 days',now());
+insert into public.documents(household_id,created_by,title,mime_type,file_size,storage_path,visibility)
+ values ('00000000-0000-4000-8000-0000000000f1','00000000-0000-4000-8000-00000000000b','keep','application/pdf',1,'household/00000000-0000-4000-8000-0000000000f1/old/referenced.pdf','HOUSEHOLD_SHARED');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare p text:='household/00000000-0000-4000-8000-0000000000f1/old/retire.pdf'; begin
+ begin perform public.mark_document_orphan_for_cleanup(p); raise exception 'member allowed'; exception when others then if sqlerrm<>'CLEANUP_FORBIDDEN' then raise; end if; end;
+ perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+ begin perform public.mark_document_orphan_for_cleanup('household/00000000-0000-4000-8000-0000000000f1/old/referenced.pdf'); raise exception 'referenced allowed'; exception when others then if sqlerrm<>'DOCUMENT_REFERENCED' then raise; end if; end;
+ begin perform public.mark_document_orphan_for_cleanup('household/00000000-0000-4000-8000-0000000000f1/old/recent.pdf'); raise exception 'recent allowed'; exception when others then if sqlerrm<>'NOT_OLD_OR_MISSING' then raise; end if; end;
+ if not public.mark_document_orphan_for_cleanup(p) then raise exception 'mark failed'; end if;
+ if not public.mark_document_orphan_for_cleanup(p) then raise exception 'retry failed'; end if;
+ if not public.document_cleanup_is_retired(p) or public.document_cleanup_confirm(p) then raise exception 'invalid cleanup preparation'; end if;
+ begin insert into public.documents(household_id,created_by,title,mime_type,file_size,storage_path,visibility) values ('00000000-0000-4000-8000-0000000000f1',auth.uid(),'late','application/pdf',1,p,'HOUSEHOLD_SHARED'); raise exception 'retired link allowed'; exception when others then if sqlerrm<>'DOCUMENT_PATH_RETIRED' then raise; end if; end;
+ begin update storage.objects set name=name where name=p; raise exception 'retired overwrite allowed'; exception when others then if sqlerrm<>'DOCUMENT_PATH_RETIRED' then raise; end if; end;
+ delete from storage.objects where name=p;
+ if not public.document_cleanup_confirm(p) then raise exception 'cleanup confirmation failed'; end if;
+ begin insert into storage.objects(bucket_id,name) values ('documents',p); raise exception 'retired upload allowed'; exception when others then if sqlerrm<>'DOCUMENT_PATH_RETIRED' then raise; end if; end;
+ if has_function_privilege('anon','public.mark_document_orphan_for_cleanup(text)','execute') then raise exception 'anonymous cleanup allowed'; end if;
 end $$;
 rollback;
 

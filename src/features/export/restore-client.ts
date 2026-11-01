@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { availableRestorePath } from "@/features/documents/restore-path";
 import { digestBytes, readBackup } from "./backup-integrity";
 
 const TABLES = [
@@ -409,7 +410,10 @@ export async function restoreMissing(
     else throw new Error("دسترسی یا خانهٔ مدرک معتبر نیست.");
     const path = existing
       ? (existing.storage_path as string)
-      : `${prefix}/${row.id}/restore.${ext}`;
+      : await availableRestorePath(
+          client,
+          `${prefix}/${row.id}/restore.${ext}`,
+        );
     if (!path.startsWith(`${prefix}/${row.id}/`))
       throw new Error("مسیر مدرک فعلی با مالکیت آن سازگار نیست.");
     const content = backup.files[row.archive_file];

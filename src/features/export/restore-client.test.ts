@@ -57,9 +57,11 @@ function mock(
   current.documents = [];
   if (opts.missingHistory) current.profiles = [];
   const rpc = vi.fn(async (name: string, _params?: unknown) =>
-    name === "mobile_export_snapshot"
-      ? { data: { tables: current }, error: null }
-      : { data: { inserted: 1, skipped: 1 }, error: null },
+    name === "document_cleanup_is_retired"
+      ? { data: false, error: null }
+      : name === "mobile_export_snapshot"
+        ? { data: { tables: current }, error: null }
+        : { data: { inserted: 1, skipped: 1 }, error: null },
   );
   const upload = vi.fn(async () => ({
     error: opts.uploadError ? { message: "conflict" } : null,
@@ -100,7 +102,9 @@ describe("bounded same-account recovery", () => {
       expect.any(Blob),
       expect.objectContaining({ upsert: false }),
     );
-    const payload = m.rpc.mock.calls[1][1] as {
+    const payload = m.rpc.mock.calls.find(
+      ([name]) => name === "mobile_restore_missing",
+    )![1] as {
       p_tables: Record<string, Record<string, unknown>[]>;
     };
     expect(payload.p_tables.documents[0].storage_path).toBe(
@@ -114,7 +118,7 @@ describe("bounded same-account recovery", () => {
         download: new Uint8Array([1, 2, 3]),
       });
     await restoreMissing(good.client, f.bytes);
-    expect(good.rpc).toHaveBeenCalledTimes(2);
+    expect(good.rpc).toHaveBeenCalledTimes(3);
     const bad = mock(f.tables, {
       uploadError: true,
       download: new Uint8Array([3, 2, 1]),
@@ -122,7 +126,7 @@ describe("bounded same-account recovery", () => {
     await expect(restoreMissing(bad.client, f.bytes)).rejects.toThrow(
       "فایل موجود تغییر نکرد",
     );
-    expect(bad.rpc).toHaveBeenCalledTimes(1);
+    expect(bad.rpc).toHaveBeenCalledTimes(2);
   });
   it("rejects a different account and missing read-only history before any upload", async () => {
     const f = await fixture(true),

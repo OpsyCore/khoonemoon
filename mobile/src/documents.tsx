@@ -60,6 +60,57 @@ export function Documents({
   const [orphans, setOrphans] = useState<
     { path: string; uploaded_at: string }[] | null
   >(null);
+  const [sharedResult, setSharedResult] = useState<{
+    householdId: string;
+    rows: { path: string; uploaded_at: string }[];
+  } | null>(null);
+  const sharedOrphans =
+    sharedResult?.householdId === householdId ? sharedResult.rows : null;
+  async function scanSharedOrphans() {
+    if (!householdId) return;
+    setBusy(true);
+    setError("");
+    try {
+      setSharedResult({
+        householdId,
+        rows: await api.possibleSharedOrphans(householdId),
+      });
+    } catch (error) {
+      setSharedResult(null);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "بررسی فایل‌های مشترک ناموفق بود.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function cleanOrphan(path: string, shared: boolean) {
+    if (
+      !window.confirm(
+        "این فایل احتمالاً بی‌مرجع برای همیشه حذف شود؟ اگر به آن نیاز دارید، انصراف دهید. این کار برگشت‌پذیر نیست.",
+      )
+    )
+      return;
+    setBusy(true);
+    setError("");
+    try {
+      await api.cleanPossibleOrphan(path);
+      if (shared && householdId)
+        setSharedResult({
+          householdId,
+          rows: await api.possibleSharedOrphans(householdId),
+        });
+      else setOrphans(await api.possibleOrphans());
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "نتیجهٔ پاک‌سازی تأیید نشد.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
   async function scanOrphans() {
     setBusy(true);
     setError("");
@@ -220,10 +271,12 @@ export function Documents({
         </button>
       </div>
       <details>
-        <summary>بررسی فایل‌های خصوصی احتمالی بدون مدرک</summary>
+        <summary>بررسی فایل‌های احتمالی بدون مدرک</summary>
         <p>
-          این بررسی فقط فایل‌های خصوصی بیش از هفت روز پیش را نشان می‌دهد؛ نتیجه
-          قطعی نیست و هیچ فایلی حذف نمی‌شود. فایل‌های مشترک بررسی نمی‌شوند.
+          فایل‌هایی را که بیش از هفت روز تغییر نکرده‌اند و مدرک ثبت‌شده‌ای
+          ندارند بررسی کنید. نتیجه قطعی نیست؛ حذف فقط با تأیید جداگانهٔ شما
+          انجام می‌شود و برگشت‌پذیر نیست. فایل‌های مشترک را فقط مالک فعلی خانه
+          می‌تواند بررسی و پاک‌سازی کند.
         </p>
         <button
           type="button"
@@ -231,8 +284,18 @@ export function Documents({
           disabled={busy}
           onClick={() => void scanOrphans()}
         >
-          بررسی فایل‌های احتمالی
-        </button>
+          بررسی فایل‌های خصوصی من
+        </button>{" "}
+        {householdId && (
+          <button
+            type="button"
+            className="minor"
+            disabled={busy}
+            onClick={() => void scanSharedOrphans()}
+          >
+            بررسی فایل‌های مشترک خانه
+          </button>
+        )}
         {orphans &&
           (orphans.length === 0 ? (
             <p role="status">موردی یافت نشد.</p>
@@ -245,8 +308,43 @@ export function Documents({
               <ul>
                 {orphans.map((item) => (
                   <li key={item.path}>
-                    <bdi>{item.path.split("/").at(-1)}</bdi> ·{" "}
-                    {formatPersianDate(item.uploaded_at)}
+                    <bdi>{item.path}</bdi> ·{" "}
+                    {formatPersianDate(item.uploaded_at)}{" "}
+                    <button
+                      type="button"
+                      className="minor"
+                      disabled={busy}
+                      onClick={() => void cleanOrphan(item.path, false)}
+                    >
+                      حذف این فایل
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        {sharedOrphans &&
+          (sharedOrphans.length === 0 ? (
+            <p role="status">فایل مشترک احتمالی یافت نشد.</p>
+          ) : (
+            <div role="status">
+              <p>
+                {sharedOrphans.length} فایل مشترک احتمالی؛ حداکثر ۱۰۰ مورد نمایش
+                داده می‌شود.
+              </p>
+              <ul>
+                {sharedOrphans.map((item) => (
+                  <li key={item.path}>
+                    <bdi>{item.path}</bdi> ·{" "}
+                    {formatPersianDate(item.uploaded_at)}{" "}
+                    <button
+                      type="button"
+                      className="minor"
+                      disabled={busy}
+                      onClick={() => void cleanOrphan(item.path, true)}
+                    >
+                      حذف این فایل
+                    </button>
                   </li>
                 ))}
               </ul>

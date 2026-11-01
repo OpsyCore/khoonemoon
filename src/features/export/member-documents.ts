@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { availableRestorePath } from "@/features/documents/restore-path";
 import { strToU8, zipSync } from "fflate";
 import { buildChecksums, digestBytes, readBackup } from "./backup-integrity";
 
@@ -178,7 +179,10 @@ export async function restoreOwnSharedDocuments(
     const suffix = (row.archive_file as string).split(".").at(-1);
     const path = doc
       ? (doc.storage_path as string)
-      : `household/${home}/${row.id}/restore.${suffix}`;
+      : await availableRestorePath(
+          client,
+          `household/${home}/${row.id}/restore.${suffix}`,
+        );
     if (!path.startsWith(`household/${home}/${row.id}/`))
       throw new Error("مسیر مدرک فعلی معتبر نیست.");
     const bucket = client.storage.from("documents");

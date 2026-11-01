@@ -123,7 +123,12 @@ describe("real ZIP through recovery against isolated PGlite", () => {
         ) => {
           try {
             let result;
-            if (name === "mobile_export_snapshot")
+            if (name === "document_cleanup_is_retired")
+              result = await db.query(
+                "select public.document_cleanup_is_retired($1) as value",
+                [(args as { p_path?: string })?.p_path],
+              );
+            else if (name === "mobile_export_snapshot")
               result = await db.query(
                 "select public.mobile_export_snapshot() as value",
               );
