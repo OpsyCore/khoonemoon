@@ -99,6 +99,7 @@ export function Chores({
       try {
         setChores(await api.list(householdId));
       } catch {
+        setChores([]);
         setMessage(
           "کار ذخیره شد، اما تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و صفحه را تازه کنید.",
         );
@@ -121,6 +122,7 @@ export function Chores({
       try {
         setChores(await api.list(householdId));
       } catch {
+        setChores([]);
         setMessage(
           "انجام کار ثبت شد، اما تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و صفحه را تازه کنید.",
         );
@@ -173,6 +175,7 @@ export function Chores({
       try {
         setChores(await api.list(householdId));
       } catch {
+        setChores([]);
         setMessage(
           "کار بایگانی شد، اما تازه‌سازی ناموفق بود؛ صفحه را تازه کنید.",
         );
@@ -186,6 +189,22 @@ export function Chores({
   return (
     <section>
       <h2>کارهای خانه</h2>
+      <button
+        type="button"
+        className="minor"
+        disabled={busy}
+        onClick={() => {
+          setBusy(true);
+          setMessage("");
+          void api
+            .list(householdId)
+            .then(setChores)
+            .catch(() => setMessage("دریافت کارهای خانه ناموفق بود."))
+            .finally(() => setBusy(false));
+        }}
+      >
+        تازه‌سازی کارهای خانه
+      </button>
       <form onSubmit={(e) => void create(e)}>
         <label>
           عنوان کار

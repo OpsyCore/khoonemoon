@@ -280,6 +280,8 @@ export function Finance({
       try {
         await load();
       } catch {
+        setRecords([]);
+        setLoaded(false);
         setMessage(
           "ثبت انجام شد؛ تازه‌سازی اطلاعات ناموفق بود. دوباره تازه‌سازی کنید.",
         );
@@ -300,6 +302,8 @@ export function Finance({
       try {
         await load();
       } catch {
+        setRecords([]);
+        setLoaded(false);
         setMessage(
           "وضعیت پرداخت ثبت شد، ولی تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و صفحه را تازه کنید.",
         );
@@ -316,8 +320,16 @@ export function Finance({
     setMessage("");
     try {
       await api.archive(record.id);
-      await load();
       if (editing?.id === record.id) reset();
+      try {
+        await load();
+      } catch {
+        setRecords([]);
+        setLoaded(false);
+        setMessage(
+          "بایگانی انجام شد، اما تازه‌سازی ناموفق بود؛ صفحه را تازه کنید.",
+        );
+      }
     } catch {
       setMessage("بایگانی مورد مالی ناموفق بود.");
     } finally {

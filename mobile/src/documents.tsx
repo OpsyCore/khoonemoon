@@ -164,7 +164,13 @@ export function Documents({
     setError("");
     try {
       await api.remove(row);
-      await load();
+      try {
+        await load();
+      } catch {
+        setItems([]);
+        setLoaded(false);
+        setError("مدرک حذف شد اما تازه‌سازی ناموفق بود؛ فهرست را تازه کنید.");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "حذف مدرک ناموفق بود.");
       await load().catch(() => {});

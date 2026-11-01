@@ -7,6 +7,7 @@ import type {
   TaskPriority,
 } from "@/features/tasks/types";
 import { MemberFields, RepeatFields } from "./schedule-fields";
+import { reloadAfterSave } from "./after-save";
 
 export function Tasks({
   client,
@@ -66,9 +67,14 @@ export function Tasks({
       };
       if (editing) await api.update(editing, payload);
       else await api.create(payload);
-      setTasks(await api.list());
       resetForm();
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
+      if (!(await reloadAfterSave(async () => setTasks(await api.list())))) {
+        setTasks([]);
+        setMessage(
+          "تسک ذخیره شد، اما تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و فهرست را تازه کنید.",
+        );
+      }
     } catch {
       setMessage("ذخیره تسک ناموفق بود؛ اطلاعات و تنظیم تکرار را بررسی کنید.");
     } finally {
@@ -83,8 +89,13 @@ export function Tasks({
         task,
         task.status === "COMPLETED" ? "undo" : "complete",
       );
-      setTasks(await api.list());
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
+      if (!(await reloadAfterSave(async () => setTasks(await api.list())))) {
+        setTasks([]);
+        setMessage(
+          "تغییر انجام شد، اما تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و فهرست را تازه کنید.",
+        );
+      }
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -132,8 +143,13 @@ export function Tasks({
     setMessage("");
     try {
       await api.archive(id);
-      setTasks(await api.list());
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
+      if (!(await reloadAfterSave(async () => setTasks(await api.list())))) {
+        setTasks([]);
+        setMessage(
+          "تغییر انجام شد، اما تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و فهرست را تازه کنید.",
+        );
+      }
     } catch {
       setMessage("بایگانی تسک ناموفق بود.");
     } finally {
@@ -143,6 +159,22 @@ export function Tasks({
   return (
     <section>
       <h2>تسک‌ها</h2>
+      <button
+        type="button"
+        className="minor"
+        disabled={busy}
+        onClick={() => {
+          setBusy(true);
+          setMessage("");
+          void api
+            .list()
+            .then(setTasks)
+            .catch(() => setMessage("دریافت تسک‌ها ناموفق بود."))
+            .finally(() => setBusy(false));
+        }}
+      >
+        تازه‌سازی تسک‌ها
+      </button>
       <form onSubmit={(e) => void create(e)}>
         <label>
           عنوان تسک

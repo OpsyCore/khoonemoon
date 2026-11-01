@@ -1,3 +1,4 @@
+import { reloadAfterSave } from "./after-save";
 import {
   useCallback,
   useEffect,
@@ -161,6 +162,25 @@ export function Shopping({
       setBusy(false);
     }
   }
+  async function reloadListsAfterSave() {
+    if (!(await reloadAfterSave(refreshLists))) {
+      setLists([]);
+      setItems([]);
+      setMessage(
+        "تغییر ذخیره شد، اما تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و فهرست را تازه کنید.",
+      );
+    }
+  }
+  async function reloadItemsAfterSave(listId: string) {
+    if (
+      !(await reloadAfterSave(async () => setItems(await api.items(listId))))
+    ) {
+      setItems([]);
+      setMessage(
+        "تغییر ذخیره شد، اما تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و فهرست را تازه کنید.",
+      );
+    }
+  }
   function clear() {
     setEditing(null);
     setName("");
@@ -192,11 +212,7 @@ export function Shopping({
       if (editing) await api.updateItem(editing.id, data);
       else await api.addItem({ listId: selected, ...data });
       clear();
-      try {
-        setItems(await api.items(selected));
-      } catch {
-        setMessage("ذخیره انجام شد؛ تازه‌سازی ناموفق بود.");
-      }
+      await reloadItemsAfterSave(selected);
     });
   }
   return (
@@ -225,9 +241,9 @@ export function Shopping({
           e.preventDefault();
           void action(async () => {
             const list = await api.createList(householdId, { name: listName });
-            await refreshLists();
             setSelected(list.id);
             setListName("");
+            await reloadListsAfterSave();
           });
         }}
       >
@@ -270,7 +286,7 @@ export function Shopping({
               if (next !== null)
                 void action(async () => {
                   await api.updateList(selected, next);
-                  await refreshLists();
+                  await reloadListsAfterSave();
                 });
             }}
           >
@@ -283,7 +299,7 @@ export function Shopping({
               if (window.confirm("لیست بایگانی شود؟"))
                 void action(async () => {
                   await api.archiveList(selected);
-                  await refreshLists();
+                  await reloadListsAfterSave();
                 });
             }}
           >
@@ -356,7 +372,7 @@ export function Shopping({
                         const purchased = e.target.checked;
                         void action(async () => {
                           await api.updateItem(item.id, { purchased });
-                          setItems(await api.items(selected));
+                          await reloadItemsAfterSave(selected);
                         });
                       }}
                     />
@@ -383,7 +399,7 @@ export function Shopping({
                       if (window.confirm("این قلم حذف شود؟"))
                         void action(async () => {
                           await api.deleteItem(item.id);
-                          setItems(await api.items(selected));
+                          await reloadItemsAfterSave(selected);
                         });
                     }}
                   >
