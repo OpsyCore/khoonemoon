@@ -157,7 +157,7 @@ export function Tasks({
     }
   }
   return (
-    <section>
+    <section id="task-list">
       <h2>تسک‌ها</h2>
       <button
         type="button"

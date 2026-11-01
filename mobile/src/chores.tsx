@@ -187,7 +187,7 @@ export function Chores({
     }
   }
   return (
-    <section>
+    <section id="chore-list">
       <h2>کارهای خانه</h2>
       <button
         type="button"

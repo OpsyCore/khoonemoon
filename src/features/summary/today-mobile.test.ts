@@ -59,4 +59,44 @@ describe("today dashboard", () => {
     expect(output.bills.map((x) => x.id)).toEqual(["b"]);
     expect(output.reminders.map((x) => x.id)).toEqual(["t"]);
   });
+  it("prioritizes overdue tasks, then urgency and due time", () => {
+    const now = new Date(2026, 0, 10, 12);
+    const due = (day: number, hour: number) =>
+      new Date(2026, 0, day, hour).toISOString();
+    const out = deriveToday({
+      now,
+      events: [],
+      chores: [],
+      bills: [],
+      reminders: [],
+      tasks: [
+        {
+          id: "today",
+          title: "today",
+          status: "PENDING",
+          priority: "CRITICAL",
+          due_at: due(10, 10),
+        },
+        {
+          id: "late-low",
+          title: "late",
+          status: "PENDING",
+          priority: "LOW",
+          due_at: due(9, 10),
+        },
+        {
+          id: "late-high",
+          title: "urgent",
+          status: "PENDING",
+          priority: "HIGH",
+          due_at: due(9, 11),
+        },
+      ],
+    });
+    expect(out.tasks.map((x) => x.id)).toEqual([
+      "late-high",
+      "late-low",
+      "today",
+    ]);
+  });
 });

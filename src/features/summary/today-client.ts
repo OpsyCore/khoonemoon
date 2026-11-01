@@ -8,7 +8,7 @@ import {
   type TodayReminder,
 } from "./today-mobile";
 const queries = {
-  tasks: "id,title,due_at,status",
+  tasks: "id,title,due_at,status,priority",
   events: "id,title,start_at",
   chores: "id,title,next_due_at,is_active",
   financial_records: "id,title,due_at,paid_at,record_type",

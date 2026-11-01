@@ -515,7 +515,17 @@ function App() {
             <Today
               key={`today:${session.user.id}`}
               client={client}
-              onNavigate={setPage}
+              onTaskChanged={() => setRevision((n) => n + 1)}
+              onNavigate={(target, section) => {
+                setPage(target);
+                if (section)
+                  window.requestAnimationFrame(() =>
+                    document
+                      .getElementById(section)
+                      ?.scrollIntoView({ block: "start" }),
+                  );
+                else window.scrollTo(0, 0);
+              }}
             />
           )}
           {page === "tasks" && (
