@@ -130,6 +130,7 @@ function App() {
   >(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("page") === "reminders") return "reminders";
+    if (params.get("page") === "finance") return "finance";
     return params.has("search_q") ? "search" : "tasks";
   });
   useEffect(() => {

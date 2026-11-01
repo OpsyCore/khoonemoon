@@ -1,3 +1,5 @@
+import { ledgerFromUrl, ledgerUrl } from "./ledger-url";
+import { financeCorrection, financePatchLabels } from "./finance-correction";
 import { FinanceChart } from "./finance-chart";
 import { taskEditTime } from "./task-edit-time";
 import {
@@ -22,7 +24,6 @@ import {
 import { buildFinanceAnalytics } from "@/features/finance/analytics";
 import {
   filterLedger,
-  DEFAULT_LEDGER_FILTERS,
   TYPE_LABELS,
   type LedgerType,
   type PaidFilter,
@@ -32,6 +33,7 @@ import {
   settleHousehold,
   excludedSettlementRecords,
 } from "@/features/finance/settlement";
+import { ZodError } from "zod";
 import { parseAmount } from "@/shared/utils/amount";
 import { formatPersianDate } from "@/shared/utils/locale";
 
@@ -81,7 +83,21 @@ export function Finance({
   >("MONTHLY");
   const [currency, setCurrency] = useState("IRR");
   const [recordCurrency, setRecordCurrency] = useState("IRR");
-  const [filters, setFilters] = useState(DEFAULT_LEDGER_FILTERS);
+  const [filters, setFilters] = useState(() =>
+    ledgerFromUrl(new URL(window.location.href)),
+  );
+  function updateFilters(next: typeof filters) {
+    setFilters(next);
+    try {
+      window.history.replaceState(
+        window.history.state,
+        "",
+        ledgerUrl(new URL(window.location.href), next),
+      );
+    } catch {
+      /* link persistence is optional */
+    }
+  }
   const load = useCallback(async () => {
     const data = await api.list();
     setRecords(data);
@@ -220,6 +236,18 @@ export function Finance({
       }),
     [money, members, householdId],
   );
+  let correctionPreview: string[] = [];
+  if (editing) {
+    try {
+      correctionPreview = Object.keys(
+        financeCorrection(editing, { title, amount, category, note, due }),
+      ).map(
+        (key) => financePatchLabels[key as keyof typeof financePatchLabels],
+      );
+    } catch {
+      /* Form validation is reported on submit. */
+    }
+  }
   function reset() {
     setEditing(null);
     setRecordCurrency("IRR");
@@ -261,19 +289,18 @@ export function Finance({
       ).dueAt;
       if (billTypes.has(kind) && !dueAt)
         throw new Error("تاریخ سررسید قبض یا قسط لازم است.");
-      if (editing)
-        await api.update(
-          editing.id,
-          {
-            title,
-            amount: value,
-            category: category || null,
-            note: note || null,
-            dueAt,
-          },
-          editing.updated_at,
-        );
-      else
+      if (editing) {
+        const patch = financeCorrection(editing, {
+          title,
+          amount,
+          category,
+          note,
+          due,
+        });
+        if (!Object.keys(patch).length)
+          throw new Error("تغییری برای ذخیره وجود ندارد.");
+        await api.update(editing.id, patch, editing.updated_at);
+      } else
         await api.create({
           title,
           amount: value,
@@ -302,7 +329,11 @@ export function Finance({
       }
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "ثبت اطلاعات مالی ناموفق بود.",
+        error instanceof ZodError
+          ? "اطلاعات مالی معتبر نیست؛ عنوان، مبلغ و سایر فیلدها را بررسی کنید."
+          : error instanceof Error
+            ? `${error.message} اگر نتیجه ذخیره نامشخص است، پیش از تلاش دوباره فهرست را تازه کنید.`
+            : "ثبت تأیید نشد؛ پیش از تلاش دوباره فهرست را تازه کنید.",
       );
     } finally {
       setBusy(false);
@@ -513,6 +544,13 @@ export function Finance({
         {editing && recurring && (
           <small>تغییرات فقط روی همین قبض اعمال می‌شود.</small>
         )}
+        {editing && (
+          <p role="status">
+            {correctionPreview.length
+              ? `موارد تغییرکرده: ${correctionPreview.join("، ")}`
+              : "تغییری قابل ذخیره نیست یا ورودی نیاز به اصلاح دارد."}
+          </p>
+        )}
         <button disabled={busy}>{editing ? "ذخیره تغییرات" : "ثبت"}</button>
         {editing && (
           <button type="button" className="minor" onClick={reset}>
@@ -632,7 +670,7 @@ export function Finance({
             <input
               value={filters.query}
               onChange={(e) =>
-                setFilters({ ...filters, query: e.target.value })
+                updateFilters({ ...filters, query: e.target.value })
               }
             />
           </label>
@@ -641,7 +679,10 @@ export function Finance({
             <select
               value={filters.type}
               onChange={(e) =>
-                setFilters({ ...filters, type: e.target.value as LedgerType })
+                updateFilters({
+                  ...filters,
+                  type: e.target.value as LedgerType,
+                })
               }
             >
               {Object.entries(TYPE_LABELS).map(([key, label]) => (
@@ -656,7 +697,10 @@ export function Finance({
             <select
               value={filters.paid}
               onChange={(e) =>
-                setFilters({ ...filters, paid: e.target.value as PaidFilter })
+                updateFilters({
+                  ...filters,
+                  paid: e.target.value as PaidFilter,
+                })
               }
             >
               <option value="ALL">همه</option>
@@ -669,7 +713,10 @@ export function Finance({
             <select
               value={filters.days}
               onChange={(e) =>
-                setFilters({ ...filters, days: e.target.value as LedgerDays })
+                updateFilters({
+                  ...filters,
+                  days: e.target.value as LedgerDays,
+                })
               }
             >
               <option value="ALL">همه</option>
@@ -678,7 +725,12 @@ export function Finance({
               <option value="365">یک سال</option>
             </select>
           </label>
-          <p>{ledger.summary.count} مورد</p>
+          <p>
+            {ledger.summary.count} مورد · درآمد:{" "}
+            {formatAmount(ledger.summary.income, currency)} · هزینه:{" "}
+            {formatAmount(ledger.summary.expense, currency)} · قبض پرداخت‌نشده:{" "}
+            {formatAmount(ledger.summary.outstanding, currency)}
+          </p>
           <ul>
             {ledger.records.map((record) => (
               <li key={record.id}>

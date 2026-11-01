@@ -814,3 +814,20 @@ do $$ begin
     raise exception 'anonymous filtered search must be denied';
   end if;
 end $$;
+
+-- A stale edit must not overwrite a newer completion or edit.
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  begin
+    perform public.mobile_update_chore_guarded('00000000-0000-4000-8000-0000000000c1','{}'::jsonb,'2000-01-01'::timestamptz);
+    raise exception 'stale edit was not rejected';
+  exception when others then
+    if sqlerrm <> 'STALE_CHORE' then raise; end if;
+  end;
+end $$;
+rollback;
+do $$ begin
+  if has_function_privilege('anon','public.mobile_update_chore_guarded(uuid,jsonb,timestamptz)','execute') then raise exception 'anonymous chore update must be denied'; end if;
+end $$;
