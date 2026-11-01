@@ -833,3 +833,148 @@ dialog {
 dialog::backdrop {
   background: rgba(35, 29, 22, 0.55);
 }
+
+/* Khoonemoon visual foundation — palette supplied by the user. */
+:root:not([data-theme="dark"]) {
+  --paper: #f5ebdd;
+  --paper-card: #fbf7f0;
+  --paper-line: #e9ddc8;
+  --paper-ink: #49382b;
+  --olive: #85875d;
+  --terracotta: #c98268;
+  color: var(--paper-ink);
+  background-color: var(--paper);
+}
+:root:not([data-theme="dark"]) body {
+  color: var(--paper-ink);
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(circle at 20% 15%, rgba(255,255,255,.35), transparent 36%),
+    radial-gradient(rgba(73,56,43,.028) .45px, transparent .7px);
+  background-size: auto, 5px 5px;
+}
+main > header {
+  min-height: 5.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem 4.2rem 1rem .3rem;
+  border-bottom: 1px solid rgba(73,56,43,.1);
+  background: none;
+}
+main > header h1 { color: #49382b; font-size: 1.55rem; letter-spacing: -.035em; }
+main > header p { color: #897967; font-size: .76rem; margin: .15rem 0 0; }
+section:not(.document-form), aside {
+  border: 1px solid rgba(73,56,43,.10);
+  border-radius: 1.1rem;
+  box-shadow: 0 3px 10px rgba(73,56,43,.035), 0 14px 30px rgba(73,56,43,.045);
+}
+:root:not([data-theme="dark"]) section:not(.document-form),
+:root:not([data-theme="dark"]) aside {
+  background: linear-gradient(155deg,#fcf9f3,#f8f2e8);
+}
+section:not(.document-form) > h2 { border-color: rgba(73,56,43,.1); }
+section:not(.document-form) > h2::after { content: none; }
+:root:not([data-theme="dark"]) section h2,
+:root:not([data-theme="dark"]) section h3 { color: #49382b; }
+:root:not([data-theme="dark"]) button:not(.calendar-day) { background-color: #73774e; }
+:root:not([data-theme="dark"]) button.minor { background: #f7f1e8; color: #666b43; border-color: #ddd0bc; }
+:root:not([data-theme="dark"]) .error { color: #a14d3b; }
+
+/* Five equal destinations never scroll horizontally. */
+.bottom-nav {
+  display: grid;
+  grid-template-columns: repeat(5,minmax(0,1fr));
+  overflow: visible;
+  width: min(100%,36rem);
+  padding: .45rem .45rem calc(.45rem + env(safe-area-inset-bottom));
+  border: 1px solid rgba(73,56,43,.1);
+  border-bottom: 0;
+  border-radius: 1.3rem 1.3rem 0 0;
+  background: rgba(251,247,240,.97);
+  box-shadow: 0 -8px 30px rgba(73,56,43,.08);
+}
+.bottom-nav button:not(.calendar-day),
+:root:not([data-theme="dark"]) .bottom-nav button:not(.calendar-day) {
+  min-width: 0;
+  min-height: 3.35rem;
+  border: 0;
+  border-radius: .85rem;
+  padding: .2rem 0;
+  background: transparent;
+  color: #897c6d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .1rem;
+  font-size: .66rem;
+  line-height: 1.3;
+}
+.bottom-nav .nav-icon { display: flex; align-items: center; justify-content: center; width: 2.7rem; height: 1.8rem; border-radius: 1rem; }
+.bottom-nav button[aria-current="page"] .nav-icon { background: #e5e7d5; color: #60683b; }
+.bottom-nav button[aria-current="page"],
+:root:not([data-theme="dark"]) .bottom-nav button[aria-current="page"] { color: #60683b; background: transparent; font-weight: 700; }
+
+.menu-trigger, :root:not([data-theme="dark"]) button.menu-trigger {
+  position: absolute;
+  inset-inline-start: .15rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 2.85rem;
+  height: 2.85rem;
+  min-height: 2.85rem;
+  padding: 0;
+  color: #49382b;
+  background: #fbf7f0;
+  border: 1px solid rgba(73,56,43,.12);
+  border-radius: .9rem;
+  box-shadow: 0 3px 12px rgba(73,56,43,.05);
+}
+.menu-trigger:not(:disabled):active { transform: translateY(calc(-50% + 1px)); }
+.menu-badge, .app-menu-count {
+  display: grid; place-items: center; min-width: 1.15rem; height: 1.15rem;
+  border-radius: 999px; background: #b85f49; color: #fff; font-size: .63rem; line-height: 1;
+}
+.menu-badge { position: absolute; top: -.25rem; inset-inline-end: -.25rem; }
+dialog.app-menu {
+  position: fixed;
+  inset: 0 0 0 auto;
+  margin: 0;
+  width: min(84vw, 21rem);
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  padding: max(1.4rem, env(safe-area-inset-top)) 1.2rem calc(1.4rem + env(safe-area-inset-bottom));
+  border: 0;
+  border-radius: 1.4rem 0 0 1.4rem;
+  background: #fbf7f0;
+  color: #49382b;
+  box-shadow: -12px 0 45px rgba(42,33,25,.14);
+}
+dialog.app-menu::backdrop { background: rgba(49,40,31,.42); }
+.app-menu-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.app-menu-header h2 { margin: .3rem 0 0; font-size: 1.3rem; color: inherit; }
+.app-menu-eyebrow { font-size:.58rem; letter-spacing:.12em; color:#a3917a; }
+.app-menu .app-menu-description { margin: .4rem 0 1.5rem; font-size:.78rem; color:#8c7e6d; }
+.app-menu .menu-close, :root:not([data-theme="dark"]) .app-menu .menu-close { width:2.6rem; height:2.6rem; min-height:2.6rem; padding:0; display:grid; place-items:center; border-radius:.8rem; background:#f1e9dc; color:#49382b; }
+.app-menu-links { display:grid; gap:.35rem; }
+.app-menu-links button, :root:not([data-theme="dark"]) .app-menu-links button {
+  display:flex; align-items:center; gap:.85rem; width:100%; min-height:3.8rem; padding:.55rem .65rem;
+  border:0; border-radius:.85rem; background:transparent; color:inherit; text-align:start; font-weight:600;
+}
+.app-menu-links button[aria-current="page"] { background:#e9ebdc; color:#59613a; }
+.app-menu-icon { width:2.55rem; height:2.55rem; display:grid; place-items:center; border-radius:.8rem; background:#f1ebdf; color:#7a8056; }
+.app-menu-count { margin-inline-start:auto; }
+:root[data-theme="dark"] .menu-trigger { background:#37372b; color:#f5ebdd; border-color:#756a53; }
+:root[data-theme="dark"] dialog.app-menu { background:#302d24; color:#f2e9d7; }
+:root[data-theme="dark"] .app-menu .menu-close, :root[data-theme="dark"] .app-menu-icon { background:#494536; color:#f2e9d7; }
+:root[data-theme="dark"] .app-menu-links button { background:transparent; color:#f2e9d7; }
+:root[data-theme="dark"] .app-menu-links button[aria-current="page"] { background:#4e5938; }
+:root[data-theme="dark"] .bottom-nav .nav-icon { color:#ddd1bd; }
+:root[data-theme="dark"] .bottom-nav button[aria-current="page"] { background:transparent; color:#f4eddc; }
+:root[data-theme="dark"] .bottom-nav button[aria-current="page"] .nav-icon { background:#68764b; color:#fff; }
+:root[data-theme="dark"] main > header::before { content:none; }

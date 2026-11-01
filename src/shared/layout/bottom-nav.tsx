@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  CalendarDays,
-  House,
-  ListTodo,
-  SunMedium,
-  UserRound,
-} from "lucide-react";
+import { CalendarDays, House, ListTodo, SunMedium, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { describeBadge, formatBadgeCount } from "@/shared/utils/badge-count";
@@ -17,7 +11,7 @@ const navItems = [
   { href: "/today", label: "امروز", icon: SunMedium },
   { href: "/calendar", label: "تقویم", icon: CalendarDays },
   { href: "/lists", label: "لیست‌ها", icon: ListTodo },
-  { href: "/profile", label: "پروفایل", icon: UserRound },
+  { href: "/finance", label: "مالی", icon: Wallet },
 ] as const;
 
 export function BottomNav({

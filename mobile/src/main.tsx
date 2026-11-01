@@ -2,19 +2,9 @@
 import "@fontsource-variable/vazirmatn";
 import { createClient, type Session } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import {
-  Home,
-  ListTodo,
-  CalendarDays,
-  ShoppingBasket,
-  Wallet,
-  UserRound,
-  Bell,
-  FolderOpen,
-} from "lucide-react";
+
 import { createRoot } from "react-dom/client";
 import { useDueReminderCount } from "./reminder-badge";
-import { describeBadge, formatBadgeCount } from "@/shared/utils/badge-count";
 import { useMobileNotifications } from "./notifications";
 import { disableBrowserPush } from "./web-push";
 import { Documents } from "./documents";
@@ -38,6 +28,7 @@ import { Tasks } from "./tasks";
 import { Finance } from "./finance";
 import { Chores } from "./chores";
 import { Profile } from "./profile";
+import { MobileNavigation, type MobilePage } from "./navigation";
 import { PendingTransferPanel } from "@/features/households/pending-transfer-panel";
 import { HouseholdDetails } from "./household-details";
 import { ThemeSettings } from "./theme-settings";
@@ -119,17 +110,7 @@ function App() {
       setThemePersisted(false);
     }
   }
-  const [page, setPage] = useState<
-    | "house"
-    | "tasks"
-    | "calendar"
-    | "shopping"
-    | "finance"
-    | "profile"
-    | "reminders"
-    | "documents"
-    | "search"
-  >(() => {
+  const [page, setPage] = useState<MobilePage>(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("page") === "reminders") return "reminders";
     if (params.get("page") === "finance") return "finance";
@@ -256,7 +237,6 @@ function App() {
   const userId = session?.user.id;
   const notificationStatus = useMobileNotifications(client, userId, ready);
   const dueCount = useDueReminderCount(client, userId);
-  const badge = formatBadgeCount(dueCount ?? 0);
 
   useEffect(() => {
     // Clear the previous account’s data before loading the next account.
@@ -378,14 +358,12 @@ function App() {
       <header>
         <h1>خونه‌مون</h1>
         <p>دفتر کوچک خانه و خانوادهٔ ما</p>
-        {session && (
-          <button
-            className="minor"
-            type="button"
-            onClick={() => setPage("search")}
-          >
-            جستجو
-          </button>
+        {session && !recovery && client && ready && (
+          <MobileNavigation
+            page={page}
+            dueCount={dueCount ?? 0}
+            onNavigate={setPage}
+          />
         )}
       </header>
 
@@ -760,43 +738,6 @@ function App() {
               خروج از حساب
             </button>
           )}
-          <nav className="bottom-nav" aria-label="بخش‌های برنامه">
-            {(
-              [
-                ["tasks", "کارها", ListTodo],
-                ["calendar", "تقویم", CalendarDays],
-                ["shopping", "خرید", ShoppingBasket],
-                ["finance", "مالی", Wallet],
-                ["house", "خانه", Home],
-                ["documents", "مدارک", FolderOpen],
-                ["reminders", "یادآور", Bell],
-                ["profile", "حساب", UserRound],
-              ] as const
-            ).map(([id, label, Icon]) => (
-              <button
-                key={id}
-                type="button"
-                aria-current={page === id ? "page" : undefined}
-                aria-label={
-                  id === "reminders" && dueCount
-                    ? `${label}، ${describeBadge(dueCount)}`
-                    : label
-                }
-                onClick={() => {
-                  setPage(id);
-                  window.scrollTo(0, 0);
-                }}
-              >
-                <Icon size={20} aria-hidden="true" />
-                {id === "reminders" && badge && (
-                  <span className="reminder-badge" aria-hidden="true">
-                    {badge}
-                  </span>
-                )}
-                <span>{label}</span>
-              </button>
-            ))}
-          </nav>
         </>
       )}
     </main>

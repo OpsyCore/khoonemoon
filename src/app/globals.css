@@ -13,28 +13,28 @@
   color-scheme: light;
 
   /* surfaces */
-  --paper: #f6f1e7; /* app background */
-  --card: #fcf8ee; /* raised paper card */
-  --sunken: #eee7d7; /* inset / wash areas */
+  --paper: #f5ebdd; /* app background */
+  --card: #e9ddc8; /* raised paper card */
+  --sunken: #f1e6d6; /* inset / wash areas */
   --kraft: #d9cbb3; /* kraft accents, skeletons */
-  --line: #e2d8c4; /* hairline borders */
+  --line: #ded1bf; /* hairline borders */
   --line-strong: #cbbc9f;
 
   /* ink */
-  --ink: #3f342b;
+  --ink: #49382b;
   --ink-soft: #63564a;
-  --muted: #8a7b6a;
+  --muted: #8b7c6b;
   --faint: #ab9d8b;
   --cream: #fbf7ec; /* text on olive/clay solids */
 
   /* olive — primary */
-  --olive: #9aa06e;
-  --olive-deep: #7c8253; /* hover / pressed solids */
+  --olive: #85875d;
+  --olive-deep: #73774e; /* hover / pressed solids */
   --olive-ink: #6e744a; /* olive as text on paper */
   --olive-soft: #e9ead8; /* olive tint surface */
 
   /* clay / terracotta — secondary accent */
-  --clay: #e07a5f;
+  --clay: #c98268;
   --clay-ink: #b65138;
   --clay-soft: #f8e4db;
 
@@ -195,3 +195,26 @@ button {
     opacity: 1;
   }
 }
+
+/* Shared, restrained paper foundation and secondary navigation. */
+body {
+  background-image: radial-gradient(rgba(73,56,43,.025) .45px, transparent .7px);
+  background-size: 5px 5px;
+}
+.dark body { background-image: none; }
+.app-shell-menu { position: fixed; z-index: 45; top: max(.8rem, env(safe-area-inset-top)); right: max(1rem, calc((100vw - 28rem)/2 + 1rem)); }
+.app-shell-menu-trigger { position: relative; display:grid; place-items:center; width:2.7rem; height:2.7rem; color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:.85rem; box-shadow:var(--shadow-paper); }
+.app-shell-menu-badge,.app-shell-menu-count { display:grid; place-items:center; min-width:1.15rem; height:1.15rem; padding:0 .18rem; border-radius:999px; background:#b85f49; color:white; font-size:.63rem; line-height:1; }
+.app-shell-menu-badge { position:absolute; top:-.25rem; left:-.25rem; }
+dialog.app-shell-drawer { position:fixed; inset:0 0 0 auto; margin:0; width:min(84vw,21rem); height:100dvh; max-height:none; max-width:none; padding:max(1.4rem,env(safe-area-inset-top)) 1.2rem 1.4rem; border:0; border-radius:1.4rem 0 0 1.4rem; background:var(--card); color:var(--ink); box-shadow:-12px 0 45px rgba(42,33,25,.14); }
+dialog.app-shell-drawer::backdrop { background:rgba(49,40,31,.42); }
+.app-shell-drawer-head { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.app-shell-drawer-head h2 { font-size:1.3rem; font-weight:700; margin:.3rem 0 0; }
+.app-shell-drawer-head button { display:grid; place-items:center; width:2.6rem; height:2.6rem; border-radius:.8rem; background:var(--sunken); }
+.app-shell-drawer-eyebrow { font-size:.58rem; letter-spacing:.12em; color:var(--muted); }
+.app-shell-drawer > p { margin:.4rem 0 1.5rem; font-size:.78rem; color:var(--muted); }
+.app-shell-drawer nav { display:grid; gap:.35rem; }
+.app-shell-drawer nav a { display:flex; align-items:center; gap:.85rem; min-height:3.8rem; padding:.55rem .65rem; border-radius:.85rem; font-weight:600; }
+.app-shell-drawer nav a:hover { background:var(--olive-soft); }
+.app-shell-drawer-icon { display:grid; place-items:center; width:2.55rem; height:2.55rem; border-radius:.8rem; background:var(--sunken); color:var(--olive-ink); }
+.app-shell-menu-count { margin-inline-start:auto; }
