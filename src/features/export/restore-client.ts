@@ -47,16 +47,16 @@ async function currentUser(client: SupabaseClient): Promise<string> {
 export async function restoreMissing(
   client: SupabaseClient,
   bytes: Uint8Array,
-): Promise<{ inserted: number; skipped: number }> {
+): Promise<{ inserted: number; skipped: number; repairedFiles: number }> {
   const user = await currentUser(client);
   const backup = await readBackup(bytes);
   if (backup.preview.integrity !== "verified")
     throw new Error(
       "فقط خروجی جدید دارای مجموع کنترلی قابل بازیابی است؛ فایل قدیمی را صرفاً می‌توانید بررسی کنید.",
     );
-  if (backup.preview.rowCount > 500)
+  if (backup.preview.rowCount > 50000)
     throw new Error(
-      "بازیابی یک‌مرحله‌ای حداکثر ۵۰۰ ردیف را می‌پذیرد؛ داده‌ای تغییر نکرد.",
+      "بازیابی یک‌مرحله‌ای حداکثر ۵۰٬۰۰۰ ردیف را می‌پذیرد؛ داده‌ای تغییر نکرد.",
     );
   const names = Object.keys(backup.tables);
   if (
@@ -98,18 +98,77 @@ export async function restoreMissing(
         "خانه، عضویت یا تاریخچهٔ لازم دیگر موجود نیست؛ بازیابی ایمن ممکن نیست و داده‌ای تغییر نکرد.",
       );
   }
+  // Detect known RLS failures before staging any Storage objects. The server
+  // still independently enforces RLS; this is only an early diagnostic.
+  const requiredOwners: Record<string, string[]> = {
+    tasks: ["creator_id", "owner_id"],
+    events: ["creator_id", "owner_id"],
+    chores: ["created_by"],
+    shopping_lists: ["created_by"],
+    shopping_items: ["added_by"],
+    financial_records: ["created_by"],
+    reminders: ["user_id"],
+    notification_preferences: ["user_id"],
+    documents: ["created_by"],
+    document_attachments: ["created_by"],
+  };
+  for (const [name, ownerFields] of Object.entries(requiredOwners)) {
+    const existing = current.data.tables[name];
+    if (!Array.isArray(existing))
+      throw new Error("بررسی اطلاعات فعلی ناموفق بود؛ داده‌ای تغییر نکرد.");
+    const ids = new Set(existing.map((row: Row) => row.id));
+    if (
+      tables[name].some(
+        (row) =>
+          !ids.has(row.id) && ownerFields.some((field) => row[field] !== user),
+      )
+    )
+      throw new Error(
+        "برخی ردیف‌های حذف‌شده متعلق به عضو دیگری هستند و با این حساب قابل بازیابی نیستند؛ داده‌ای تغییر نکرد.",
+      );
+  }
   const existingDocs = current.data.tables.documents;
   if (!Array.isArray(existingDocs))
     throw new Error("بررسی مدارک فعلی ناموفق بود.");
   const docMap = new Map<string, Row>(
     existingDocs.map((row: Row) => [row.id as string, row]),
   );
-  const uploads: { row: Row; path: string; content: Uint8Array }[] = [];
+  const uploads: {
+    row: Row;
+    path: string;
+    content: Uint8Array;
+    repair: boolean;
+  }[] = [];
   for (const row of tables.documents) {
     const existing = docMap.get(row.id as string);
     if (existing) {
       row.storage_path = existing.storage_path;
-      continue;
+      if (typeof existing.storage_path !== "string")
+        throw new Error("مسیر مدرک فعلی معتبر نیست.");
+      if ((await currentUser(client)) !== user)
+        throw new Error("حساب در حین بازیابی تغییر کرد؛ عملیات متوقف شد.");
+      const downloaded = await client.storage
+        .from("documents")
+        .download(existing.storage_path);
+      // Never replace an existing file, even if it differs from the archive.
+      if (!downloaded.error && downloaded.data) continue;
+      // Only repair an absent file if the metadata still identifies the exact
+      // same original document, and the caller was its author. A failed read
+      // is not evidence of absence: the subsequent upload is always no-upsert.
+      if (
+        [
+          "id",
+          "created_by",
+          "visibility",
+          "household_id",
+          "mime_type",
+          "file_size",
+        ].some((key) => row[key] !== existing[key]) ||
+        row.created_by !== user
+      )
+        throw new Error(
+          "فایل یک مدرک فعلی قابل خواندن نیست یا اطلاعاتش تغییر کرده؛ برای جلوگیری از جایگزینی، بازیابی متوقف شد.",
+        );
     }
     if (
       row.created_by !== user ||
@@ -128,11 +187,15 @@ export async function restoreMissing(
     )
       prefix = `household/${row.household_id}`;
     else throw new Error("دسترسی یا خانهٔ مدرک معتبر نیست.");
-    const path = `${prefix}/${row.id}/restore.${ext}`;
+    const path = existing
+      ? (existing.storage_path as string)
+      : `${prefix}/${row.id}/restore.${ext}`;
+    if (!path.startsWith(`${prefix}/${row.id}/`))
+      throw new Error("مسیر مدرک فعلی با مالکیت آن سازگار نیست.");
     const content = backup.files[row.archive_file];
     if (!content) throw new Error("فایل مدرک در خروجی موجود نیست.");
     row.storage_path = path;
-    uploads.push({ row, path, content });
+    uploads.push({ row, path, content, repair: !!existing });
   }
   for (const item of uploads) {
     if ((await currentUser(client)) !== user)
@@ -158,13 +221,13 @@ export async function restoreMissing(
         )) !== (await digestBytes(item.content))
       )
         throw new Error(
-          "ثبت یکی از فایل‌ها تأیید نشد؛ فایل موجود تغییر نکرد. ممکن است فایل موقت باقی مانده باشد.",
+          "ثبت یکی از فایل‌ها تأیید نشد؛ فایل موجود تغییر نکرد. ممکن است بعضی فایل‌ها بارگذاری شده یا فایل موقت باقی مانده باشد.",
         );
     }
   }
   if ((await currentUser(client)) !== user)
     throw new Error(
-      "حساب در حین بازیابی تغییر کرد؛ داده‌ها ثبت نشدند و ممکن است فایل موقت باقی مانده باشد.",
+      "حساب در حین بازیابی تغییر کرد؛ داده‌ها ثبت نشدند و ممکن است بعضی فایل‌ها بارگذاری شده یا فایل موقت باقی مانده باشد.",
     );
   const { data, error } = await client.rpc("mobile_restore_missing", {
     p_tables: tables,
@@ -176,7 +239,11 @@ export async function restoreMissing(
     !Number.isSafeInteger(data.skipped)
   )
     throw new Error(
-      "نتیجهٔ بازیابی تأیید نشد؛ فهرست‌ها را تازه کنید و پیش از تلاش دوباره بررسی کنید. ممکن است فایل موقت باقی مانده باشد.",
+      "نتیجهٔ بازیابی تأیید نشد؛ فهرست‌ها را تازه کنید و پیش از تلاش دوباره بررسی کنید. ممکن است بعضی فایل‌ها بارگذاری شده یا فایل موقت باقی مانده باشد.",
     );
-  return { inserted: data.inserted, skipped: data.skipped };
+  return {
+    inserted: data.inserted,
+    skipped: data.skipped,
+    repairedFiles: uploads.filter((item) => item.repair).length,
+  };
 }

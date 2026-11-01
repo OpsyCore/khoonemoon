@@ -33,6 +33,7 @@ describe("real ZIP through recovery against isolated PGlite", () => {
       await db.exec(`insert into auth.users(id,email) values ('${user}','restore@example.com');
      select set_config('request.jwt.claims','{"sub":"${user}","role":"authenticated"}',false); set role authenticated;
      insert into public.tasks(title,creator_id,owner_id,visibility,priority) values ('بازگشت کار','${user}','${user}','PRIVATE','NORMAL');
+     insert into public.tasks(title,creator_id,owner_id,visibility,priority) select 'کار اضافی '||g,'${user}','${user}','PRIVATE','NORMAL' from generate_series(1,600) g;
      insert into storage.objects(bucket_id,name) values ('documents','${original}');
      insert into public.documents(id,created_by,title,mime_type,file_size,storage_path,visibility) values ('${doc}','${user}','مدرک','application/pdf',3,'${original}','PRIVATE');`);
       const objects = new Map<string, Uint8Array>([
@@ -88,13 +89,15 @@ describe("real ZIP through recovery against isolated PGlite", () => {
         new Date("2026-01-01T00:00:00Z"),
       );
       await db.exec(
-        `delete from public.tasks where title='بازگشت کار'; delete from public.documents where id='${doc}'; delete from storage.objects where name='${original}';`,
+        `delete from public.tasks; delete from public.documents where id='${doc}'; delete from storage.objects where name='${original}';`,
       );
       objects.delete(original);
       const result = await restoreMissing(client, zip);
-      expect(result.inserted).toBe(2);
-      const tasks = await db.query("select title from public.tasks");
-      expect(tasks.rows).toEqual([{ title: "بازگشت کار" }]);
+      expect(result.inserted).toBe(602);
+      const tasks = await db.query(
+        "select count(*)::int as total from public.tasks",
+      );
+      expect(tasks.rows).toEqual([{ total: 601 }]);
       const documents = await db.query(
         "select title,storage_path from public.documents",
       );
@@ -105,6 +108,15 @@ describe("real ZIP through recovery against isolated PGlite", () => {
         new Uint8Array([1, 2, 3]),
       );
       expect((await restoreMissing(client, zip)).inserted).toBe(0);
+      const restoredPath = `user/${user}/${doc}/restore.pdf`;
+      await db.query("delete from storage.objects where name=$1", [
+        restoredPath,
+      ]);
+      objects.delete(restoredPath);
+      const repaired = await restoreMissing(client, zip);
+      expect(repaired.inserted).toBe(0);
+      expect(repaired.repairedFiles).toBe(1);
+      expect(objects.get(restoredPath)).toEqual(new Uint8Array([1, 2, 3]));
     } finally {
       await db.close();
     }

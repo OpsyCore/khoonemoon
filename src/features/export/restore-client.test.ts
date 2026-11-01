@@ -91,6 +91,7 @@ describe("bounded same-account recovery", () => {
     expect(await restoreMissing(m.client, f.bytes)).toEqual({
       inserted: 1,
       skipped: 1,
+      repairedFiles: 0,
     });
     expect(m.upload).toHaveBeenCalledWith(
       `user/${user}/${doc}/restore.pdf`,
@@ -137,13 +138,65 @@ describe("bounded same-account recovery", () => {
   });
   it("does not upload for existing documents and does not update them", async () => {
     const f = await fixture(true),
-      m = mock(f.tables);
+      m = mock(f.tables, { download: new Uint8Array([1, 2, 3]) });
+    f.tables.documents[0].storage_path = `user/${user}/${doc}/original.pdf`;
     m.rpc.mockImplementation(async (name: string, _params?: unknown) =>
       name === "mobile_export_snapshot"
         ? { data: { tables: f.tables }, error: null }
         : { data: { inserted: 0, skipped: 2 }, error: null },
     );
     await restoreMissing(m.client, f.bytes);
+    expect(m.upload).not.toHaveBeenCalled();
+  });
+  it("repairs only a missing file with unchanged metadata, without overwriting", async () => {
+    const f = await fixture(true);
+    const path = `user/${user}/${doc}/original.pdf`;
+    const current = structuredClone(f.tables);
+    current.documents[0].storage_path = path;
+    const m = mock(f.tables);
+    m.rpc.mockImplementation(async (name: string) =>
+      name === "mobile_export_snapshot"
+        ? { data: { tables: current }, error: null }
+        : { data: { inserted: 0, skipped: 2 }, error: null },
+    );
+    expect((await restoreMissing(m.client, f.bytes)).repairedFiles).toBe(1);
+    expect(m.upload).toHaveBeenCalledWith(
+      path,
+      expect.any(Blob),
+      expect.objectContaining({ upsert: false }),
+    );
+    current.documents[0].file_size = 4;
+    const invalid = mock(f.tables);
+    invalid.rpc.mockImplementation(async (name: string) =>
+      name === "mobile_export_snapshot"
+        ? { data: { tables: current }, error: null }
+        : { data: { inserted: 0, skipped: 2 }, error: null },
+    );
+    await expect(restoreMissing(invalid.client, f.bytes)).rejects.toThrow(
+      "اطلاعاتش تغییر کرده",
+    );
+    expect(invalid.upload).not.toHaveBeenCalled();
+  });
+  it("rejects another member's missing row before staging files", async () => {
+    const f = await fixture(true);
+    const current = structuredClone(f.tables);
+    current.documents = [];
+    f.tables.tasks.push({ id: doc, creator_id: doc, owner_id: doc });
+    const files: Record<string, Uint8Array> = {
+      [`documents/${doc}.pdf`]: new Uint8Array([1, 2, 3]),
+    };
+    files["archive.json"] = strToU8(
+      JSON.stringify({
+        exported_at: "2026-01-01T00:00:00Z",
+        tables: f.tables,
+        counts: Object.fromEntries(names.map((n) => [n, f.tables[n].length])),
+      }),
+    );
+    files["checksums.json"] = await buildChecksums(files);
+    const m = mock(current);
+    await expect(
+      restoreMissing(m.client, zipSync(files, { level: 0 })),
+    ).rejects.toThrow("عضو دیگری");
     expect(m.upload).not.toHaveBeenCalled();
   });
 });
