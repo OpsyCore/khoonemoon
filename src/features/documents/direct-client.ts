@@ -58,12 +58,19 @@ export function directDocuments(client: SupabaseClient) {
       });
       if (marked.error || marked.data !== true)
         throw new Error(
-          "فایل دیگر شرایط حذف امن را ندارد یا مجوز کافی نیست؛ چیزی حذف نشد.",
+          "آماده‌سازی حذف تأیید نشد؛ چیزی حذف نشد، اما ممکن است مسیر بازنشسته شده باشد. دوباره بررسی کنید.",
         );
-      const removed = await client.storage.from(DOCUMENT_BUCKET).remove([path]);
+      let removed;
+      try {
+        removed = await client.storage.from(DOCUMENT_BUCKET).remove([path]);
+      } catch {
+        throw new Error(
+          "نتیجهٔ حذف فایل مشخص نیست؛ مسیر بازنشسته شده است. وضعیت فایل را دوباره بررسی کنید.",
+        );
+      }
       if (removed.error)
         throw new Error(
-          "نتیجهٔ حذف فایل مشخص نیست؛ فایل دوباره قابل استفاده نیست و می‌توانید بررسی را تکرار کنید.",
+          "نتیجهٔ حذف فایل مشخص نیست؛ مسیر بازنشسته شده است. وضعیت فایل را دوباره بررسی کنید.",
         );
       const confirmed = await client.rpc("document_cleanup_confirm", {
         p_path: path,
