@@ -22,7 +22,8 @@ import { ExportData } from "./export";
 import { WeeklySummary } from "./weekly-summary";
 import { Today } from "./today";
 import { QuickAdd } from "./quick-add";
-import { signupSchema } from "@/features/auth/schemas";
+import { loginSchema, signupSchema } from "@/features/auth/schemas";
+import { ZodError } from "zod";
 import {
   ANDROID_RECOVERY_REDIRECT,
   changeRecoveredPassword,
@@ -125,6 +126,8 @@ function App() {
   >("tasks");
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(!client);
+  const [authError, setAuthError] = useState("");
+  const [authAttempt, setAuthAttempt] = useState(0);
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">(
@@ -132,9 +135,13 @@ function App() {
   );
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [recovery, setRecovery] = useState(
-    () => sessionStorage.getItem("khoonemoon:recovery") === "1",
-  );
+  const [recovery, setRecovery] = useState(() => {
+    try {
+      return sessionStorage.getItem("khoonemoon:recovery") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [household, setHousehold] = useState<string | null | undefined>(
@@ -147,21 +154,40 @@ function App() {
   useEffect(() => {
     if (!client) return;
     let alive = true;
-    void client.auth.getSession().then(({ data }) => {
-      if (alive) {
+    let sessionChanged = false;
+    void client.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!alive || sessionChanged) return;
+        if (error) throw error;
         setSession(data.session);
+        setAuthError("");
         setReady(true);
-      }
-    });
+      })
+      .catch(() => {
+        if (alive && !sessionChanged) {
+          setAuthError("دریافت وضعیت حساب ناموفق بود؛ اتصال را بررسی کنید.");
+          setReady(false);
+        }
+      });
     const { data } = client.auth.onAuthStateChange((event, next) => {
       if (!alive) return;
+      if (event !== "INITIAL_SESSION" || next) sessionChanged = true;
       setSession(next);
+      if (event !== "INITIAL_SESSION" || next) {
+        setReady(true);
+        setAuthError("");
+      }
       if (event === "PASSWORD_RECOVERY") {
-        sessionStorage.setItem("khoonemoon:recovery", "1");
+        try {
+          sessionStorage.setItem("khoonemoon:recovery", "1");
+        } catch {}
         setRecovery(true);
       }
       if (event === "SIGNED_OUT") {
-        sessionStorage.removeItem("khoonemoon:recovery");
+        try {
+          sessionStorage.removeItem("khoonemoon:recovery");
+        } catch {}
         setRecovery(false);
       }
     });
@@ -169,7 +195,7 @@ function App() {
       alive = false;
       data.subscription.unsubscribe();
     };
-  }, []);
+  }, [authAttempt]);
 
   useEffect(() => {
     if (!client || !window.KhoonemoonNotifications) return;
@@ -231,8 +257,12 @@ function App() {
     setBusy(true);
     try {
       await fn();
-    } catch {
-      setMessage("عملیات انجام نشد؛ اطلاعات و اتصال اینترنت را بررسی کنید.");
+    } catch (error) {
+      setMessage(
+        error instanceof ZodError
+          ? (error.issues[0]?.message ?? "اطلاعات معتبر وارد کنید.")
+          : "عملیات انجام نشد؛ اطلاعات و اتصال اینترنت را بررسی کنید.",
+      );
     } finally {
       setBusy(false);
     }
@@ -241,10 +271,8 @@ function App() {
     event.preventDefault();
     void action(async () => {
       if (!client) throw new Error();
-      const { error } = await client.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      const input = loginSchema.parse({ email, password });
+      const { error } = await client.auth.signInWithPassword(input);
       if (error) throw error;
       setPassword("");
     });
@@ -286,7 +314,9 @@ function App() {
       window.dispatchEvent(new Event("khoonemoon:credentials-changed"));
       setPassword("");
       setConfirmPassword("");
-      sessionStorage.removeItem("khoonemoon:recovery");
+      try {
+        sessionStorage.removeItem("khoonemoon:recovery");
+      } catch {}
       setRecovery(false);
       setMessage("رمز عبور تغییر کرد.");
     });
@@ -340,7 +370,24 @@ function App() {
           <p>اتصال Supabase برای این ساخت تنظیم نشده است.</p>
         </section>
       ) : !ready ? (
-        <p>در حال آماده‌سازی…</p>
+        <section>
+          {authError ? (
+            <>
+              <p role="alert">{authError}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthError("");
+                  setAuthAttempt((n) => n + 1);
+                }}
+              >
+                تلاش دوباره
+              </button>
+            </>
+          ) : (
+            <p role="status">در حال آماده‌سازی…</p>
+          )}
+        </section>
       ) : recovery && session ? (
         <section>
           <h2>انتخاب رمز جدید</h2>

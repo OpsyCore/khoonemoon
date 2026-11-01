@@ -11,24 +11,31 @@ export function Profile({ client }: { client: SupabaseClient }) {
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const [loadFailed, setLoadFailed] = useState(false);
   useEffect(() => {
     let alive = true;
     void api
       .get()
       .then((profile) => {
         if (!alive) return;
-        setName(profile.full_name);
-        setTimezone(profile.timezone);
-        setLocale(profile.locale);
+        setName(profile.full_name ?? "");
+        setTimezone(profile.timezone ?? "Asia/Tehran");
+        setLocale(profile.locale ?? "fa-IR");
+        setLoadFailed(false);
+        setMessage("");
         setReady(true);
       })
       .catch(() => {
-        if (alive) setMessage("دریافت پروفایل ناموفق بود.");
+        if (alive) {
+          setLoadFailed(true);
+          setMessage("دریافت پروفایل ناموفق بود؛ اتصال را بررسی کنید.");
+        }
       });
     return () => {
       alive = false;
     };
-  }, [api]);
+  }, [api, attempt]);
   function save(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -49,6 +56,20 @@ export function Profile({ client }: { client: SupabaseClient }) {
     <section>
       <h2>پروفایل</h2>
       {message && <p role="status">{message}</p>}
+      {!ready && !loadFailed && <p role="status">در حال دریافت پروفایل…</p>}
+      {!ready && loadFailed && (
+        <button
+          type="button"
+          className="minor"
+          onClick={() => {
+            setLoadFailed(false);
+            setMessage("");
+            setAttempt((n) => n + 1);
+          }}
+        >
+          تلاش دوباره
+        </button>
+      )}
       {ready && (
         <form onSubmit={save}>
           <label>
