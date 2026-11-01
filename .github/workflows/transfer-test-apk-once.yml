@@ -1,0 +1,119 @@
+name: Transfer requested test APK
+on:
+  push:
+    branches: [arena/00d965b0-khoonemoon]
+    paths: [.github/workflows/transfer-test-apk-once.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  transfer:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Prepare public test APK chunks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh run download 41358694677 --name khoonemoon-test-apk --dir apk
+          test -s apk/app-debug.apk
+          sha256sum apk/app-debug.apk > apk.sha256
+          gzip -9 -c apk/app-debug.apk | base64 -w0 | split -b 40000 -d -a 3 - part-
+          echo "::notice title=APK checksum::$(cat apk.sha256)"
+          test "$(ls part-* | wc -l)" -le 128
+      - name: Transfer test APK part 1
+        run: |
+          for i in $(seq 0 7); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 2
+        run: |
+          for i in $(seq 8 15); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 3
+        run: |
+          for i in $(seq 16 23); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 4
+        run: |
+          for i in $(seq 24 31); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 5
+        run: |
+          for i in $(seq 32 39); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 6
+        run: |
+          for i in $(seq 40 47); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 7
+        run: |
+          for i in $(seq 48 55); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 8
+        run: |
+          for i in $(seq 56 63); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 9
+        run: |
+          for i in $(seq 64 71); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 10
+        run: |
+          for i in $(seq 72 79); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 11
+        run: |
+          for i in $(seq 80 87); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 12
+        run: |
+          for i in $(seq 88 95); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 13
+        run: |
+          for i in $(seq 96 103); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 14
+        run: |
+          for i in $(seq 104 111); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 15
+        run: |
+          for i in $(seq 112 119); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
+      - name: Transfer test APK part 16
+        run: |
+          for i in $(seq 120 127); do
+            f=$(printf 'part-%03d' "$i")
+            if [ -f "$f" ]; then printf '::notice title=APK-%03d::%s\n' "$i" "$(cat "$f")"; fi
+          done
