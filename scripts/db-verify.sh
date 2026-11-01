@@ -36,4 +36,7 @@ bash scripts/db-cleanup-concurrency.sh
 echo "==> checking concurrent create retries"
 bash scripts/db-create-concurrency.sh
 
+echo "==> checking concurrent invitation retries and one-time use"
+bash scripts/db-invitation-concurrency.sh
+
 echo "==> database verification passed"

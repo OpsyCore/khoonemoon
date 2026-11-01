@@ -66,6 +66,7 @@ export default async function HomePage({
         />
 
         <HouseholdManager
+          userId={user.id}
           household={null}
           members={[]}
           invitations={[]}
@@ -247,6 +248,7 @@ export default async function HomePage({
       <SectionLabel>خانه و اعضا</SectionLabel>
 
       <HouseholdManager
+        userId={user.id}
         household={householdResult.data as HouseholdSummary}
         members={normalizedMembers}
         invitations={normalizedInvitations}

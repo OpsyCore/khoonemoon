@@ -56,7 +56,14 @@ describe("direct household transport", () => {
   });
   it("only sends the invite hash, never the invitation code", async () => {
     const { api, fetcher } = setup();
-    const invite = await api.invite();
+    fetcher.mockImplementationOnce(async (_url, init) => {
+      const body = JSON.parse(String(init?.body));
+      return new Response(
+        JSON.stringify({ status: "PENDING", expires_at: body.p_expires_at }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
+    const invite = await api.invite("user-1", "house-1");
     const body = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
     expect(body.p_code_hash).toBe(
       createHash("sha256").update(invite.code).digest("hex"),

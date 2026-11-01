@@ -24,7 +24,10 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { Input } from "@/shared/ui/input";
 import { formatPersianDate, formatPersianTime } from "@/shared/utils/locale";
 
+import { pendingInvitation } from "@/features/households/pending-invitation";
+
 type HouseholdManagerProps = {
+  userId: string;
   household: HouseholdSummary | null;
   members: HouseholdMember[];
   invitations: HouseholdInvitation[];
@@ -33,6 +36,7 @@ type HouseholdManagerProps = {
 };
 
 export function HouseholdManager({
+  userId,
   household,
   members,
   invitations,
@@ -166,26 +170,33 @@ export function HouseholdManager({
     setIsGeneratingInvite(true);
 
     try {
-      const response = await fetch("/api/household/invitations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expiresInHours: 72 }),
-      });
-
-      const payload = (await response.json().catch(() => ({}))) as {
-        message?: string;
-        code?: string;
-        inviteUrl?: string;
-      };
-
-      if (!response.ok || !payload.code || !payload.inviteUrl) {
-        setErrorMessage(payload.message ?? "ایجاد دعوت‌نامه انجام نشد.");
-        return;
-      }
-
-      setGeneratedInvite({ code: payload.code, inviteUrl: payload.inviteUrl });
+      if (!household) throw new Error("خانه یافت نشد.");
+      const invite = await pendingInvitation(
+        userId,
+        household.id,
+        async (hash, expiresAt) => {
+          const response = await fetch("/api/household/invitations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ codeHash: hash, expiresAt }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          return (
+            response.ok &&
+            payload.status === "PENDING" &&
+            typeof payload.expiresAt === "string" &&
+            Date.parse(payload.expiresAt) === Date.parse(expiresAt)
+          );
+        },
+      );
+      const inviteUrl = `${window.location.origin}/home?inviteCode=${encodeURIComponent(invite.code)}`;
+      setGeneratedInvite({ code: invite.code, inviteUrl });
       setSuccessMessage("دعوت‌نامه جدید با موفقیت ساخته شد.");
       router.refresh();
+    } catch {
+      setErrorMessage(
+        "نتیجهٔ دعوت مشخص نیست؛ برای تلاش دوباره همین دکمه را بزنید.",
+      );
     } finally {
       setIsGeneratingInvite(false);
     }
@@ -352,10 +363,7 @@ export function HouseholdManager({
         <CardTitle>اعضای خانه</CardTitle>
         <ul className="space-y-2">
           {members.map((member) => (
-            <li
-              key={member.id}
-              className="rounded-2xl border border-line p-3"
-            >
+            <li key={member.id} className="rounded-2xl border border-line p-3">
               <p className="text-sm font-medium text-ink">
                 {member.profiles?.[0]?.full_name?.trim() || "کاربر بدون نام"}
               </p>

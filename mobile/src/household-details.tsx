@@ -132,7 +132,7 @@ export function HouseholdDetails({
                 disabled={busy || needsRefresh}
                 onClick={() =>
                   void action(async () => {
-                    const invite = await api.invite();
+                    const invite = await api.invite(userId, householdId);
                     setCode(invite.code);
                     await refreshAfterChange();
                   })
