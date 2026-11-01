@@ -8,15 +8,25 @@ function setup({
 } = {}) {
   const upload = vi.fn().mockResolvedValue({ error: null });
   const remove = vi.fn().mockResolvedValue({ error: null });
-  const inserted = vi.fn().mockReturnValue({
-    select: () => ({
-      single: () =>
-        Promise.resolve({
-          data: failInsert ? null : { id: "ok" },
-          error: failInsert ? {} : null,
+  const download = vi
+    .fn()
+    .mockResolvedValue({ data: new Blob(["hello"]), error: null });
+  let last:
+    { id: string; storage_path: string; created_by: string } | undefined;
+  const inserted = vi.fn(
+    (row: { id: string; storage_path: string; created_by: string }) => {
+      last = row;
+      return {
+        select: () => ({
+          single: () =>
+            Promise.resolve({
+              data: failInsert ? null : { id: row.id },
+              error: failInsert ? {} : null,
+            }),
         }),
-    }),
-  });
+      };
+    },
+  );
   const membership = {
     select: () => ({
       eq: () => ({
@@ -37,7 +47,7 @@ function setup({
             : { data: { user: null }, error: {} },
         ),
     },
-    storage: { from: () => ({ upload, remove }) },
+    storage: { from: () => ({ upload, remove, download }) },
     from: (table: string) =>
       table === "documents"
         ? {
@@ -46,7 +56,7 @@ function setup({
               eq: () => ({
                 maybeSingle: () =>
                   Promise.resolve({
-                    data: checkExists ? { id: "ok" } : null,
+                    data: checkExists && last ? last : null,
                     error: checkError ? {} : null,
                   }),
               }),
@@ -54,7 +64,13 @@ function setup({
           }
         : membership,
   };
-  return { api: directDocuments(client as never), upload, remove, inserted };
+  return {
+    api: directDocuments(client as never),
+    upload,
+    remove,
+    inserted,
+    download,
+  };
 }
 const file = new File(["hello"], "my file.pdf", { type: "application/pdf" });
 describe("direct documents", () => {
@@ -84,7 +100,7 @@ describe("direct documents", () => {
         visibility: "HOUSEHOLD_SHARED",
         category: "HOME",
       }),
-    ).rejects.toThrow("نامشخص");
+    ).rejects.toThrow("مشخص نیست");
     expect(upload.mock.calls[0][0]).toMatch(/^household\/house\//);
     expect(remove).not.toHaveBeenCalled();
   });
@@ -98,7 +114,7 @@ describe("direct documents", () => {
         visibility: "PRIVATE",
         category: "OTHER",
       }),
-    ).rejects.toThrow("نامشخص");
+    ).rejects.toThrow("مشخص نیست");
     expect(remove).not.toHaveBeenCalled();
   });
   it("keeps the file if the insert committed despite a lost response", async () => {
@@ -243,5 +259,29 @@ describe("guarded orphan cleanup", () => {
       api.cleanPossibleOrphan("user/me/old/file.pdf"),
     ).rejects.toThrow("مشخص نیست");
     expect(rpc).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("document retry after lost response", () => {
+  it("reuses the file path and validates the existing bytes before finishing metadata", async () => {
+    const { api, upload, inserted } = setup({ failInsert: true });
+    const input = {
+      file,
+      title: "retry-document",
+      description: "",
+      visibility: "PRIVATE" as const,
+      category: "HOME",
+    };
+    await expect(api.create(input)).rejects.toThrow("مشخص نیست");
+    const firstPath = upload.mock.calls[0][0];
+    upload.mockResolvedValueOnce({ error: { message: "already exists" } });
+    inserted.mockImplementationOnce((row) => ({
+      select: () => ({
+        single: () => Promise.resolve({ data: { id: row.id }, error: null }),
+      }),
+    }));
+    await expect(api.create(input)).resolves.toBeUndefined();
+    expect(upload.mock.calls[1][0]).toBe(firstPath);
+    expect(inserted).toHaveBeenCalledTimes(2);
   });
 });

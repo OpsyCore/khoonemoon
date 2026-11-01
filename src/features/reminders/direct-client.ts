@@ -1,3 +1,4 @@
+import { pendingChildId, pendingRequest } from "@/lib/mutations/pending-create";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { applySnooze, buildReminderTimes } from "./calculations";
 import {
@@ -92,8 +93,36 @@ export function directReminders(client: SupabaseClient) {
         remind_at,
         status: "PENDING",
       }));
-      const { error } = await client.from("reminders").insert(rows);
-      if (error) throw new Error("ثبت یادآور ناموفق بود.");
+      await pendingRequest<true>({
+        user,
+        kind: "reminders",
+        input: { parsed, householdId: target.household_id },
+        submit: async (requestId) => {
+          const ids = await Promise.all(
+            rows.map((_, index) => pendingChildId(requestId, index)),
+          );
+          try {
+            const result = await client
+              .from("reminders")
+              .insert(rows.map((row, index) => ({ ...row, id: ids[index] })));
+            if (!result.error) return { data: true, error: null };
+          } catch {
+            /* The whole insert may still commit. */
+          }
+          const existing = await client
+            .from("reminders")
+            .select("id")
+            .in("id", ids)
+            .eq("user_id", user);
+          const found = new Set(
+            (existing.data ?? []).map((row: { id: string }) => row.id),
+          );
+          return !existing.error && ids.every((id) => found.has(id))
+            ? { data: true, error: null }
+            : { data: null, error: existing.error ?? "unknown" };
+        },
+        valid: (value): value is true => value === true,
+      });
     },
     async snooze(id: string, minutes: number): Promise<void> {
       snoozeReminderSchema.parse({ reminderId: id, minutes });

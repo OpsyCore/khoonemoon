@@ -149,3 +149,40 @@ describe("direct reminders", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 });
+
+describe("reminder retry after a lost response", () => {
+  it("reuses all generated IDs until every committed row can be confirmed", async () => {
+    const { api, fetcher } = setup();
+    const ids: string[][] = [];
+    fetcher.mockImplementation(async (url, init) => {
+      const path = String(url);
+      if (path.includes("/tasks"))
+        return new Response(
+          JSON.stringify({ id: targetId, household_id: null }),
+          { status: 200 },
+        );
+      if (init?.method === "POST") {
+        ids.push(
+          JSON.parse(String(init.body)).map((row: { id: string }) => row.id),
+        );
+        return new Response(JSON.stringify({ message: "network" }), {
+          status: 503,
+        });
+      }
+      return new Response(
+        JSON.stringify(ids.length > 1 ? ids[0].map((id) => ({ id })) : []),
+        { status: 200 },
+      );
+    });
+    const input = {
+      targetType: "TASK",
+      targetId,
+      baseDateTime: "2027-01-01T12:00:00.000Z",
+      offsets: [{ minutesBefore: 0 }, { minutesBefore: 30 }],
+    };
+    await expect(api.create(input)).rejects.toThrow("مشخص نیست");
+    await expect(api.create(input)).resolves.toBeUndefined();
+    expect(ids[1]).toEqual(ids[0]);
+    expect(new Set(ids[0]).size).toBe(2);
+  });
+});

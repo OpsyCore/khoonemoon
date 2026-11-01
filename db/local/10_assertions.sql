@@ -1208,3 +1208,29 @@ do $$ declare pair jsonb; begin
  if public.standalone_push_consume_nonce(repeat('a',64)) then raise exception 'nonce replay accepted'; end if;
 end $$;
 rollback;
+
+-- A retried mobile create is serialized and returns the original row. The
+-- operation and its receipt roll back together on validation failure.
+begin;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}',true);
+set local role authenticated;
+do $$ declare a uuid; b uuid; payload jsonb := '{"title":"retry fixture","visibility":"PRIVATE","status":"PENDING","priority":"NORMAL","assigneeIds":[],"recurrence":{"frequency":"NONE"}}'; begin
+ a := public.mobile_create_once('11111111-1111-4111-8111-111111111111','task',payload);
+ b := public.mobile_create_once('11111111-1111-4111-8111-111111111111','task',payload);
+ if a is distinct from b or (select count(*) from public.tasks where title='retry fixture') <> 1 then raise exception 'task create duplicated'; end if;
+ begin
+  perform public.mobile_create_once('11111111-1111-4111-8111-111111111111','task',jsonb_set(payload,'{title}','"different"'));
+  raise exception 'mismatched payload accepted';
+ exception when others then if sqlerrm <> 'REQUEST_ID_REUSED_WITH_DIFFERENT_INPUT' then raise; end if; end;
+ begin
+  perform public.mobile_create_once('22222222-2222-4222-8222-222222222222','task',jsonb_set(payload,'{title}','"x"'));
+  raise exception 'invalid task accepted';
+ exception when others then if sqlerrm <> 'INVALID_TITLE' then raise; end if; end;
+ if exists(select 1 from public.mobile_create_requests where request_id='22222222-2222-4222-8222-222222222222') then raise exception 'failed request left a receipt'; end if;
+ if has_function_privilege('anon','public.mobile_create_once(uuid,text,jsonb)','execute') then raise exception 'anonymous request accepted'; end if;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000000b","role":"authenticated"}',true);
+do $$ begin
+ if exists(select 1 from public.mobile_create_requests where request_id='11111111-1111-4111-8111-111111111111') then raise exception 'other account sees receipt'; end if;
+end $$;
+rollback;

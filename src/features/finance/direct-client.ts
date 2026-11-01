@@ -1,3 +1,4 @@
+import { pendingCreate } from "@/lib/mutations/pending-create";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createFinancialRecordSchema,
@@ -50,31 +51,44 @@ export function directFinance(client: SupabaseClient) {
           throw new Error("برای ثبت مالی مشترک باید عضو یک خانه باشید.");
         householdId = data.household_id;
       }
-      const { data, error } = await client
-        .from("financial_records")
-        .insert({
-          household_id: householdId,
-          owner_id: user,
-          created_by: user,
-          visibility: record.visibility,
-          record_type: record.recordType,
-          title: record.title,
-          amount: record.amount,
-          currency: record.currency,
-          category: record.category || null,
-          note: record.note || null,
-          occurred_at: record.occurredAt ?? new Date().toISOString(),
-          due_at: record.dueAt ?? null,
-          is_recurring: record.isRecurring,
-          recurrence_rule: record.isRecurring ? record.recurrenceRule : null,
-          recurrence_timezone: record.isRecurring
-            ? record.recurrenceTimezone
-            : null,
-        })
-        .select(COLUMNS)
-        .single();
-      if (error || !data) throw new Error("ثبت اطلاعات مالی ناموفق بود.");
-      return data as FinancialRecord;
+      return pendingCreate<FinancialRecord>({
+        user,
+        kind: "finance",
+        input: { record, householdId },
+        submit: (id) =>
+          client
+            .from("financial_records")
+            .insert({
+              id,
+              household_id: householdId,
+              owner_id: user,
+              created_by: user,
+              visibility: record.visibility,
+              record_type: record.recordType,
+              title: record.title,
+              amount: record.amount,
+              currency: record.currency,
+              category: record.category || null,
+              note: record.note || null,
+              occurred_at: record.occurredAt ?? new Date().toISOString(),
+              due_at: record.dueAt ?? null,
+              is_recurring: record.isRecurring,
+              recurrence_rule: record.isRecurring
+                ? record.recurrenceRule
+                : null,
+              recurrence_timezone: record.isRecurring
+                ? record.recurrenceTimezone
+                : null,
+            })
+            .select(COLUMNS)
+            .single(),
+        find: (id) =>
+          client
+            .from("financial_records")
+            .select(COLUMNS)
+            .eq("id", id)
+            .maybeSingle(),
+      });
     },
     async update(
       id: string,

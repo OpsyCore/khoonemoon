@@ -15,6 +15,10 @@ function setup() {
     global: { fetch: fetcher },
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  vi.spyOn(client.auth, "getUser").mockResolvedValue({
+    data: { user: { id: "user-1" } as never },
+    error: null,
+  });
   return { api: directTasks(client), fetcher };
 }
 
@@ -93,7 +97,7 @@ describe("atomic task creation", () => {
   it("validates and sends the task to the transactional RPC", async () => {
     const { api, fetcher } = setup();
     fetcher.mockResolvedValueOnce(
-      new Response(JSON.stringify("task-1"), {
+      new Response(JSON.stringify("11111111-1111-4111-8111-111111111111"), {
         status: 200,
         headers: { "content-type": "application/json" },
       }),
@@ -107,7 +111,7 @@ describe("atomic task creation", () => {
       recurrence: { frequency: "NONE" },
     });
     expect(String(fetcher.mock.calls[0][0])).toContain(
-      "rpc/mobile_create_task",
+      "rpc/mobile_create_once",
     );
     expect(
       JSON.parse(String(fetcher.mock.calls[0][1]?.body)).p_input,

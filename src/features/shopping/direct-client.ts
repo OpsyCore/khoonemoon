@@ -1,3 +1,4 @@
+import { pendingCreate } from "@/lib/mutations/pending-create";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createShoppingItemSchema,
@@ -45,13 +46,23 @@ export function directShopping(client: SupabaseClient) {
     ): Promise<ShoppingList> {
       const { name } = createShoppingListSchema.parse(input);
       const userId = await currentUserId(client);
-      const { data, error } = await client
-        .from("shopping_lists")
-        .insert({ household_id: householdId, name, created_by: userId })
-        .select(LIST_COLUMNS)
-        .single();
-      if (error || !data) throw new Error("ایجاد لیست خرید ناموفق بود.");
-      return data as ShoppingList;
+      return pendingCreate<ShoppingList>({
+        user: userId,
+        kind: "shopping-list",
+        input: { householdId, name },
+        submit: (id) =>
+          client
+            .from("shopping_lists")
+            .insert({ id, household_id: householdId, name, created_by: userId })
+            .select(LIST_COLUMNS)
+            .single(),
+        find: (id) =>
+          client
+            .from("shopping_lists")
+            .select(LIST_COLUMNS)
+            .eq("id", id)
+            .maybeSingle(),
+      });
     },
     async updateList(id: string, name: string): Promise<void> {
       const input = createShoppingListSchema.parse({ name });
@@ -94,21 +105,32 @@ export function directShopping(client: SupabaseClient) {
     async addItem(input: unknown): Promise<ShoppingItem> {
       const item = createShoppingItemSchema.parse(input);
       const userId = await currentUserId(client);
-      const { data, error } = await client
-        .from("shopping_items")
-        .insert({
-          list_id: item.listId,
-          name: item.name,
-          quantity: item.quantity ?? null,
-          unit: item.unit || null,
-          category: item.category || null,
-          note: item.note || null,
-          added_by: userId,
-        })
-        .select(ITEM_COLUMNS)
-        .single();
-      if (error || !data) throw new Error("افزودن آیتم خرید ناموفق بود.");
-      return data as ShoppingItem;
+      return pendingCreate<ShoppingItem>({
+        user: userId,
+        kind: "shopping-item",
+        input: item,
+        submit: (id) =>
+          client
+            .from("shopping_items")
+            .insert({
+              id,
+              list_id: item.listId,
+              name: item.name,
+              quantity: item.quantity ?? null,
+              unit: item.unit || null,
+              category: item.category || null,
+              note: item.note || null,
+              added_by: userId,
+            })
+            .select(ITEM_COLUMNS)
+            .single(),
+        find: (id) =>
+          client
+            .from("shopping_items")
+            .select(ITEM_COLUMNS)
+            .eq("id", id)
+            .maybeSingle(),
+      });
     },
     async updateItem(
       id: string,

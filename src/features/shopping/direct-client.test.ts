@@ -35,7 +35,8 @@ describe("direct Supabase shopping transport", () => {
     });
     const [url, init] = fetcher.mock.calls[0];
     expect(String(url)).toContain("shopping_lists");
-    expect(JSON.parse(String(init?.body))).toEqual({
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      id: expect.any(String),
       household_id: "house-1",
       name: "خرید خانه",
       created_by: "user-1",
@@ -98,7 +99,7 @@ describe("direct Supabase shopping transport", () => {
       }),
     );
     await expect(api.createList("house-1", { name: "خرید" })).rejects.toThrow(
-      "ایجاد لیست خرید ناموفق بود",
+      "نتیجهٔ ثبت مشخص نیست",
     );
   });
   it("renames and archives lists through RLS and reports missing rows", async () => {

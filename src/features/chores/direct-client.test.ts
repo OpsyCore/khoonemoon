@@ -90,7 +90,7 @@ describe("atomic chore creation", () => {
   it("validates rotating assignees before calling RPC", async () => {
     const fetcher = vi.fn(
       async (_url: RequestInfo | URL, _init?: RequestInit) =>
-        new Response(JSON.stringify("chore-1"), {
+        new Response(JSON.stringify("11111111-1111-4111-8111-111111111111"), {
           status: 200,
           headers: { "content-type": "application/json" },
         }),
@@ -98,6 +98,10 @@ describe("atomic chore creation", () => {
     const client = createClient("https://example.supabase.co", "anon", {
       global: { fetch: fetcher },
       auth: { persistSession: false, autoRefreshToken: false },
+    });
+    vi.spyOn(client.auth, "getUser").mockResolvedValue({
+      data: { user: { id: "user-1" } as never },
+      error: null,
     });
     const api = directChores(client);
     await expect(
@@ -117,7 +121,7 @@ describe("atomic chore creation", () => {
       weekdays: null,
     });
     expect(String(fetcher.mock.calls[0][0])).toContain(
-      "rpc/mobile_create_chore",
+      "rpc/mobile_create_once",
     );
     expect(
       JSON.parse(String(fetcher.mock.calls[0][1]?.body)).p_input.title,

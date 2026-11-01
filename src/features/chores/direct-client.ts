@@ -1,3 +1,4 @@
+import { pendingRequest } from "@/lib/mutations/pending-create";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ChoreRecord, ChoreCompletion } from "./types";
@@ -10,15 +11,25 @@ export function directChores(client: SupabaseClient) {
   return {
     async create(input: unknown): Promise<string> {
       const chore = createChoreSchema.parse(input);
-      const { data, error } = await client.rpc("mobile_create_chore", {
-        p_input: {
-          ...chore,
-          recurrenceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        },
+      const { data: auth, error: authError } = await client.auth.getUser();
+      if (authError || !auth.user) throw new Error("ابتدا وارد حساب خود شوید.");
+      const payload = {
+        ...chore,
+        recurrenceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
+      return pendingRequest<string>({
+        user: auth.user.id,
+        kind: "chore",
+        input: payload,
+        submit: (id) =>
+          client.rpc("mobile_create_once", {
+            p_request_id: id,
+            p_kind: "chore",
+            p_input: payload,
+          }),
+        valid: (value): value is string =>
+          typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value),
       });
-      if (error || typeof data !== "string")
-        throw new Error("ساخت کار خانه ناموفق بود.");
-      return data;
     },
     async update(
       id: string,

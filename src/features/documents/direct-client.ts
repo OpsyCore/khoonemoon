@@ -1,3 +1,4 @@
+import { pendingRequest } from "@/lib/mutations/pending-create";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createDocumentMetaSchema,
@@ -131,46 +132,83 @@ export function directDocuments(client: SupabaseClient) {
           throw new Error("برای مدرک مشترک باید عضو خانه باشید.");
         house = data.household_id;
       }
-      const id = crypto.randomUUID();
+      const fileHash = Array.from(
+        new Uint8Array(
+          await crypto.subtle.digest("SHA-256", await file.arrayBuffer()),
+        ),
+        (byte) => byte.toString(16).padStart(2, "0"),
+      ).join("");
       const safe =
         file.name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 80) || "file";
-      const path =
-        visibility === "PRIVATE"
-          ? `user/${user}/${id}/${safe}`
-          : `household/${house}/${id}/${safe}`;
-      const upload = await client.storage
-        .from(DOCUMENT_BUCKET)
-        .upload(path, file, { contentType: meta.mimeType, upsert: false });
-      if (upload.error) throw new Error("بارگذاری فایل ناموفق بود.");
-      const { data, error } = await client
-        .from("documents")
-        .insert({
-          id,
-          household_id: house,
-          created_by: user,
-          title: meta.title,
-          description: meta.description ?? null,
-          mime_type: meta.mimeType,
-          file_size: meta.fileSize,
-          storage_path: path,
-          visibility,
-          category: categoryValue,
-        })
-        .select("id")
-        .single();
-      if (error || !data) {
-        // An insert may still commit after a failed response or a read that
-        // raced with it. Never delete the uploaded object in this case.
-        const check = await client
-          .from("documents")
-          .select("id")
-          .eq("id", id)
-          .maybeSingle();
-        if (!check.error && check.data) return;
-        throw new Error(
-          "وضعیت ثبت مدرک نامشخص است؛ فهرست را تازه‌سازی کنید. فایل برای جلوگیری از حذف ناخواسته نگه داشته شد.",
-        );
-      }
+      await pendingRequest<true>({
+        user,
+        kind: "document",
+        input: { meta, categoryValue, visibility, house, safe, fileHash },
+        submit: async (id) => {
+          const path =
+            visibility === "PRIVATE"
+              ? `user/${user}/${id}/${safe}`
+              : `household/${house}/${id}/${safe}`;
+          const lookup = async () => {
+            const result = await client
+              .from("documents")
+              .select("id,storage_path,created_by")
+              .eq("id", id)
+              .maybeSingle();
+            return (
+              !result.error &&
+              result.data?.id === id &&
+              result.data?.storage_path === path &&
+              result.data?.created_by === user
+            );
+          };
+          if (await lookup()) return { data: true, error: null };
+          const upload = await client.storage
+            .from(DOCUMENT_BUCKET)
+            .upload(path, file, { contentType: meta.mimeType, upsert: false });
+          if (upload.error) {
+            // A lost upload response can leave the object in Storage. Reuse it
+            // only when its bytes exactly match; never overwrite or delete it.
+            const existing = await client.storage
+              .from(DOCUMENT_BUCKET)
+              .download(path);
+            if (existing.error || !existing.data)
+              return { data: null, error: existing.error ?? "unknown" };
+            const hash = Array.from(
+              new Uint8Array(
+                await crypto.subtle.digest(
+                  "SHA-256",
+                  await existing.data.arrayBuffer(),
+                ),
+              ),
+              (byte) => byte.toString(16).padStart(2, "0"),
+            ).join("");
+            if (hash !== fileHash)
+              return { data: null, error: "mismatched object" };
+          }
+          const result = await client
+            .from("documents")
+            .insert({
+              id,
+              household_id: house,
+              created_by: user,
+              title: meta.title,
+              description: meta.description ?? null,
+              mime_type: meta.mimeType,
+              file_size: meta.fileSize,
+              storage_path: path,
+              visibility,
+              category: categoryValue,
+            })
+            .select("id")
+            .single();
+          if (!result.error && result.data?.id === id)
+            return { data: true, error: null };
+          if (await lookup()) return { data: true, error: null };
+          return { data: null, error: result.error ?? "unknown" };
+        },
+        valid: (value): value is true => value === true,
+      });
     },
     async update(
       id: string,
@@ -247,16 +285,28 @@ export function directDocuments(client: SupabaseClient) {
         entityId,
       });
       const user = await currentUser(client);
-      const { error } = await client.from("document_attachments").insert({
-        document_id: id,
-        entity_type: item.entityType,
-        entity_id: item.entityId,
-        created_by: user,
-      });
-      if (error)
-        throw new Error(
-          "ثبت پیوند ناموفق بود؛ دسترسی یا تکراری بودن آن را بررسی کنید.",
-        );
+      try {
+        const { error } = await client.from("document_attachments").insert({
+          document_id: id,
+          entity_type: item.entityType,
+          entity_id: item.entityId,
+          created_by: user,
+        });
+        if (!error) return;
+      } catch {
+        /* The link may have committed. */
+      }
+      const check = await client
+        .from("document_attachments")
+        .select("id")
+        .eq("document_id", id)
+        .eq("entity_type", item.entityType)
+        .eq("entity_id", item.entityId)
+        .maybeSingle();
+      if (!check.error && check.data) return;
+      throw new Error(
+        "نتیجهٔ ثبت پیوند مشخص نیست؛ فهرست پیوندها را تازه کنید و دوباره بررسی کنید.",
+      );
     },
     async detach(id: string) {
       const { data, error } = await client

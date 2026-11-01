@@ -33,4 +33,7 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f db/local/10_assertions.sql
 echo "==> checking concurrent cleanup races on the disposable database"
 bash scripts/db-cleanup-concurrency.sh
 
+echo "==> checking concurrent create retries"
+bash scripts/db-create-concurrency.sh
+
 echo "==> database verification passed"

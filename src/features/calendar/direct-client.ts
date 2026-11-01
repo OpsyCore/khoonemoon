@@ -1,3 +1,4 @@
+import { pendingCreate } from "@/lib/mutations/pending-create";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createEventSchema } from "./schemas";
 import type { EventRecord } from "./types";
@@ -41,24 +42,31 @@ export function directCalendar(client: SupabaseClient) {
           throw new Error("برای رویداد اشتراکی باید عضو خانه باشید.");
         householdId = membership.household_id;
       }
-      const { data, error } = await client
-        .from("events")
-        .insert({
-          title: event.title,
-          description: event.description || null,
-          creator_id: auth.user.id,
-          owner_id: auth.user.id,
-          household_id: householdId,
-          visibility: event.visibility,
-          start_at: event.startAt,
-          end_at: event.endAt,
-          all_day: event.allDay,
-          location: event.location || null,
-        })
-        .select(COLUMNS)
-        .single();
-      if (error || !data) throw new Error("ایجاد رویداد ناموفق بود.");
-      return data as EventRecord;
+      return pendingCreate<EventRecord>({
+        user: auth.user.id,
+        kind: "calendar",
+        input: { event, householdId },
+        submit: (id) =>
+          client
+            .from("events")
+            .insert({
+              id,
+              title: event.title,
+              description: event.description || null,
+              creator_id: auth.user.id,
+              owner_id: auth.user.id,
+              household_id: householdId,
+              visibility: event.visibility,
+              start_at: event.startAt,
+              end_at: event.endAt,
+              all_day: event.allDay,
+              location: event.location || null,
+            })
+            .select(COLUMNS)
+            .single(),
+        find: (id) =>
+          client.from("events").select(COLUMNS).eq("id", id).maybeSingle(),
+      });
     },
     async update(id: string, input: unknown): Promise<EventRecord> {
       const event = createEventSchema.parse(input);

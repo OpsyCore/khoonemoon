@@ -1,3 +1,4 @@
+import { pendingRequest } from "@/lib/mutations/pending-create";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { applyTaskCompletion } from "./security";
 import { z } from "zod";
@@ -12,15 +13,25 @@ export function directTasks(client: SupabaseClient) {
   return {
     async create(input: unknown): Promise<string> {
       const task = createTaskSchema.parse(input);
-      const { data, error } = await client.rpc("mobile_create_task", {
-        p_input: {
-          ...task,
-          recurrenceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        },
+      const { data: auth, error: authError } = await client.auth.getUser();
+      if (authError || !auth.user) throw new Error("ابتدا وارد حساب خود شوید.");
+      const payload = {
+        ...task,
+        recurrenceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
+      return pendingRequest<string>({
+        user: auth.user.id,
+        kind: "task",
+        input: payload,
+        submit: (id) =>
+          client.rpc("mobile_create_once", {
+            p_request_id: id,
+            p_kind: "task",
+            p_input: payload,
+          }),
+        valid: (value): value is string =>
+          typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value),
       });
-      if (error || typeof data !== "string")
-        throw new Error("ساخت تسک ناموفق بود.");
-      return data;
     },
     async update(
       id: string,
