@@ -2,6 +2,39 @@ import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { exportMobileData } from "./direct-client";
 import { csvEscape } from "./archive";
+const exportTables = [
+  "profiles",
+  "households",
+  "household_members",
+  "task_recurrence_instances",
+  "finance_recurrence_instances",
+  "tasks",
+  "task_assignees",
+  "task_recurrences",
+  "events",
+  "reminders",
+  "notification_preferences",
+  "chores",
+  "chore_rotation_steps",
+  "chore_completions",
+  "shopping_lists",
+  "shopping_items",
+  "financial_records",
+  "documents",
+  "document_attachments",
+];
+function snapshot(overrides: Record<string, unknown[]> = {}) {
+  const tables = Object.fromEntries(
+    exportTables.map((name) => [name, overrides[name] ?? []]),
+  );
+  return {
+    exported_at: "2026-01-01T00:00:00Z",
+    tables,
+    counts: Object.fromEntries(
+      exportTables.map((name) => [name, tables[name].length]),
+    ),
+  };
+}
 function fixture(errorTable?: string) {
   const ranges: Array<[string, number, number]> = [];
   const from = vi.fn((table: string) => ({
@@ -29,18 +62,43 @@ function fixture(errorTable?: string) {
       }),
     }),
   }));
-  return { client: { from } as unknown as SupabaseClient, ranges, from };
+  const rpc = vi.fn(async () =>
+    errorTable
+      ? { data: null, error: {} }
+      : {
+          data: snapshot({
+            financial_records: [
+              {
+                id: "f1",
+                record_type: "EXPENSE",
+                title: "=1+1",
+                amount: 100,
+                currency: "IRR",
+                occurred_at: "2026-01-01",
+              },
+            ],
+          }),
+          error: null,
+        },
+  );
+  return {
+    client: { from, rpc } as unknown as SupabaseClient,
+    ranges,
+    from,
+    rpc,
+  };
 }
 describe("mobile archive", () => {
   it("includes authorized table results and explains document files are excluded", async () => {
-    const { client, ranges } = fixture();
+    const { client, ranges, rpc } = fixture();
     const archive = JSON.parse(
       await exportMobileData(client, "json", new Date("2026-01-01")),
     );
     expect(archive.tables.financial_records).toHaveLength(1);
     expect(archive.tables.documents).toEqual([]);
     expect(archive.note).toContain("فایل‌های مدارک");
-    expect(ranges).toHaveLength(19);
+    expect(ranges).toHaveLength(0);
+    expect(rpc).toHaveBeenCalledWith("mobile_export_snapshot");
     expect(archive.tables.profiles).toEqual([]);
     expect(archive.tables.households).toEqual([]);
     expect(archive.tables.household_members).toEqual([]);
@@ -55,6 +113,26 @@ describe("mobile archive", () => {
     await expect(
       exportMobileData(client, "json", new Date()),
     ).rejects.toThrow();
+  });
+  it("rejects a snapshot with missing or inconsistent tables", async () => {
+    const { client, rpc } = fixture();
+    rpc.mockResolvedValueOnce({
+      data: {
+        exported_at: "2026-01-01T00:00:00Z",
+        tables: { tasks: [] },
+        counts: { tasks: 0 },
+      },
+      error: null,
+    });
+    await expect(exportMobileData(client, "json", new Date())).rejects.toThrow(
+      "ساختار",
+    );
+    const corrupted = snapshot();
+    corrupted.counts.tasks = 1;
+    rpc.mockResolvedValueOnce({ data: corrupted, error: null });
+    await expect(exportMobileData(client, "json", new Date())).rejects.toThrow(
+      "ناقص",
+    );
   });
   it("limits CSV to finance and neutralizes formula text", async () => {
     const { client, ranges } = fixture();
@@ -100,6 +178,20 @@ describe("document backup", () => {
     }));
     const client = {
       from,
+      rpc: vi.fn().mockResolvedValue({
+        data: snapshot({
+          documents: [
+            {
+              id,
+              storage_path: "user/me/x.pdf",
+              mime_type: "application/pdf",
+              file_size: 4,
+              title: "مدرک",
+            },
+          ],
+        }),
+        error: null,
+      }),
       storage: { from: () => ({ download }) },
     } as unknown as SupabaseClient;
     const bytes = await exportMobileBackup(client, new Date("2026-01-01"));
@@ -142,6 +234,19 @@ describe("document backup", () => {
     }));
     const client = {
       from,
+      rpc: vi.fn().mockResolvedValue({
+        data: snapshot({
+          documents: [
+            {
+              id,
+              storage_path: "user/me/x.pdf",
+              mime_type: "application/pdf",
+              file_size: 4,
+            },
+          ],
+        }),
+        error: null,
+      }),
       storage: {
         from: () => ({
           download: async () => ({ data: null, error: { message: "denied" } }),

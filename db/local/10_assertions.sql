@@ -965,3 +965,20 @@ do $$ declare n integer; begin
  if has_function_privilege('anon','public.possible_orphan_documents()','execute') then raise exception 'anonymous orphan scan allowed'; end if;
 end $$;
 rollback;
+
+-- Snapshot has one transaction snapshot, explicit columns and respects user RLS.
+begin;
+insert into public.tasks(title,creator_id,owner_id,visibility,priority)
+ values ('snapshot-private-a','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','PRIVATE','NORMAL'),
+ ('snapshot-private-c','00000000-0000-4000-8000-00000000000c','00000000-0000-4000-8000-00000000000c','PRIVATE','NORMAL');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare snapshot jsonb; begin
+ snapshot:=public.mobile_export_snapshot();
+ if (snapshot->'tables'->'tasks')::text not like '%snapshot-private-a%' or (snapshot->'tables'->'tasks')::text like '%snapshot-private-c%' then raise exception 'snapshot RLS failure'; end if;
+ if (snapshot->'counts'->>'tasks')::integer <> jsonb_array_length(snapshot->'tables'->'tasks') then raise exception 'snapshot count mismatch'; end if;
+ if snapshot->'tables' ? 'push_subscriptions' or snapshot->'tables' ? 'household_invitations' or snapshot->'tables' ? 'reminder_devices' then raise exception 'secrets included'; end if;
+ if not (snapshot->'tables' ? 'profiles' and snapshot->'tables' ? 'task_recurrence_instances' and snapshot->'tables' ? 'finance_recurrence_instances') then raise exception 'snapshot tables missing'; end if;
+ if has_function_privilege('anon','public.mobile_export_snapshot()','execute') then raise exception 'anonymous snapshot allowed'; end if;
+end $$;
+rollback;

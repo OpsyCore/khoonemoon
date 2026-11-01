@@ -76,6 +76,43 @@ async function readTable(
     throw new Error("تعداد داده‌ها برای خروجی بیش از حد مجاز است.");
   return records;
 }
+/** One database snapshot under caller RLS; attachment bytes are read separately. */
+async function readSnapshot(client: SupabaseClient): Promise<{
+  tables: { name: string; rows: Record<string, unknown>[] }[];
+  snapshotAt: string;
+}> {
+  const { data, error } = await client.rpc("mobile_export_snapshot");
+  if (
+    error ||
+    !data ||
+    typeof data !== "object" ||
+    !data.tables ||
+    !data.counts ||
+    typeof data.exported_at !== "string" ||
+    !Number.isFinite(Date.parse(data.exported_at))
+  )
+    throw new Error(
+      "ساخت خروجی اطلاعات ناموفق بود؛ اتصال یا محدودیت حجم را بررسی کنید.",
+    );
+  const names = Object.keys(TABLES);
+  if (
+    Object.keys(data.tables).length !== names.length ||
+    Object.keys(data.counts).length !== names.length
+  )
+    throw new Error("ساختار خروجی اطلاعات نامعتبر است.");
+  const tables = names.map((name) => {
+    const rows = data.tables[name];
+    if (
+      !Array.isArray(rows) ||
+      rows.length > 10000 ||
+      data.counts[name] !== rows.length ||
+      rows.some((row) => !row || typeof row !== "object" || Array.isArray(row))
+    )
+      throw new Error("اطلاعات خروجی ناقص است.");
+    return { name, rows: rows as Record<string, unknown>[] };
+  });
+  return { tables, snapshotAt: data.exported_at };
+}
 export async function exportMobileData(
   client: SupabaseClient,
   format: "json" | "csv",
@@ -88,11 +125,12 @@ export async function exportMobileData(
       rows: rows as unknown as ExportableRecord[],
     });
   }
-  const names = Object.keys(TABLES) as (keyof typeof TABLES)[];
-  const tables = await Promise.all(
-    names.map(async (name) => ({ name, rows: await readTable(client, name) })),
+  const { tables, snapshotAt } = await readSnapshot(client);
+  return JSON.stringify(
+    { ...buildArchive({ tables, now }), snapshot_at: snapshotAt },
+    null,
+    2,
   );
-  return JSON.stringify(buildArchive({ tables, now }), null, 2);
 }
 
 /** Archive includes every listed file or fails; never emits a partial backup. */
@@ -100,10 +138,7 @@ export async function exportMobileBackup(
   client: SupabaseClient,
   now: Date,
 ): Promise<Uint8Array> {
-  const names = Object.keys(TABLES) as (keyof typeof TABLES)[];
-  const tables = await Promise.all(
-    names.map(async (name) => ({ name, rows: await readTable(client, name) })),
-  );
+  const { tables, snapshotAt } = await readSnapshot(client);
   const documents = tables.find((table) => table.name === "documents")!;
   if (documents.rows.length > 200)
     throw new Error(
@@ -150,9 +185,9 @@ export async function exportMobileBackup(
     row.archive_file = name;
     delete row.storage_path;
   }
-  const archive = buildArchive({ tables, now });
+  const archive = { ...buildArchive({ tables, now }), snapshot_at: snapshotAt };
   archive.note =
-    "این پرونده شامل داده‌های انتخاب‌شده و فایل‌های مدارک قابل مشاهده است؛ این خروجی عکس لحظه‌ای تراکنشی نیست و باید در جای امن نگهداری شود.";
+    "این پرونده شامل داده‌های انتخاب‌شده از یک لحظهٔ پایگاه داده و فایل‌های مدارک قابل مشاهده است؛ فایل‌ها در زمان جداگانه دریافت شده‌اند. این خروجی نسخهٔ کامل حساب نیست و باید در جای امن نگهداری شود.";
   const json = strToU8(JSON.stringify(archive, null, 2));
   if (json.length > 4 * 1024 * 1024)
     throw new Error(
