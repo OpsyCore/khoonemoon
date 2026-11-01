@@ -1,6 +1,9 @@
 name: Android APK
 on:
   workflow_dispatch:
+  push:
+    branches: [arena/00d965b0-khoonemoon]
+    paths: [".github/workflows/android.yml"]
 
 permissions:
   contents: read
