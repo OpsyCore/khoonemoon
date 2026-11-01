@@ -167,6 +167,7 @@ describe.skipIf(!dbUrl)("local Supabase account and file backup drill", () => {
           "--no-owner",
           "--no-acl",
           "--exit-on-error",
+          "--dbname=postgres",
           "--table=users",
           "--table=identities",
         ],
