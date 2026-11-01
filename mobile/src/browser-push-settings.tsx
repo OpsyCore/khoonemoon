@@ -15,9 +15,9 @@ export function BrowserPushSettings({
   const [key, setKey] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
-    void client
-      .rpc("standalone_push_public_key")
-      .then(({ data, error }) => {
+    void (async () => {
+      try {
+        const { data, error } = await client.rpc("standalone_push_public_key");
         if (active)
           setKey(
             !error &&
@@ -26,10 +26,10 @@ export function BrowserPushSettings({
               ? data
               : null,
           );
-      })
-      .catch(() => {
+      } catch {
         if (active) setKey(null);
-      });
+      }
+    })();
     return () => {
       active = false;
     };
