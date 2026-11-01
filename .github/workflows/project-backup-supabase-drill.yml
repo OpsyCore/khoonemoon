@@ -1,0 +1,53 @@
+name: Local Supabase backup drill
+on:
+  push:
+    branches: ["arena/**"]
+    paths:
+      - "scripts/lib/project-backup-supabase.test.mjs"
+      - ".github/workflows/project-backup-supabase-drill.yml"
+permissions:
+  contents: read
+jobs:
+  local-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
+      - name: Start isolated local Supabase
+        run: |
+          mkdir -p "$RUNNER_TEMP/backup-supabase"
+          cd "$RUNNER_TEMP/backup-supabase"
+          npx --yes supabase@2.122.0 init
+          npx --yes supabase@2.122.0 start -x realtime,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor > "$RUNNER_TEMP/supabase-start.log" 2>&1 || { tail -40 "$RUNNER_TEMP/supabase-start.log"; exit 1; }
+          npx --yes supabase@2.122.0 status -o env > "$RUNNER_TEMP/supabase-fixture.env"
+          . "$RUNNER_TEMP/supabase-fixture.env"
+          {
+            echo "BACKUP_LOCAL_SUPABASE_DB_URL=$DB_URL"
+            echo "BACKUP_LOCAL_SUPABASE_API_URL=$API_URL"
+            echo "BACKUP_LOCAL_SUPABASE_SERVICE_KEY=$SERVICE_ROLE_KEY"
+            echo "BACKUP_LOCAL_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "BACKUP_TEST_POSTGRES_CONTAINER=$(docker ps --filter name=supabase_db_ --format '{{.ID}}')"
+          } >> "$GITHUB_ENV"
+      - name: Use tools from isolated PostgreSQL container
+        run: |
+          mkdir -p "$RUNNER_TEMP/pg-tools"
+          for tool in pg_dump pg_restore; do
+            cat > "$RUNNER_TEMP/pg-tools/$tool" <<'SH'
+          #!/bin/sh
+          exec docker exec -i -e PGHOST=127.0.0.1 -e PGPORT=5432 -e PGUSER -e PGPASSWORD -e PGDATABASE "$BACKUP_TEST_POSTGRES_CONTAINER" "$(basename "$0")" "$@"
+          SH
+            chmod 755 "$RUNNER_TEMP/pg-tools/$tool"
+          done
+          echo "$RUNNER_TEMP/pg-tools" >> "$GITHUB_PATH"
+      - name: Back up and recover a synthetic account and Storage object
+        run: npx vitest run scripts/lib/project-backup-supabase.test.mjs
+      - name: Stop isolated local stack
+        if: always()
+        run: |
+          cd "$RUNNER_TEMP/backup-supabase" || exit 0
+          npx --yes supabase@2.122.0 stop --no-backup || true
