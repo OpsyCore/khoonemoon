@@ -41,13 +41,14 @@ final class ReminderScheduler {
             if (incoming.length() > 10000) return false;
             long now = System.currentTimeMillis();
             JSONArray valid = new JSONArray();
+            JSONObject delivered = delivered(context);
             for (int i=0; i<incoming.length(); i++) {
                 JSONObject entry = incoming.getJSONObject(i);
                 String id = entry.getString("id"); long at = entry.getLong("at");
                 if (!id.matches("[0-9a-fA-F-]{36}") || at <= 0) return false;
                 long source = entry.optLong("source", at);
                 if (source <= 0) return false;
-                if (at > now) valid.put(new JSONObject().put("id",id).put("at",at).put("source",source));
+                if (at > now && delivered.optLong(id, -1) != source) valid.put(new JSONObject().put("id",id).put("at",at).put("source",source));
             }
             SharedPreferences p = prefs(context);
             if (!account.equals(p.getString("account", ""))) return false;
@@ -84,6 +85,15 @@ final class ReminderScheduler {
         } catch (JSONException ignored) { clear(context); }
     }
     static synchronized void fire(Context context) {
+        // Do not mark a reminder as delivered if Android blocks notifications.
+        // A later foreground or WorkManager sync can schedule it again.
+        NotificationManager manager = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if ((Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+                || !manager.areNotificationsEnabled()) return;
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationChannel channel = manager.getNotificationChannel(CHANNEL);
+            if (channel != null && channel.getImportance() == NotificationManager.IMPORTANCE_NONE) return;
+        }
         try {
             JSONArray rows = new JSONArray(prefs(context).getString("pending","[]"));
             JSONArray remaining = new JSONArray(); JSONObject delivered = delivered(context);

@@ -12,6 +12,10 @@ final class QuietHours {
         return Integer.parseInt(value.substring(0, 2)) * 60 + Integer.parseInt(value.substring(3, 5));
     }
 
+    static long lateDelivery(long now, boolean enabled, String startText, String endText, TimeZone zone) {
+        return Math.max(now + 2000, adjust(now, enabled, startText, endText, zone));
+    }
+
     static long adjust(long at, boolean enabled, String startText, String endText, TimeZone zone) {
         if (!enabled || at <= 0 || zone == null) return at;
         int start = minutes(startText), end = minutes(endText);

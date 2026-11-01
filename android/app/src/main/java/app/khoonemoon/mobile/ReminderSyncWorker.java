@@ -71,7 +71,8 @@ public final class ReminderSyncWorker extends Worker {
                 long at = QuietHours.adjust(original, quiet, start, end, TimeZone.getDefault());
                 if (at <= now) {
                     if (now - at > TimeUnit.HOURS.toMillis(24) || delivered.optLong(reminder, -1) == at) continue;
-                    schedule.put(new JSONObject().put("id",reminder).put("at",now+2000).put("source",at));
+                    long deliverAt = QuietHours.lateDelivery(now, quiet, start, end, TimeZone.getDefault());
+                    schedule.put(new JSONObject().put("id",reminder).put("at",deliverAt).put("source",at));
                 } else schedule.put(new JSONObject().put("id",reminder).put("at",at).put("source",at));
             }
             synchronized (BackgroundCredential.class) {

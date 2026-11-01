@@ -1,3 +1,4 @@
+import { BrowserPushSettings } from "./browser-push-settings";
 import {
   useCallback,
   useEffect,
@@ -191,8 +192,14 @@ export function Reminders({
       <p>
         {window.KhoonemoonNotifications
           ? notificationStatus || "در حال بررسی اعلان‌ها…"
-          : "اعلان اندروید در این مرورگر در دسترس نیست."}
+          : "تنظیمات اعلان مرورگر در ادامه آمده است."}
       </p>
+      {!window.KhoonemoonNotifications && (
+        <BrowserPushSettings
+          client={client}
+          onChanged={() => setPrefsVersion((value) => value + 1)}
+        />
+      )}
       {window.KhoonemoonNotifications && (
         <>
           <button

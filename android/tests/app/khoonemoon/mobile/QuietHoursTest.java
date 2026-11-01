@@ -22,6 +22,8 @@ public final class QuietHoursTest {
         check(at(1,23,0), QuietHours.adjust(at(1,23,0), true,"99:99","08:00",ZONE));
         check(at(1,23,0), QuietHours.adjust(at(1,23,0), false,"22:00","08:00",ZONE));
         check(at(1,23,0), QuietHours.adjust(at(1,23,0), true,"22:00","22:00",ZONE));
+        check(at(2,8,0), QuietHours.lateDelivery(at(1,23,0), true,"22:00","08:00",ZONE));
+        check(at(1,9,0)+2000, QuietHours.lateDelivery(at(1,9,0), true,"22:00","08:00",ZONE));
         System.out.println("QuietHours tests passed");
     }
 }

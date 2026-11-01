@@ -16,6 +16,7 @@ import { createRoot } from "react-dom/client";
 import { useDueReminderCount } from "./reminder-badge";
 import { describeBadge, formatBadgeCount } from "@/shared/utils/badge-count";
 import { useMobileNotifications } from "./notifications";
+import { disableBrowserPush } from "./web-push";
 import { Documents } from "./documents";
 import { Reminders } from "./reminders";
 import { Shopping } from "./shopping";
@@ -732,6 +733,19 @@ function App() {
                         window.setTimeout(resolve, 4000),
                       ),
                     ]).catch(() => {});
+                  }
+                  if (
+                    !window.KhoonemoonNotifications &&
+                    "serviceWorker" in navigator
+                  ) {
+                    try {
+                      const registration =
+                        await navigator.serviceWorker.getRegistration();
+                      if (registration)
+                        await disableBrowserPush(client, registration);
+                    } catch {
+                      /* local logout remains available while offline */
+                    }
                   }
                   const { error } = await client.auth.signOut();
                   if (error) throw error;

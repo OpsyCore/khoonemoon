@@ -78,7 +78,7 @@ export function notificationSchedule(
     )
     .map((row) => ({
       id: row.id,
-      at: afterQuietHours(
+      source: afterQuietHours(
         Date.parse(
           row.status === "SNOOZED" && row.snoozed_until
             ? row.snoozed_until
@@ -87,7 +87,19 @@ export function notificationSchedule(
         preferences,
       ),
     }))
-    .filter((row) => Number.isFinite(row.at) && row.at > now);
+    .filter(
+      (row) =>
+        Number.isFinite(row.source) &&
+        row.source > 0 &&
+        now - row.source <= 24 * 60 * 60 * 1000,
+    )
+    .map((row) => ({
+      ...row,
+      at:
+        row.source <= now
+          ? Math.max(now + 2000, afterQuietHours(now, preferences))
+          : row.source,
+    }));
 }
 export function useMobileNotifications(
   client: SupabaseClient | null,

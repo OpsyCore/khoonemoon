@@ -1,0 +1,79 @@
+/// <reference types="vite/client" />
+import { useState } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { disableBrowserPush, enableBrowserPush } from "./web-push";
+
+export function BrowserPushSettings({
+  client,
+  onChanged,
+}: {
+  client: SupabaseClient;
+  onChanged: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const key = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY as string | undefined;
+  const configured = import.meta.env.VITE_WEB_PUSH_ENABLED === "true" && !!key;
+  const supported =
+    typeof window !== "undefined" &&
+    window.isSecureContext &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window;
+  async function run(enable: boolean) {
+    setBusy(true);
+    setMessage("");
+    try {
+      // Invoke permission synchronously within the click handler, before waiting for service-worker I/O.
+      const permission =
+        enable && Notification.permission !== "granted"
+          ? Notification.requestPermission()
+          : null;
+      if (permission && (await permission) !== "granted")
+        throw new Error("مجوز اعلان صادر نشد.");
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration)
+        throw new Error("برنامه هنوز آماده نیست؛ صفحه را تازه کنید.");
+      if (enable && key) await enableBrowserPush(client, registration, key);
+      else await disableBrowserPush(client, registration);
+      onChanged();
+      setMessage(
+        enable
+          ? "این مرورگر ثبت شد؛ دریافت به سرویس اعلان و اتصال وابسته است."
+          : "اعلان این مرورگر غیرفعال شد.",
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "تنظیم اعلان ناموفق بود.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (!supported) return <p>اعلان مرورگر در این محیط پشتیبانی نمی‌شود.</p>;
+  return (
+    <div>
+      <p>
+        {configured
+          ? "اعلان وب بدون Firebase تنها با سرویس پشتیبانی‌شدهٔ مرورگر کار می‌کند؛ زمان تحویل تضمین‌شده نیست."
+          : "سرویس اعلان وب مستقل هنوز تنظیم و مستقر نشده است."}
+      </p>
+      <button
+        type="button"
+        disabled={busy || !configured}
+        onClick={() => void run(true)}
+      >
+        فعال‌سازی اعلان این مرورگر
+      </button>{" "}
+      <button
+        type="button"
+        className="minor"
+        disabled={busy}
+        onClick={() => void run(false)}
+      >
+        غیرفعال‌سازی اعلان این مرورگر
+      </button>
+      {message && <p role="status">{message}</p>}
+    </div>
+  );
+}

@@ -38,8 +38,26 @@ describe("local reminder schedule", () => {
       now,
     );
     expect(result).toEqual([
-      { id: "one", at: Date.parse("2026-01-01T10:00:00Z") },
-      { id: "two", at: Date.parse("2026-01-01T11:00:00Z") },
+      {
+        id: "one",
+        at: Date.parse("2026-01-01T10:00:00Z"),
+        source: Date.parse("2026-01-01T10:00:00Z"),
+      },
+      {
+        id: "two",
+        at: Date.parse("2026-01-01T11:00:00Z"),
+        source: Date.parse("2026-01-01T11:00:00Z"),
+      },
+    ]);
+  });
+  it("retains recently due reminders with their original identity for native deduplication", () => {
+    const now = Date.parse("2026-01-01T10:05:00Z");
+    expect(notificationSchedule([row({ id: "late" })], now)).toEqual([
+      {
+        id: "late",
+        at: now + 2000,
+        source: Date.parse("2026-01-01T10:00:00Z"),
+      },
     ]);
   });
 });
@@ -59,6 +77,23 @@ describe("quiet hours on the device", () => {
     expect([after.getDate(), after.getHours(), after.getMinutes()]).toEqual([
       2, 8, 0,
     ]);
+  });
+  it("does not deliver a late reminder during the current quiet hours", () => {
+    const due = new Date(2026, 0, 1, 21, 30);
+    const now = new Date(2026, 0, 1, 23, 0);
+    const result = notificationSchedule(
+      [row({ remind_at: due.toISOString() })],
+      now.getTime(),
+      {
+        in_app_enabled: true,
+        quiet_hours_enabled: true,
+        quiet_hours_start: "22:00",
+        quiet_hours_end: "08:00",
+      } as import("./types").ReminderPreferenceRecord,
+    );
+    expect(result[0].source).toBe(due.getTime());
+    expect(new Date(result[0].at).getHours()).toBe(8);
+    expect(new Date(result[0].at).getDate()).toBe(2);
   });
   it("does not schedule when the user disabled in-app notifications", () => {
     const p = {
