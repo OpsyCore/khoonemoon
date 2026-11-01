@@ -235,3 +235,9 @@ Old API write endpoints and already-installed APKs remain outside the current
 client protections, and actual two-device/offline tests remain outstanding.
 Also avoid reusing a transfer code after a confirmed creation followed by
 intentional deletion; not all single-row creates have durable tombstone receipts.
+
+The legacy-web quick-add sheet now also routes task, chore, calendar, shopping
+and financial creation through those retry-aware transports. Existing direct
+legacy API endpoints still need an explicit-key contract; callers of those old
+endpoints (including outdated web clients) do not gain this protection merely
+because the current UI was updated.

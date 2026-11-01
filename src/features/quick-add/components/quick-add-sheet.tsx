@@ -1,5 +1,12 @@
 "use client";
 
+import { directTasks } from "@/features/tasks/direct-client";
+import { directChores } from "@/features/chores/direct-client";
+import { directCalendar } from "@/features/calendar/direct-client";
+import { directFinance } from "@/features/finance/direct-client";
+import { directShopping } from "@/features/shopping/direct-client";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 import {
   CalendarPlus,
   ChevronRight,
@@ -12,7 +19,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  QUICK_ADD_ENDPOINTS,
   buildQuickBillPayload,
   buildQuickChorePayload,
   buildQuickEventPayload,
@@ -206,30 +212,23 @@ export function QuickAddSheet({
     setErrorMessage(null);
 
     try {
-      const response = await fetch(QUICK_ADD_ENDPOINTS[kind], {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          message?: string;
-        } | null;
-
-        setErrorMessage(
-          payload?.message ??
-            "ثبت ناموفق بود. اتصال و دسترسی خود را بررسی کنید.",
-        );
-        return;
-      }
+      const client = createSupabaseBrowserClient();
+      if (kind === "task") await directTasks(client).create(body);
+      else if (kind === "event") await directCalendar(client).create(body);
+      else if (kind === "shopping") await directShopping(client).addItem(body);
+      else if (kind === "bill") await directFinance(client).create(body);
+      else await directChores(client).create(body);
 
       setSuccessText(successMessage(kind).message);
       setTitle("");
       setAmount("");
       router.refresh();
-    } catch {
-      setErrorMessage("ارتباط با سرور برقرار نشد. دوباره تلاش کنید.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "نتیجه ثبت مشخص نیست؛ فهرست را تازه کنید و همان اطلاعات را دوباره ارسال کنید.",
+      );
     } finally {
       setIsSubmitting(false);
     }
