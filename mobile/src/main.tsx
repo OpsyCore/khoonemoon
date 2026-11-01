@@ -355,9 +355,19 @@ function App() {
 
   return (
     <main>
-      <header>
-        <h1>خونه‌مون</h1>
-        <p>دفتر کوچک خانه و خانوادهٔ ما</p>
+      <header
+        className={
+          page === "calendar" && session && !recovery
+            ? "calendar-shell-header"
+            : undefined
+        }
+      >
+        {!(page === "calendar" && session && !recovery) && (
+          <>
+            <h1>خونه‌مون</h1>
+            <p>دفتر کوچک خانه و خانوادهٔ ما</p>
+          </>
+        )}
         {session && !recovery && client && ready && (
           <MobileNavigation
             page={page}
@@ -526,11 +536,13 @@ function App() {
         </>
       ) : (
         <>
-          <QuickAdd
-            client={client}
-            householdId={household ?? null}
-            onDone={() => setRevision((n) => n + 1)}
-          />
+          {page !== "calendar" && (
+            <QuickAdd
+              client={client}
+              householdId={household ?? null}
+              onDone={() => setRevision((n) => n + 1)}
+            />
+          )}
           {page === "house" && (
             <section>
               <h2>خانه و اعضا</h2>
@@ -697,6 +709,7 @@ function App() {
               key={`${session.user.id}:${household ?? "none"}:${revision}`}
               client={client}
               householdId={household ?? null}
+              onHouse={() => setPage("house")}
             />
           )}
           {page === "profile" && (

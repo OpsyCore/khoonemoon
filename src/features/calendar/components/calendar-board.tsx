@@ -328,7 +328,7 @@ export function CalendarBoard({
     ) : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 web-calendar-board">
       {errorMessage ? (
         <p role="alert" className="text-sm text-danger-ink">
           {errorMessage}
@@ -339,7 +339,7 @@ export function CalendarBoard({
           دریافت کارهای خانه برای تقویم ناموفق بود.
         </p>
       ) : null}
-      <Card className="space-y-3">
+      <Card className="space-y-3 web-calendar-month">
         <div className="flex items-center justify-between">
           <CardTitle>{formatJalaliMonthYear(cursorDate)}</CardTitle>
           <div className="flex gap-2">
@@ -364,7 +364,7 @@ export function CalendarBoard({
               onClick={() => setView("agenda")}
             >
               <List className="size-4" />
-              فهرست
+              برنامه‌ها
             </Button>
           </div>
         </div>
@@ -411,16 +411,21 @@ export function CalendarBoard({
 
             <div className="grid grid-cols-7 gap-1">
               {monthGrid.map((day) => {
-                const hasItem = calendarItems.some((item) =>
-                  isSameDay(item.startAt, day.date),
-                );
+                const kinds = [
+                  ...new Set(
+                    calendarItems
+                      .filter((item) => isSameDay(item.startAt, day.date))
+                      .map((item) => item.type),
+                  ),
+                ];
                 const selected = isSameDay(day.date, selectedDate);
 
                 return (
                   <button
                     key={day.date.toISOString()}
                     type="button"
-                    className={`rounded-xl border p-2 text-center text-sm transition ${
+                    aria-pressed={selected}
+                    className={`web-calendar-cell rounded-xl border p-2 text-center text-sm transition ${
                       selected
                         ? "border-olive bg-olive-soft text-olive-ink"
                         : "border-line"
@@ -428,12 +433,31 @@ export function CalendarBoard({
                     onClick={() => setSelectedDate(day.date)}
                   >
                     <div>{formatJalaliDayNumber(day.date)}</div>
-                    {hasItem ? (
-                      <div className="mx-auto mt-1 h-1.5 w-1.5 rounded-full bg-olive" />
-                    ) : null}
+                    <div className="web-calendar-dots" aria-hidden="true">
+                      {kinds.map((kind) => (
+                        <span
+                          key={kind}
+                          className={`web-calendar-dot type-${kind.toLowerCase()}`}
+                        />
+                      ))}
+                    </div>
                   </button>
                 );
               })}
+            </div>
+            <div className="web-calendar-legend">
+              <span>
+                <i className="web-calendar-dot type-chore" />
+                کار خانه
+              </span>
+              <span>
+                <i className="web-calendar-dot type-event" />
+                رویداد
+              </span>
+              <span>
+                <i className="web-calendar-dot type-task" />
+                کار شخصی
+              </span>
             </div>
           </div>
         ) : null}

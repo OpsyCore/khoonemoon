@@ -70,7 +70,7 @@ export default async function CalendarPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="تقویم مشترک"
+        title="تقویم ما"
         subtitle="رویدادها و تسک‌ها را در نمای جلالی ماهانه، هفتگی و فهرستی مدیریت کنید."
         decor
       />
