@@ -248,7 +248,7 @@ function App() {
     <main>
       <header>
         <h1>خونه‌مون</h1>
-        <p>نسخهٔ اندروید در حال ساخت</p>
+        <p>دفتر کوچک خانه و خانوادهٔ ما</p>
         {session && (
           <button
             className="minor"
