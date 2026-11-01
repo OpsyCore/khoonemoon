@@ -58,6 +58,23 @@ describe("direct Supabase shopping transport", () => {
     });
   });
 
+  it("guards optimistic purchase updates against a stale value", async () => {
+    const { api, fetcher } = setup();
+    await api.updateItem("item-1", { purchased: true }, false);
+    expect(decodeURIComponent(String(fetcher.mock.calls[0][0]))).toContain(
+      "purchased=eq.false",
+    );
+    fetcher.mockResolvedValueOnce(
+      new Response("null", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await expect(
+      api.updateItem("item-1", { purchased: true }, false),
+    ).rejects.toThrow();
+  });
+
   it("rejects missing authentication and invalid inputs before making a database request", async () => {
     const { api, fetcher } = setup(false);
     await expect(api.createList("house-1", { name: "خرید" })).rejects.toThrow(

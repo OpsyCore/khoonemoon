@@ -110,7 +110,11 @@ export function directShopping(client: SupabaseClient) {
       if (error || !data) throw new Error("افزودن آیتم خرید ناموفق بود.");
       return data as ShoppingItem;
     },
-    async updateItem(id: string, input: unknown): Promise<ShoppingItem> {
+    async updateItem(
+      id: string,
+      input: unknown,
+      expectedPurchased?: boolean,
+    ): Promise<ShoppingItem> {
       const item = updateShoppingItemSchema.parse(input);
       if (!Object.keys(item).length) throw new Error("تغییری ارسال نشد.");
       const userId = await currentUserId(client);
@@ -124,12 +128,10 @@ export function directShopping(client: SupabaseClient) {
               purchased_by: purchased ? userId : null,
               purchased_at: purchased ? new Date().toISOString() : null,
             };
-      const { data, error } = await client
-        .from("shopping_items")
-        .update(update)
-        .eq("id", id)
-        .select(ITEM_COLUMNS)
-        .single();
+      let query = client.from("shopping_items").update(update).eq("id", id);
+      if (expectedPurchased !== undefined)
+        query = query.eq("purchased", expectedPurchased);
+      const { data, error } = await query.select(ITEM_COLUMNS).maybeSingle();
       if (error || !data) throw new Error("به‌روزرسانی آیتم خرید ناموفق بود.");
       return data as ShoppingItem;
     },

@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -32,6 +33,26 @@ export function Shopping({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [sync, setSync] = useState("برای دریافت تغییرات تازه‌سازی کنید.");
+  const pendingPurchase = useRef<{ id: string; value: boolean } | null>(null);
+  const itemFetchSequence = useRef(0);
+  const readItems = useCallback(
+    async (listId: string) => {
+      const seq = ++itemFetchSequence.current;
+      const rows = await api.items(listId);
+      if (seq !== itemFetchSequence.current) return;
+      const pending = pendingPurchase.current;
+      setItems(
+        pending
+          ? rows.map((row) =>
+              row.id === pending.id
+                ? { ...row, purchased: pending.value }
+                : row,
+            )
+          : rows,
+      );
+    },
+    [api],
+  );
   const refreshLists = useCallback(async () => {
     const data = await api.lists(householdId);
     setLists(data);
@@ -63,19 +84,16 @@ export function Shopping({
     // Clear the previous list before requesting the next one.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems([]);
+    itemFetchSequence.current++;
     if (selected)
-      void api
-        .items(selected)
-        .then((data) => {
-          if (alive) setItems(data);
-        })
-        .catch(() => {
-          if (alive) setMessage("دریافت اقلام ناموفق بود.");
-        });
+      void readItems(selected).catch(() => {
+        if (alive) setMessage("دریافت اقلام ناموفق بود.");
+      });
     return () => {
       alive = false;
+      itemFetchSequence.current++;
     };
-  }, [api, selected]);
+  }, [readItems, selected]);
   useEffect(() => {
     let alive = true;
     const refresh = () => {
@@ -97,17 +115,12 @@ export function Shopping({
           }
         });
       if (selected)
-        void api
-          .items(selected)
-          .then((data) => {
-            if (alive) setItems(data);
-          })
-          .catch(() => {
-            if (alive) {
-              setItems([]);
-              setMessage("تازه‌سازی اقلام ناموفق بود.");
-            }
-          });
+        void readItems(selected).catch(() => {
+          if (alive) {
+            setItems([]);
+            setMessage("تازه‌سازی اقلام ناموفق بود.");
+          }
+        });
     };
     const channel = client
       .channel(`mobile-shopping-${Math.random()}`)
@@ -150,7 +163,7 @@ export function Shopping({
       document.removeEventListener("visibilitychange", foreground);
       void client.removeChannel(channel);
     };
-  }, [api, client, householdId, selected]);
+  }, [api, client, householdId, selected, readItems]);
   async function action(fn: () => Promise<void>) {
     setBusy(true);
     setMessage("");
@@ -172,13 +185,40 @@ export function Shopping({
     }
   }
   async function reloadItemsAfterSave(listId: string) {
-    if (
-      !(await reloadAfterSave(async () => setItems(await api.items(listId))))
-    ) {
+    if (!(await reloadAfterSave(async () => readItems(listId)))) {
       setItems([]);
       setMessage(
         "تغییر ذخیره شد، اما تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و فهرست را تازه کنید.",
       );
+    }
+  }
+  async function togglePurchased(item: ShoppingItem, purchased: boolean) {
+    if (busy) return;
+    setBusy(true);
+    setMessage("");
+    pendingPurchase.current = { id: item.id, value: purchased };
+    itemFetchSequence.current++;
+    setItems((current) =>
+      current.map((row) => (row.id === item.id ? { ...row, purchased } : row)),
+    );
+    try {
+      await api.updateItem(item.id, { purchased }, item.purchased);
+      pendingPurchase.current = null;
+      await reloadItemsAfterSave(selected);
+    } catch {
+      pendingPurchase.current = null;
+      itemFetchSequence.current++;
+      setItems([]);
+      setMessage(
+        "تغییر خرید تأیید نشد؛ پیش از تلاش دوباره فهرست را تازه کنید.",
+      );
+      try {
+        await readItems(selected);
+      } catch {
+        setMessage("وضعیت خرید تأیید نشد؛ فهرست را تازه کنید.");
+      }
+    } finally {
+      setBusy(false);
     }
   }
   function clear() {
@@ -230,7 +270,7 @@ export function Shopping({
         onClick={() =>
           void action(async () => {
             await refreshLists();
-            if (selected) setItems(await api.items(selected));
+            if (selected) await readItems(selected);
           })
         }
       >
@@ -369,11 +409,7 @@ export function Shopping({
                       checked={item.purchased}
                       disabled={busy}
                       onChange={(e) => {
-                        const purchased = e.target.checked;
-                        void action(async () => {
-                          await api.updateItem(item.id, { purchased });
-                          await reloadItemsAfterSave(selected);
-                        });
+                        void togglePurchased(item, e.target.checked);
                       }}
                     />
                     {item.name}
