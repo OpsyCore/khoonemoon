@@ -66,6 +66,7 @@ export async function restoreMissing(
   skipped: number;
   repairedFiles: number;
   householdCopy: boolean;
+  deferred: number;
 }> {
   const user = await currentUser(client);
   const backup = await readBackup(bytes);
@@ -105,6 +106,17 @@ export async function restoreMissing(
       "این خروجی متعلق به حساب واردشده نیست؛ داده‌ای تغییر نکرد.",
     );
   const signed = backup.signedSnapshot;
+  const sourceHouse =
+    tables.households.length === 1 ? (tables.households[0].id as string) : null;
+  const signedOwner =
+    !!sourceHouse &&
+    tables.household_members.some(
+      (row) =>
+        row.household_id === sourceHouse &&
+        row.user_id === user &&
+        row.role === "OWNER" &&
+        row.left_at === null,
+    );
   if (signed) {
     const verified = await client.rpc("mobile_verify_snapshot_signature", {
       p_payload: signed.payload,
@@ -149,23 +161,6 @@ export async function restoreMissing(
       )
     )
       throw new Error("ساخت نسخهٔ خانه فقط برای مالک پشتیبان ممکن است.");
-    // Refuse before creating anything when this copy cannot be fully inserted
-    // under the user's normal RLS, or would assign an inactive member.
-    for (const [name, fields] of Object.entries(requiredOwners)) {
-      if (
-        tables[name].some((row) => fields.some((field) => row[field] !== user))
-      )
-        throw new Error(
-          "این پشتیبان شامل داده‌های ساخته‌شده توسط اعضای دیگر است؛ ساخت خودکار خانه متوقف شد.",
-        );
-    }
-    if (
-      tables.task_assignees.some((row) => row.assignee_id !== user) ||
-      tables.chore_rotation_steps.some((row) => row.assignee_id !== user)
-    )
-      throw new Error(
-        "این پشتیبان وظایفی برای اعضای دیگر دارد؛ ساخت خودکار خانه متوقف شد.",
-      );
     if ((await currentUser(client)) !== user)
       throw new Error("حساب تغییر کرد؛ خانه‌ای ساخته نشد.");
     const copied = await client.rpc("mobile_recover_household_copy", {
@@ -211,7 +206,9 @@ export async function restoreMissing(
   for (const [table, key] of Object.entries(READ_ONLY)) {
     if (
       signed &&
-      (table === "task_recurrence_instances" ||
+      (table === "profiles" ||
+        table === "household_members" ||
+        table === "task_recurrence_instances" ||
         table === "finance_recurrence_instances" ||
         table === "chore_completions")
     )
@@ -224,6 +221,96 @@ export async function restoreMissing(
       throw new Error(
         "خانه، عضویت یا تاریخچهٔ لازم دیگر موجود نیست؛ بازیابی ایمن ممکن نیست و داده‌ای تغییر نکرد.",
       );
+  }
+  // Only an owner, authenticated against the original signed snapshot and
+  // still owner now, can restore genuine shared data authored by others.
+  const activeOwner = (current.data.tables.household_members as Row[]).find(
+    (row) =>
+      row.user_id === user && row.role === "OWNER" && row.left_at === null,
+  );
+  const targetHome = activeOwner?.household_id;
+  const sharedMode =
+    !!signed &&
+    !!sourceHouse &&
+    signedOwner &&
+    typeof targetHome === "string" &&
+    tables.households.length === 1 &&
+    tables.households[0].id === targetHome;
+  let deferred = 0;
+  if (sharedMode) {
+    const sharedTasks = new Set(
+      tables.tasks
+        .filter(
+          (r) =>
+            r.household_id === targetHome &&
+            r.visibility === "HOUSEHOLD_SHARED",
+        )
+        .map((r) => r.id),
+    );
+    const sharedChores = new Set(
+      tables.chores
+        .filter((r) => r.household_id === targetHome)
+        .map((r) => r.id),
+    );
+    const sharedLists = new Set(
+      tables.shopping_lists
+        .filter((r) => r.household_id === targetHome)
+        .map((r) => r.id),
+    );
+    for (const name of [
+      "tasks",
+      "events",
+      "chores",
+      "shopping_lists",
+      "financial_records",
+    ])
+      tables[name] = tables[name].filter(
+        (row) => row.household_id !== targetHome,
+      );
+    tables.task_assignees = tables.task_assignees.filter(
+      (row) => !sharedTasks.has(row.task_id),
+    );
+    tables.task_recurrences = tables.task_recurrences.filter(
+      (row) => !sharedTasks.has(row.task_id),
+    );
+    tables.chore_rotation_steps = tables.chore_rotation_steps.filter(
+      (row) => !sharedChores.has(row.chore_id),
+    );
+    tables.shopping_items = tables.shopping_items.filter(
+      (row) => !sharedLists.has(row.list_id),
+    );
+    const currentDocuments = current.data.tables.documents;
+    if (!Array.isArray(currentDocuments))
+      throw new Error("بررسی مدارک فعلی ناموفق بود.");
+    const kept: Row[] = [];
+    for (const row of tables.documents) {
+      if (row.created_by === user) {
+        kept.push(row);
+        continue;
+      }
+      const existing = currentDocuments.find((d: Row) => d.id === row.id);
+      if (!existing) {
+        deferred++;
+        continue;
+      }
+      if (
+        existing.household_id !== targetHome ||
+        existing.visibility !== "HOUSEHOLD_SHARED" ||
+        existing.created_by !== row.created_by ||
+        typeof existing.storage_path !== "string"
+      )
+        throw new Error("اطلاعات مدرک موجود با نسخه پشتیبان سازگار نیست.");
+      if ((await currentUser(client)) !== user)
+        throw new Error("حساب در حین بازیابی تغییر کرد؛ عملیات متوقف شد.");
+      const file = await client.storage
+        .from("documents")
+        .download(existing.storage_path);
+      if (file.error || !file.data) deferred++;
+    }
+    tables.documents = kept;
+    // Authentic attachment metadata is restored by the guarded shared phase;
+    // unavailable document/entity parents are reported as deferred there.
+    tables.document_attachments = [];
   }
   // Detect known RLS failures before staging any Storage objects. The server
   // still independently enforces RLS; this is only an early diagnostic.
@@ -344,9 +431,39 @@ export async function restoreMissing(
     throw new Error(
       "حساب در حین بازیابی تغییر کرد؛ داده‌ها ثبت نشدند و ممکن است بعضی فایل‌ها بارگذاری شده یا فایل موقت باقی مانده باشد.",
     );
+  let sharedInserted = 0,
+    sharedSkipped = 0;
+  async function restoreShared(phase: "parents" | "children") {
+    if (!sharedMode || !signed || !sourceHouse) return;
+    if ((await currentUser(client)) !== user)
+      throw new Error(
+        "حساب تغییر کرد؛ بخشی از داده‌ها ممکن است ثبت شده باشند.",
+      );
+    const result = await client.rpc("mobile_restore_signed_shared", {
+      p_payload: signed.payload,
+      p_signature: signed.signature,
+      p_source: sourceHouse,
+      p_phase: phase,
+    });
+    if (
+      result.error ||
+      !result.data ||
+      !Number.isSafeInteger(result.data.inserted) ||
+      !Number.isSafeInteger(result.data.skipped) ||
+      !Number.isSafeInteger(result.data.deferred)
+    )
+      throw new Error(
+        "نتیجهٔ بازیابی دادهٔ مشترک تأیید نشد؛ ممکن است بخشی ثبت شده باشد. پیش از تلاش دوباره فهرست‌ها را بررسی کنید.",
+      );
+    sharedInserted += result.data.inserted;
+    sharedSkipped += result.data.skipped;
+    deferred += result.data.deferred;
+  }
+  await restoreShared("parents");
   const restoreTables = signed
     ? {
         ...tables,
+        household_members: [],
         task_recurrence_instances: [],
         finance_recurrence_instances: [],
         chore_completions: [],
@@ -364,6 +481,7 @@ export async function restoreMissing(
     throw new Error(
       "نتیجهٔ بازیابی تأیید نشد؛ فهرست‌ها را تازه کنید و پیش از تلاش دوباره بررسی کنید. ممکن است بعضی فایل‌ها بارگذاری شده یا فایل موقت باقی مانده باشد.",
     );
+  await restoreShared("children");
   let historyInserted = 0,
     historySkipped = 0;
   if (signed) {
@@ -388,8 +506,9 @@ export async function restoreMissing(
     historySkipped = history.data.skipped;
   }
   return {
-    inserted: data.inserted + historyInserted,
-    skipped: data.skipped + historySkipped,
+    inserted: data.inserted + historyInserted + sharedInserted,
+    skipped: data.skipped + historySkipped + sharedSkipped,
+    deferred,
     repairedFiles: uploads.filter((item) => item.repair).length,
     householdCopy,
   };

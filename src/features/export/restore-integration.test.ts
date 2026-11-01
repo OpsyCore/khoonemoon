@@ -108,6 +108,7 @@ describe("real ZIP through recovery against isolated PGlite", () => {
             p_payload?: unknown;
             p_signature?: string;
             p_source?: string;
+            p_phase?: string;
           },
         ) => {
           try {
@@ -124,6 +125,16 @@ describe("real ZIP through recovery against isolated PGlite", () => {
               result = await db.query(
                 "select public.mobile_verify_snapshot_signature($1::jsonb,$2) as value",
                 [JSON.stringify(args?.p_payload), args?.p_signature],
+              );
+            else if (name === "mobile_restore_signed_shared")
+              result = await db.query(
+                "select public.mobile_restore_signed_shared($1::jsonb,$2,$3::uuid,$4) as value",
+                [
+                  JSON.stringify(args?.p_payload),
+                  args?.p_signature,
+                  args?.p_source,
+                  args?.p_phase,
+                ],
               );
             else if (name === "mobile_recover_household_copy")
               result = await db.query(
@@ -172,8 +183,19 @@ describe("real ZIP through recovery against isolated PGlite", () => {
         `delete from public.tasks; delete from public.documents where id='${doc}'; delete from storage.objects where name='${original}';`,
       );
       objects.delete(original);
+      await db.exec("reset role");
+      await db.query("delete from public.profiles where id=$1", [user]);
+      await db.exec("set role authenticated");
       const result = await restoreMissing(client, zip);
-      expect(result.inserted).toBe(605);
+      expect(result.inserted).toBe(606);
+      expect(
+        (
+          await db.query(
+            "select count(*)::int as n from public.profiles where id=$1",
+            [user],
+          )
+        ).rows,
+      ).toEqual([{ n: 1 }]);
       const tasks = await db.query(
         "select count(*)::int as total from public.tasks",
       );
@@ -238,37 +260,62 @@ describe("real ZIP through recovery against isolated PGlite", () => {
         [other, oldHome],
       );
       await db.exec("set role authenticated");
-      const otherZip = await exportMobileBackup(
-        client,
-        new Date("2026-01-02T00:00:00Z"),
-      );
       await db.exec("reset role");
-      await db.exec("delete from public.tasks where title='other task'");
+      await db.query(
+        "insert into public.task_assignees(task_id,assignee_id) select id,$1 from public.tasks where title='other task'",
+        [other],
+      );
+      const otherDoc = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+      const otherPath = `household/${oldHome}/${otherDoc}/other.pdf`;
+      const otherList = "ffffffff-ffff-4fff-8fff-fffffffffff1";
+      await db.query(
+        "insert into public.shopping_lists(id,household_id,name,created_by) values ($1,$2,'other list',$3)",
+        [otherList, oldHome, other],
+      );
+      await db.query(
+        "insert into public.shopping_items(list_id,name,added_by,quantity) values ($1,'other item',$2,1.250)",
+        [otherList, other],
+      );
+      await db.query(
+        "insert into public.financial_records(household_id,owner_id,created_by,visibility,record_type,title,amount) values ($1,$2,$2,'HOUSEHOLD_SHARED','EXPENSE','other finance',23.50)",
+        [oldHome, other],
+      );
+      await db.query(
+        "insert into public.events(title,creator_id,owner_id,household_id,visibility,start_at,end_at) values ('other event',$1,$1,$2,'HOUSEHOLD_SHARED',now(),now()+interval '1 hour')",
+        [other, oldHome],
+      );
+      await db.query(
+        "insert into public.chores(household_id,title,created_by,rotation_mode,frequency) values ($1,'other chore',$2,'FIXED','NONE')",
+        [oldHome, other],
+      );
+      await db.query(
+        "insert into storage.objects(bucket_id,name) values ('documents',$1)",
+        [otherPath],
+      );
+      objects.set(otherPath, new Uint8Array([7, 8, 9]));
+      await db.query(
+        "insert into public.documents(id,household_id,created_by,title,mime_type,file_size,storage_path,visibility) values ($1,$2,$3,'other doc','application/pdf',3,$4,'HOUSEHOLD_SHARED')",
+        [otherDoc, oldHome, other, otherPath],
+      );
+      await db.query(
+        "insert into public.document_attachments(document_id,entity_type,entity_id,created_by) select $1,'TASK',id,$2 from public.tasks where title='other task'",
+        [otherDoc, other],
+      );
       await db.exec("set role authenticated");
-      const sharedZip = await exportMobileBackup(
+      const otherZip = await exportMobileBackup(
         client,
         new Date("2026-01-02T00:00:00Z"),
       );
       await db.exec("reset role");
       await db.query("delete from public.households where id=$1", [oldHome]);
       await db.exec("set role authenticated");
-      await expect(restoreMissing(client, otherZip, true)).rejects.toThrow(
-        "اعضای دیگر",
-      );
-      expect(
-        (
-          await db.query(
-            "select count(*)::int as n from public.household_members where user_id=$1 and left_at is null",
-            [user],
-          )
-        ).rows,
-      ).toEqual([{ n: 0 }]);
-      await expect(restoreMissing(client, sharedZip)).rejects.toThrow(
+      await expect(restoreMissing(client, otherZip)).rejects.toThrow(
         "خانهٔ اصلی موجود نیست",
       );
-      const recovered = await restoreMissing(client, sharedZip, true);
+      const recovered = await restoreMissing(client, otherZip, true);
       expect(recovered.householdCopy).toBe(true);
-      expect(recovered.inserted).toBe(2);
+      expect(recovered.inserted).toBe(8);
+      expect(recovered.deferred).toBe(3);
       const home = await db.query(
         "select household_id from public.household_members where user_id=$1 and left_at is null",
         [user],
@@ -293,7 +340,17 @@ describe("real ZIP through recovery against isolated PGlite", () => {
           )
         ).rows,
       ).toEqual([{ n: 0 }]);
-      expect((await restoreMissing(client, sharedZip, true)).inserted).toBe(0);
+      expect((await restoreMissing(client, otherZip, true)).deferred).toBe(3);
+      await db.exec("reset role");
+      await db.query(
+        "insert into public.household_members(household_id,user_id,role) values ($1,$2,'MEMBER')",
+        [newHome, other],
+      );
+      await db.exec("set role authenticated");
+      const completed = await restoreMissing(client, otherZip, true);
+      expect(completed.deferred).toBe(2);
+      expect(completed.inserted).toBe(1);
+      expect((await restoreMissing(client, otherZip, true)).inserted).toBe(0);
     } finally {
       await db.close();
     }

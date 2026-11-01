@@ -1006,7 +1006,7 @@ begin
  result:=public.mobile_restore_missing(snapshot);
  if (result->>'inserted')::integer<>0 then raise exception 'repeat restore created duplicates'; end if;
  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
- begin perform public.mobile_restore_missing(snapshot); raise exception 'other user accepted'; exception when others then if sqlerrm not in ('RESTORE_PARENT_OR_HISTORY_MISSING','new row violates row-level security policy for table "tasks"') and sqlstate <> '23505' then raise; end if; end;
+ begin perform public.mobile_restore_missing(snapshot); raise exception 'other user accepted'; exception when others then if sqlerrm <> 'RESTORE_PARENT_OR_HISTORY_MISSING' and sqlstate not in ('23505','42501') then raise; end if; end;
  -- An attacker can submit arbitrary JSON directly, so RLS must independently reject a forged owner.
  broken:=(select jsonb_object_agg(k,'[]'::jsonb) from jsonb_object_keys(snapshot) k);
  broken:=jsonb_set(broken,'{tasks}',jsonb_build_array((select value from jsonb_array_elements(snapshot->'tasks') where value->>'id'=tid::text)));
@@ -1089,6 +1089,10 @@ begin;
 insert into auth.users(id,email) values ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','copy@example.com'),('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','member@example.com');
 insert into public.households(id,name,created_by) values ('ffffffff-ffff-4fff-8fff-ffffffffffff','old home','dddddddd-dddd-4ddd-8ddd-dddddddddddd');
 insert into public.household_members(household_id,user_id,role) values ('ffffffff-ffff-4fff-8fff-ffffffffffff','dddddddd-dddd-4ddd-8ddd-dddddddddddd','OWNER'),('ffffffff-ffff-4fff-8fff-ffffffffffff','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','MEMBER');
+insert into public.tasks(id,title,creator_id,owner_id,household_id,visibility,priority) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1','other member task','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','ffffffff-ffff-4fff-8fff-ffffffffffff','HOUSEHOLD_SHARED','NORMAL');
+insert into public.task_assignees(id,task_id,assignee_id) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+insert into public.shopping_lists(id,household_id,name,created_by) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3','ffffffff-ffff-4fff-8fff-ffffffffffff','member list','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+insert into public.shopping_items(id,list_id,name,added_by) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3','member item','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
 insert into storage.objects(bucket_id,name) values ('documents','household/ffffffff-ffff-4fff-8fff-ffffffffffff/old/file.pdf');
 create temp table copy_signed(v jsonb); grant select,insert on copy_signed to authenticated;
 select set_config('request.jwt.claims','{"sub":"dddddddd-dddd-4ddd-8ddd-dddddddddddd","role":"authenticated"}',true);
@@ -1097,7 +1101,7 @@ insert into copy_signed select public.mobile_signed_export_snapshot();
 reset role;
 delete from public.households where id='ffffffff-ffff-4fff-8fff-ffffffffffff';
 set local role authenticated;
-do $$ declare v jsonb; new_home uuid; second_home uuid; begin
+do $$ declare v jsonb; new_home uuid; second_home uuid; result jsonb; begin
  select copy_signed.v into v from copy_signed;
  begin perform public.mobile_recover_household_copy(jsonb_set(v->'payload','{snapshot,tables,households,0,name}','"forged"'::jsonb),v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff'); raise exception 'forged home accepted'; exception when others then if sqlerrm<>'INVALID_BACKUP_SIGNATURE' then raise; end if; end;
  new_home:=public.mobile_recover_household_copy(v->'payload',v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff');
@@ -1106,8 +1110,34 @@ do $$ declare v jsonb; new_home uuid; second_home uuid; begin
  if new_home<>second_home or not public.is_household_owner(new_home) then raise exception 'house copy not idempotent'; end if;
  if (select count(*) from public.household_members where household_id=new_home)<>1 then raise exception 'other membership reactivated'; end if;
  if exists(select 1 from storage.objects where name='household/ffffffff-ffff-4fff-8fff-ffffffffffff/old/file.pdf') then raise exception 'old storage scope accessible'; end if;
+ result:=public.mobile_restore_signed_shared(v->'payload',v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff','parents');
+ if (result->>'inserted')::int<>2 or not exists(select 1 from public.tasks where id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1' and creator_id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' and household_id=new_home) then raise exception 'signed shared parents failed'; end if;
+ result:=public.mobile_restore_signed_shared(v->'payload',v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff','children');
+ if (result->>'inserted')::int<>1 or (result->>'deferred')::int<>1 then raise exception 'shared child deferral failed'; end if;
+ begin perform public.mobile_restore_signed_shared(jsonb_set(v->'payload','{snapshot,tables,tasks,0,title}','"forged"'::jsonb),v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff','parents'); raise exception 'forged shared data accepted'; exception when others then if sqlerrm<>'INVALID_BACKUP_SIGNATURE' then raise; end if; end;
+
  perform set_config('request.jwt.claims','{"sub":"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee","role":"authenticated"}',true);
  begin perform public.mobile_recover_household_copy(v->'payload',v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff'); raise exception 'cross-account house accepted'; exception when others then if sqlerrm<>'INVALID_BACKUP_SIGNATURE' then raise; end if; end;
  if has_function_privilege('anon','public.mobile_recover_household_copy(jsonb,text,uuid)','execute') then raise exception 'anon house recovery allowed'; end if;
+end $$;
+reset role;
+-- Simulate explicit rejoining, never an automatic reactivation.
+insert into public.household_members(household_id,user_id,role) select replacement_id,'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','MEMBER' from backup_private.recovered_households where account_id='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+select set_config('request.jwt.claims','{"sub":"dddddddd-dddd-4ddd-8ddd-dddddddddddd","role":"authenticated"}',true);
+set local role authenticated;
+do $$ declare v jsonb; result jsonb; begin
+ select copy_signed.v into v from copy_signed;
+ result:=public.mobile_restore_signed_shared(v->'payload',v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff','children');
+ if (result->>'inserted')::int<>1 or (result->>'deferred')::int<>0 then raise exception 'member rejoin did not complete restoration'; end if;
+ result:=public.mobile_restore_signed_shared(v->'payload',v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff','children');
+ if (result->>'inserted')::int<>0 then raise exception 'shared restore not idempotent'; end if;
+ if has_function_privilege('anon','public.mobile_restore_signed_shared(jsonb,text,uuid,text)','execute') then raise exception 'anon shared restore'; end if;
+end $$;
+reset role;
+update public.household_members set role='MEMBER' where user_id='dddddddd-dddd-4ddd-8ddd-dddddddddddd' and left_at is null;
+set local role authenticated;
+do $$ declare v jsonb; begin
+ select copy_signed.v into v from copy_signed;
+ begin perform public.mobile_restore_signed_shared(v->'payload',v->>'signature','ffffffff-ffff-4fff-8fff-ffffffffffff','parents'); raise exception 'demoted owner accepted'; exception when others then if sqlerrm<>'CURRENT_OWNER_REQUIRED' then raise; end if; end;
 end $$;
 rollback;
