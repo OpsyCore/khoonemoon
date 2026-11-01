@@ -35,11 +35,40 @@ export const createFinancialRecordSchema = z
     occurredAt: z.string().datetime().optional().nullable(),
     dueAt: z.string().datetime().optional().nullable(),
     isRecurring: z.boolean().default(false),
+    recurrenceRule: z
+      .enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"])
+      .optional()
+      .nullable(),
+    recurrenceTimezone: z.string().trim().max(80).optional().nullable(),
   })
   .superRefine((value, ctx) => {
     const needsDueDate = ["BILL", "SUBSCRIPTION", "INSTALLMENT"].includes(
       value.recordType,
     );
+
+    if (
+      value.isRecurring &&
+      (!needsDueDate || !value.recurrenceRule || !value.recurrenceTimezone)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["recurrenceRule"],
+        message:
+          "تکرار فقط برای قبض با دوره و منطقهٔ زمانی معتبر پشتیبانی می‌شود.",
+      });
+    }
+
+    if (value.isRecurring && value.recurrenceTimezone) {
+      try {
+        new Intl.DateTimeFormat("en", { timeZone: value.recurrenceTimezone });
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["recurrenceTimezone"],
+          message: "منطقهٔ زمانی معتبر نیست.",
+        });
+      }
+    }
 
     if (needsDueDate && !value.dueAt) {
       ctx.addIssue({

@@ -6,7 +6,7 @@ import {
 import type { FinancialRecord } from "./types";
 
 const COLUMNS =
-  "id, household_id, owner_id, created_by, visibility, record_type, title, amount, currency, category, note, occurred_at, due_at, bill_status, is_recurring, recurrence_rule, paid_by, paid_at, archived_at, created_at, updated_at";
+  "id, household_id, owner_id, created_by, visibility, record_type, title, amount, currency, category, note, occurred_at, due_at, bill_status, is_recurring, recurrence_rule, recurrence_timezone, paid_by, paid_at, archived_at, created_at, updated_at";
 async function userId(client: SupabaseClient) {
   const { data, error } = await client.auth.getUser();
   if (error || !data.user) throw new Error("ابتدا وارد حساب خود شوید.");
@@ -66,6 +66,10 @@ export function directFinance(client: SupabaseClient) {
           occurred_at: record.occurredAt ?? new Date().toISOString(),
           due_at: record.dueAt ?? null,
           is_recurring: record.isRecurring,
+          recurrence_rule: record.isRecurring ? record.recurrenceRule : null,
+          recurrence_timezone: record.isRecurring
+            ? record.recurrenceTimezone
+            : null,
         })
         .select(COLUMNS)
         .single();

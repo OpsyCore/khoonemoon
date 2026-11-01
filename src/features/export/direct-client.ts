@@ -29,7 +29,7 @@ const TABLES: Record<string, string> = {
   shopping_items:
     "id,list_id,name,quantity,unit,category,note,added_by,purchased,purchased_by,purchased_at,position,created_at,updated_at",
   financial_records:
-    "id,household_id,owner_id,created_by,visibility,record_type,title,amount,currency,category,note,occurred_at,due_at,bill_status,is_recurring,recurrence_rule,paid_by,paid_at,archived_at,created_at,updated_at",
+    "id,household_id,owner_id,created_by,visibility,record_type,title,amount,currency,category,note,occurred_at,due_at,bill_status,is_recurring,recurrence_rule,recurrence_timezone,paid_by,paid_at,archived_at,created_at,updated_at",
   documents:
     "id,household_id,created_by,title,description,visibility,category,mime_type,file_size,storage_path,created_at,updated_at",
   document_attachments:

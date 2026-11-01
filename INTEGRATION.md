@@ -21,7 +21,7 @@ automatic creation of the next task on completion uses migration `0015_recurring
 
 ### Mobile shopping and finance
 
-The independent mobile UI includes shopping and financial record flows using the current user's JWT and RLS. The finance realtime publication migration `0016_finance_realtime.sql` has been applied to project `isfzuxrkzeeeggvfcoah`; shopping lists, shopping items, and financial records are in `supabase_realtime`. A foreground and periodic refresh covers missed events, including deletes. Realtime delivery and the interface have not yet been exercised end-to-end with two real accounts or on Android. Reports and settlement are restricted to the chosen currency; settlement is an estimate for current household members, not a recorded payment. Financial recurrence is only a flag and does not create future records. The independent mobile UI is packaged in the Android wrapper. The user-facing Android build and real-device testing remain in the integration phase.
+The independent mobile UI includes shopping and financial record flows using the current user's JWT and RLS. The finance realtime publication migration `0016_finance_realtime.sql` has been applied to project `isfzuxrkzeeeggvfcoah`; shopping lists, shopping items, and financial records are in `supabase_realtime`. A foreground and periodic refresh covers missed events, including deletes. Realtime delivery and the interface have not yet been exercised end-to-end with two real accounts or on Android. Reports and settlement are restricted to the chosen currency; settlement is an estimate for current household members, not a recorded payment. Recurring bills with an explicit supported rule create one successor on payment; unconfigured legacy flags do not. The independent mobile UI is packaged in the Android wrapper. The user-facing Android build and real-device testing remain in the integration phase.
 
 ### Document screen and database deployment
 
@@ -70,5 +70,12 @@ weekday and month-end cases. An equivalent migration was applied to the connecte
 Supabase project; local migration is idempotent. Existing
 schedules inherit the creator profile timezone (UTC fallback), their current due
 dates are preserved and only the derived next task occurrence is recalculated.
-Real two-device testing is still required. Financial
-recurrence is only a flag and does not generate future records.
+Real two-device testing is still required. Recurring bills with a configured period generate one successor on payment, not merely on reaching a due date; legacy records without a rule remain unchanged.
+
+
+Migration 0023 adds recurring bill, subscription and installment successors.
+A successful payment atomically creates one next record in the original time
+zone; no automatic creation occurs while unpaid. Undo is blocked once a
+successor exists, and archiving the successor stops the chain. RLS assertions
+and idempotency checks ran locally and the migration was applied to the active
+Supabase project. Actual Android and two-account tests remain outstanding.

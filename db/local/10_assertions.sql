@@ -664,7 +664,7 @@ select id,chore_id,position,assignee_id,created_at from public.chore_rotation_st
 select id,chore_id,completed_by,completed_at,due_at,note,created_at from public.chore_completions limit 0;
 select id,household_id,name,created_by,archived_at,created_at,updated_at from public.shopping_lists limit 0;
 select id,list_id,name,quantity,unit,category,note,added_by,purchased,purchased_by,purchased_at,position,created_at,updated_at from public.shopping_items limit 0;
-select id,household_id,owner_id,created_by,visibility,record_type,title,amount,currency,category,note,occurred_at,due_at,bill_status,is_recurring,recurrence_rule,paid_by,paid_at,archived_at,created_at,updated_at from public.financial_records limit 0;
+select id,household_id,owner_id,created_by,visibility,record_type,title,amount,currency,category,note,occurred_at,due_at,bill_status,is_recurring,recurrence_rule,recurrence_timezone,paid_by,paid_at,archived_at,created_at,updated_at from public.financial_records limit 0;
 select id,household_id,created_by,title,description,visibility,category,mime_type,file_size,storage_path,created_at,updated_at from public.documents limit 0;
 select id,document_id,entity_type,entity_id,created_by,created_at from public.document_attachments limit 0;
 rollback;
@@ -697,5 +697,28 @@ begin
   update public.chores set archived_at=now(), is_active=false where id=chore_id;
   begin perform public.complete_chore(chore_id); raise exception 'inactive chore allowed';
   exception when raise_exception then if sqlerrm <> 'CHORE_INACTIVE' then raise; end if; end;
+end $$;
+rollback;
+
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare bill uuid; successor uuid; n integer;
+begin
+  insert into public.financial_records(owner_id,created_by,visibility,record_type,title,amount,currency,due_at,is_recurring,recurrence_rule,recurrence_timezone)
+  values(auth.uid(),auth.uid(),'PRIVATE','BILL','recurring test',10,'USD','2026-03-01 14:00+00',true,'WEEKLY','America/New_York') returning id into bill;
+  update public.financial_records set paid_at=now(),paid_by=auth.uid() where id=bill;
+  select next_record_id into successor from public.finance_recurrence_instances where paid_record_id=bill;
+  if successor is null or not exists(select 1 from public.financial_records where id=successor and owner_id=auth.uid() and currency='USD' and due_at='2026-03-08 13:00+00' and paid_at is null) then raise exception 'recurring bill successor'; end if;
+  update public.financial_records set paid_at=now() where id=bill;
+  select count(*) into n from public.finance_recurrence_instances where paid_record_id=bill;
+  if n <> 1 then raise exception 'duplicate recurring bill'; end if;
+  begin update public.financial_records set paid_at=null,paid_by=null where id=bill; raise exception 'recurring undo permitted';
+  exception when raise_exception then if sqlerrm <> 'RECURRING_BILL_CANNOT_UNDO' then raise; end if; end;
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+  if exists(select 1 from public.finance_recurrence_instances where paid_record_id=bill) then raise exception 'recurrence leaks private bill'; end if;
+  update public.financial_records set paid_at=now(),paid_by=auth.uid() where id=successor;
+  if found then raise exception 'outsider can pay private successor'; end if;
 end $$;
 rollback;

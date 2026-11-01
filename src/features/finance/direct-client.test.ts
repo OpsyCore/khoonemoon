@@ -46,6 +46,37 @@ describe("direct finance transport", () => {
       amount: 123,
     });
   });
+  it("stores a supported recurring bill schedule and rejects an invalid zone", async () => {
+    const { api, fetcher } = setup();
+    await api.create({
+      ...input,
+      isRecurring: true,
+      recurrenceRule: "MONTHLY",
+      recurrenceTimezone: "Asia/Tehran",
+    });
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({
+      is_recurring: true,
+      recurrence_rule: "MONTHLY",
+      recurrence_timezone: "Asia/Tehran",
+    });
+    await expect(
+      api.create({
+        ...input,
+        isRecurring: true,
+        recurrenceRule: "MONTHLY",
+        recurrenceTimezone: "invalid/zone",
+      }),
+    ).rejects.toThrow();
+    await expect(
+      api.create({
+        ...input,
+        recordType: "EXPENSE",
+        isRecurring: true,
+        recurrenceRule: "MONTHLY",
+        recurrenceTimezone: "Asia/Tehran",
+      }),
+    ).rejects.toThrow();
+  });
   it("looks up current membership before inserting a shared record", async () => {
     const { api, fetcher } = setup();
     await api.create({ ...input, visibility: "HOUSEHOLD_SHARED" });

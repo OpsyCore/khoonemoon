@@ -71,6 +71,9 @@ export function Finance({
   const [due, setDue] = useState("");
   const [occurred, setOccurred] = useState("");
   const [recurring, setRecurring] = useState(false);
+  const [recurrenceRule, setRecurrenceRule] = useState<
+    "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY"
+  >("MONTHLY");
   const [currency, setCurrency] = useState("IRR");
   const [recordCurrency, setRecordCurrency] = useState("IRR");
   const [filters, setFilters] = useState(DEFAULT_LEDGER_FILTERS);
@@ -268,6 +271,10 @@ export function Finance({
           dueAt,
           occurredAt: occurred ? new Date(occurred).toISOString() : null,
           isRecurring: recurring,
+          recurrenceRule: recurring ? recurrenceRule : null,
+          recurrenceTimezone: recurring
+            ? Intl.DateTimeFormat().resolvedOptions().timeZone
+            : null,
         });
       reset();
       try {
@@ -290,7 +297,13 @@ export function Finance({
     setMessage("");
     try {
       await api.update(record.id, { paid: !record.paid_at });
-      await load();
+      try {
+        await load();
+      } catch {
+        setMessage(
+          "وضعیت پرداخت ثبت شد، ولی تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و صفحه را تازه کنید.",
+        );
+      }
     } catch {
       setMessage("تغییر وضعیت پرداخت ناموفق بود.");
     } finally {
@@ -350,7 +363,10 @@ export function Finance({
           <select
             disabled={Boolean(editing)}
             value={kind}
-            onChange={(e) => setKind(e.target.value as FinancialRecordType)}
+            onChange={(e) => (
+              setKind(e.target.value as FinancialRecordType),
+              setRecurring(false)
+            )}
           >
             {Object.entries(TYPE_LABELS)
               .filter(([key]) => key !== "ALL")
@@ -431,18 +447,41 @@ export function Finance({
             مشترک با خانه
           </label>
         )}
-        {!editing && (
+        {!editing && billTypes.has(kind) && (
           <label className="item">
             <input
               type="checkbox"
               checked={recurring}
               onChange={(e) => setRecurring(e.target.checked)}
             />
-            علامت‌گذاری به‌عنوان تکرارشونده
+            قبض تکرارشونده
           </label>
         )}
-        {recurring && (
-          <small>این علامت به‌تنهایی مورد بعدی را خودکار ایجاد نمی‌کند.</small>
+        {!editing && recurring && billTypes.has(kind) && (
+          <>
+            <label>
+              دوره تکرار
+              <select
+                value={recurrenceRule}
+                onChange={(e) =>
+                  setRecurrenceRule(e.target.value as typeof recurrenceRule)
+                }
+              >
+                <option value="DAILY">روزانه</option>
+                <option value="WEEKLY">هفتگی</option>
+                <option value="MONTHLY">ماهانه</option>
+                <option value="YEARLY">سالانه</option>
+              </select>
+            </label>
+            <small>
+              با ثبت پرداخت، قبض بعدی یک‌بار ساخته می‌شود؛ در صورت عدم پرداخت
+              خودکار ساخته نمی‌شود. منطقهٔ زمانی:{" "}
+              {Intl.DateTimeFormat().resolvedOptions().timeZone}
+            </small>
+          </>
+        )}
+        {editing && recurring && (
+          <small>تغییرات فقط روی همین قبض اعمال می‌شود.</small>
         )}
         <button disabled={busy}>{editing ? "ذخیره تغییرات" : "ثبت"}</button>
         {editing && (
@@ -594,6 +633,9 @@ export function Finance({
                     {record.paid_at &&
                       ` · پرداخت: ${formatPersianDate(record.paid_at)}`}
                   </small>
+                  {record.is_recurring && record.recurrence_rule && (
+                    <small>قبض تکراری · {record.recurrence_rule}</small>
+                  )}
                   {record.note && <p>{record.note}</p>}
                 </div>
                 <div>
@@ -604,15 +646,20 @@ export function Finance({
                   >
                     ویرایش
                   </button>
-                  {isBillRecord(record) && (
-                    <button
-                      className="minor"
-                      disabled={busy}
-                      onClick={() => void paid(record)}
-                    >
-                      {record.paid_at ? "بازگرداندن پرداخت" : "پرداخت شد"}
-                    </button>
-                  )}
+                  {isBillRecord(record) &&
+                    !(
+                      record.paid_at &&
+                      record.is_recurring &&
+                      record.recurrence_rule
+                    ) && (
+                      <button
+                        className="minor"
+                        disabled={busy}
+                        onClick={() => void paid(record)}
+                      >
+                        {record.paid_at ? "بازگرداندن پرداخت" : "پرداخت شد"}
+                      </button>
+                    )}
                   <button
                     className="minor"
                     disabled={busy}
