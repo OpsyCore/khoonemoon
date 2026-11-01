@@ -57,6 +57,14 @@ function limiter() {
 }
 
 export async function encryptForProjectOwner(input, output, publicKey) {
+  return encryptStreamForProjectOwner(
+    createReadStream(input),
+    output,
+    publicKey,
+  );
+}
+
+export async function encryptStreamForProjectOwner(input, output, publicKey) {
   const recipient = createPublicKey(publicKey);
   assertRsa(recipient);
   const contentKey = randomBytes(32);
@@ -76,7 +84,7 @@ export async function encryptForProjectOwner(input, output, publicKey) {
       autoClose: false,
       start: header.length,
     });
-    await pipeline(createReadStream(input), limiter(), cipher, writer);
+    await pipeline(input, limiter(), cipher, writer);
     const written = await temp.handle.write(
       cipher.getAuthTag(),
       0,
