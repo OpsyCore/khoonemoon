@@ -27,7 +27,10 @@ import {
   type PaidFilter,
   type LedgerDays,
 } from "@/features/finance/ledger";
-import { settleHousehold } from "@/features/finance/settlement";
+import {
+  settleHousehold,
+  excludedSettlementRecords,
+} from "@/features/finance/settlement";
 import { parseAmount } from "@/shared/utils/amount";
 import { formatPersianDate } from "@/shared/utils/locale";
 
@@ -573,6 +576,40 @@ export function Finance({
             <>
               <h3>برآورد تسویه مشترک</h3>
               <p>تقسیم برابر بین اعضای فعلی، نه ثبت پرداخت واقعی.</p>
+              <p>
+                مجموع هزینه‌های قابل تسویه:{" "}
+                {formatAmount(settlement.total, currency)}
+              </p>
+              {members.length === 0 ? (
+                <p>برای محاسبه، فهرست اعضای فعلی لازم است.</p>
+              ) : (
+                <ul>
+                  {settlement.balances.map((member) => (
+                    <li key={member.memberId}>
+                      <strong>{member.name}</strong>
+                      <span>
+                        پرداخت: {formatAmount(member.paid, currency)} · سهم:{" "}
+                        {formatAmount(member.share, currency)} ·{" "}
+                        {member.balance > 0
+                          ? "طلبکار"
+                          : member.balance < 0
+                            ? "بدهکار"
+                            : "تسویه"}
+                        : {formatAmount(Math.abs(member.balance), currency)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {excludedSettlementRecords(
+                money.filter((record) => record.household_id === householdId),
+                members,
+              ) > 0 && (
+                <p>
+                  برخی پرداخت‌ها به‌دلیل نبود پرداخت‌کننده در اعضای فعلی در
+                  برآورد لحاظ نشده‌اند.
+                </p>
+              )}
               {settlement.transfers.length ? (
                 <ul>
                   {settlement.transfers.map((transfer) => (
@@ -582,9 +619,9 @@ export function Finance({
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p>تسویه‌ای محاسبه نشد.</p>
-              )}
+              ) : members.length > 0 ? (
+                <p>انتقالی میان اعضای فعلی پیشنهاد نمی‌شود.</p>
+              ) : null}
             </>
           )}
           <h3>دفتر مالی</h3>

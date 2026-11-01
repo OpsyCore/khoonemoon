@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { directTasks } from "@/features/tasks/direct-client";
 import { directCalendar } from "@/features/calendar/direct-client";
 import { directChores } from "@/features/chores/direct-client";
@@ -11,6 +11,7 @@ import {
   buildQuickChorePayload,
   buildQuickShoppingPayload,
   buildQuickBillPayload,
+  buildQuickPayablePayload,
   defaultEventWindow,
   toDateTimeLocal,
   fromDateTimeLocal,
@@ -22,7 +23,7 @@ const labels: Record<QuickAddKind, string> = {
   task: "کار",
   event: "رویداد",
   shopping: "خرید",
-  bill: "هزینه",
+  bill: "هزینه یا قبض",
   chore: "کار خانه",
 };
 export function QuickAdd({
@@ -40,7 +41,10 @@ export function QuickAdd({
     [shared, setShared] = useState(false),
     [amount, setAmount] = useState(""),
     [currency, setCurrency] = useState("IRR"),
-    [due, setDue] = useState("");
+    [due, setDue] = useState(""),
+    [financialKind, setFinancialKind] = useState<"expense" | "bill">("expense");
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const typeRef = useRef<HTMLSelectElement>(null);
   const [start, setStart] = useState(() =>
       toDateTimeLocal(defaultEventWindow(new Date()).start),
     ),
@@ -51,6 +55,20 @@ export function QuickAdd({
     [listId, setListId] = useState(""),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
+  useEffect(() => {
+    if (open) typeRef.current?.focus();
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busy) {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [open, busy]);
   useEffect(() => {
     if (!open || kind !== "shopping" || !householdId) return;
     let alive = true;
@@ -74,7 +92,7 @@ export function QuickAdd({
     setBusy(true);
     setMessage("");
     try {
-      const visibility = shared ? "HOUSEHOLD_SHARED" : "PRIVATE";
+      const visibility = householdId && shared ? "HOUSEHOLD_SHARED" : "PRIVATE";
       if (kind === "task")
         await directTasks(client).create(
           buildQuickTaskPayload({
@@ -104,8 +122,18 @@ export function QuickAdd({
       } else {
         const parsed = parseAmount(amount);
         if (parsed === null) throw new Error("مبلغ معتبر وارد کنید.");
+        const dueAt = fromDateTimeLocal(due);
+        if (financialKind === "bill" && !dueAt)
+          throw new Error("سررسید قبض را مشخص کنید.");
         await directFinance(client).create({
-          ...buildQuickBillPayload({ title, amount: parsed, visibility }),
+          ...(financialKind === "bill" && dueAt
+            ? buildQuickPayablePayload({
+                title,
+                amount: parsed,
+                visibility,
+                dueAt,
+              })
+            : buildQuickBillPayload({ title, amount: parsed, visibility })),
           currency,
         });
       }
@@ -113,12 +141,15 @@ export function QuickAdd({
       setAmount("");
       setDue("");
       setOpen(false);
+      triggerRef.current?.focus();
       onDone();
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
       setMessage("مورد ثبت شد.");
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "ثبت مورد ناموفق بود.",
+        error instanceof Error
+          ? `${error.message} پیش از تلاش دوباره، فهرست مربوط را بررسی کنید.`
+          : "ثبت تأیید نشد؛ پیش از تلاش دوباره فهرست مربوط را بررسی کنید.",
       );
     } finally {
       setBusy(false);
@@ -127,7 +158,11 @@ export function QuickAdd({
   return (
     <section>
       <button
+        ref={triggerRef}
+        type="button"
         className="minor"
+        disabled={busy}
+        aria-controls="quick-add-form"
         onClick={() => {
           setOpen(!open);
           setMessage("");
@@ -138,10 +173,11 @@ export function QuickAdd({
       </button>
       {message && <p role="status">{message}</p>}
       {open && (
-        <form onSubmit={submit}>
+        <form id="quick-add-form" onSubmit={submit}>
           <label>
             نوع
             <select
+              ref={typeRef}
               value={kind}
               onChange={(e) => {
                 setKind(e.target.value as QuickAddKind);
@@ -228,6 +264,29 @@ export function QuickAdd({
           {kind === "bill" && (
             <>
               <label>
+                نوع مالی
+                <select
+                  value={financialKind}
+                  onChange={(e) =>
+                    setFinancialKind(e.target.value as "expense" | "bill")
+                  }
+                >
+                  <option value="expense">هزینه پرداخت‌شده</option>
+                  <option value="bill">قبض سررسیددار</option>
+                </select>
+              </label>
+              {financialKind === "bill" && (
+                <label>
+                  سررسید قبض
+                  <input
+                    type="datetime-local"
+                    required
+                    value={due}
+                    onChange={(e) => setDue(e.target.value)}
+                  />
+                </label>
+              )}
+              <label>
                 مبلغ
                 <input
                   inputMode="decimal"
@@ -255,6 +314,17 @@ export function QuickAdd({
             </p>
           )}
           <button disabled={busy}>ثبت {labels[kind]}</button>
+          <button
+            type="button"
+            className="minor"
+            disabled={busy}
+            onClick={() => {
+              setOpen(false);
+              triggerRef.current?.focus();
+            }}
+          >
+            بستن
+          </button>
         </form>
       )}
     </section>

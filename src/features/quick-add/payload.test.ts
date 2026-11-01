@@ -4,6 +4,7 @@ import { createFinancialRecordSchema } from "@/features/finance/schemas";
 import { createTaskSchema } from "@/features/tasks/schemas";
 import {
   buildQuickBillPayload,
+  buildQuickPayablePayload,
   buildQuickChorePayload,
   buildQuickEventPayload,
   buildQuickShoppingPayload,
@@ -56,9 +57,7 @@ describe("datetime helpers", () => {
 
 describe("defaultEventWindow", () => {
   it("starts at the next full hour and lasts one hour", () => {
-    const { start, end } = defaultEventWindow(
-      new Date("2026-10-28T10:23:00"),
-    );
+    const { start, end } = defaultEventWindow(new Date("2026-10-28T10:23:00"));
 
     expect(start.getMinutes()).toBe(0);
     expect(start.getHours()).toBe(11);
@@ -124,6 +123,27 @@ describe("payload builders satisfy the server schemas", () => {
     );
 
     expect(parsed.success).toBe(true);
+  });
+
+  it("builds a true due-dated bill without changing the expense flow", () => {
+    const bill = buildQuickPayablePayload({
+      title: " قبض برق ",
+      amount: 100,
+      visibility: "PRIVATE",
+      dueAt: "2026-12-01T09:00:00.000Z",
+    });
+    expect(bill.recordType).toBe("BILL");
+    expect(createFinancialRecordSchema.safeParse(bill).success).toBe(true);
+    expect(
+      createFinancialRecordSchema.safeParse({ ...bill, dueAt: null }).success,
+    ).toBe(false);
+    expect(
+      buildQuickBillPayload({
+        title: "هزینه",
+        amount: 100,
+        visibility: "PRIVATE",
+      }).recordType,
+    ).toBe("EXPENSE");
   });
 
   it("bill payload trims the title", () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  excludedSettlementRecords,
   isSettleableRecord,
   settleHousehold,
   splitEvenly,
@@ -104,6 +105,22 @@ describe("isSettleableRecord", () => {
   it("rejects zero and negative amounts", () => {
     expect(isSettleableRecord(record({ amount: 0 }))).toBe(false);
     expect(isSettleableRecord(record({ amount: -25_000 }))).toBe(false);
+  });
+});
+
+describe("excludedSettlementRecords", () => {
+  it("counts only eligible payments with a payer outside the current household", () => {
+    expect(
+      excludedSettlementRecords(
+        [
+          record({ paid_by: "former" }),
+          record(),
+          record({ paid_by: "former", visibility: "PRIVATE" }),
+          record({ paid_by: "former", record_type: "BILL" }),
+        ],
+        [ALI, SARA],
+      ),
+    ).toBe(1);
   });
 });
 

@@ -95,6 +95,28 @@ export function isSettleableRecord(
   return toCents(record.amount) > 0;
 }
 
+/** Count payable shared records excluded because their payer is not a current member. */
+export function excludedSettlementRecords(
+  records: Pick<
+    FinancialRecord,
+    | "visibility"
+    | "record_type"
+    | "amount"
+    | "archived_at"
+    | "paid_at"
+    | "due_at"
+    | "paid_by"
+    | "owner_id"
+  >[],
+  members: SettlementMember[],
+): number {
+  const ids = new Set(members.map((member) => member.id));
+  return records.filter(
+    (record) =>
+      isSettleableRecord(record) && !ids.has(record.paid_by ?? record.owner_id),
+  ).length;
+}
+
 /**
  * Splits `totalCents` across `count` members without losing a single cent.
  * The remainder is handed out one cent at a time, deterministically, so the
