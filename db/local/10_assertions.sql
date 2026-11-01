@@ -831,3 +831,17 @@ rollback;
 do $$ begin
   if has_function_privilege('anon','public.mobile_update_chore_guarded(uuid,jsonb,timestamptz)','execute') then raise exception 'anonymous chore update must be denied'; end if;
 end $$;
+
+-- The guarded wrapper also accepts the current version under normal RLS.
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_id uuid; v_time timestamptz; v_result uuid;
+begin
+  insert into public.chores(household_id,title,created_by,rotation_mode,frequency)
+  values ('00000000-0000-4000-8000-0000000000f1','نگهبان نسخه','00000000-0000-4000-8000-00000000000a','FIXED','DAILY') returning id,updated_at into v_id,v_time;
+  v_result := public.mobile_update_chore_guarded(v_id, jsonb_build_object('title','عنوان اصلاح‌شده','rotationMode','FIXED','frequency','DAILY','assigneeIds',jsonb_build_array('00000000-0000-4000-8000-00000000000a'),'recurrenceTimezone','UTC'),v_time);
+  if v_result <> v_id or not exists(select 1 from public.chores where id=v_id and title='عنوان اصلاح‌شده') then raise exception 'guarded current update failed'; end if;
+end $$;
+rollback;

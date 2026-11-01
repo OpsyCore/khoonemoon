@@ -29,7 +29,7 @@ export function Chores({
   const [historyReady, setHistoryReady] = useState(false);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
-  const [editing, setEditing] = useState<string | null>(null);
+  const [editing, setEditing] = useState<ChoreRecord | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [description, setDescription] = useState("");
   const [due, setDue] = useState("");
@@ -109,8 +109,7 @@ export function Chores({
     setBusy(true);
     setMessage("");
     try {
-      const original = editing ? chores.find((c) => c.id === editing) : null;
-      if (editing && !original) throw new Error("کار خانه یافت نشد.");
+      const original = editing;
       const time = taskEditTime(
         due,
         original?.next_due_at ?? null,
@@ -127,7 +126,13 @@ export function Chores({
         intervalDays: frequency === "INTERVAL_DAYS" ? Number(interval) : null,
         weekdays: frequency === "WEEKLY" ? days : null,
       };
-      if (editing) await api.update(editing, payload, time.recurrenceTimezone);
+      if (editing)
+        await api.update(
+          editing.id,
+          payload,
+          time.recurrenceTimezone,
+          editing.updated_at,
+        );
       else await api.create(payload);
       resetForm();
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
@@ -141,7 +146,7 @@ export function Chores({
       }
     } catch {
       setMessage(
-        "ذخیره کار خانه ناموفق بود؛ اطلاعات و نوبت‌بندی را بررسی کنید.",
+        "ذخیره تأیید نشد یا اطلاعات معتبر نیست؛ پیش از تلاش دوباره فهرست را تازه کنید.",
       );
     } finally {
       setBusy(false);
@@ -199,7 +204,7 @@ export function Chores({
         .toISOString()
         .slice(0, 16);
     };
-    setEditing(chore.id);
+    setEditing(chore);
     setNewTitle(chore.title);
     setDescription(chore.description ?? "");
     setDue(chore.next_due_at ? local(chore.next_due_at) : "");

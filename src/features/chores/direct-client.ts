@@ -22,11 +22,13 @@ export function directChores(client: SupabaseClient) {
     async update(
       id: string,
       input: unknown,
-      recurrenceTimezone?: string,
+      recurrenceTimezone: string,
+      expectedUpdatedAt: string,
     ): Promise<void> {
       const chore = createChoreSchema.parse(input);
-      const { data, error } = await client.rpc("mobile_update_chore", {
+      const { data, error } = await client.rpc("mobile_update_chore_guarded", {
         p_id: id,
+        p_expected_updated_at: expectedUpdatedAt,
         p_input: {
           ...chore,
           recurrenceTimezone:
@@ -34,7 +36,10 @@ export function directChores(client: SupabaseClient) {
             Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
       });
-      if (error || data !== id) throw new Error("ویرایش کار خانه ناموفق بود.");
+      if (error || data !== id)
+        throw new Error(
+          "ویرایش تأیید نشد یا کار تغییر کرده است؛ پیش از تلاش دوباره فهرست را تازه کنید.",
+        );
     },
     async list(householdId: string): Promise<ChoreRecord[]> {
       const rows: ChoreRecord[] = [];
