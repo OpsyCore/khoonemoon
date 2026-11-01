@@ -365,19 +365,37 @@ export function Documents({
           </button>
         </section>
       )}
-      <div className="document-tabs" role="tablist" aria-label="دسته مدارک">
+      <div className="document-tabs" role="group" aria-label="دسته مدارک">
         {Object.entries(cats).map(([key, label]) => (
           <button
             key={key}
             type="button"
-            role="tab"
-            aria-selected={category === key}
+            aria-pressed={category === key}
             onClick={() => setCategory(key as Category)}
           >
             {label}
           </button>
         ))}
       </div>
+      {!loaded && !error && <p role="status">در حال دریافت مدارک…</p>}
+      {!loaded && error && (
+        <button
+          type="button"
+          className="minor"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            void load()
+              .then(() => setError(""))
+              .catch(() =>
+                setError("دریافت مدارک ناموفق بود؛ اتصال را بررسی کنید."),
+              )
+              .finally(() => setBusy(false));
+          }}
+        >
+          تلاش دوباره
+        </button>
+      )}
       {visible.map((row) => (
         <article className="document-card" key={row.id}>
           <div className="document-copy">

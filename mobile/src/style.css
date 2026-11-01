@@ -312,7 +312,7 @@ button:not(.calendar-day) {
   height: 10rem;
   left: 0;
   top: 0;
-  background: url("../public/botanical.png") center/contain no-repeat;
+  background: url("../public/botanical.webp") center/contain no-repeat;
   mix-blend-mode: multiply;
   opacity: 0.75;
   pointer-events: none;
@@ -388,7 +388,7 @@ button:not(.calendar-day) {
   border: 1px solid #d3c5ab;
   border-bottom: 0;
 }
-.document-tabs button[aria-selected="true"] {
+.document-tabs button[aria-pressed="true"] {
   background: #7d8556;
   color: #fffdf4;
 }
@@ -500,7 +500,8 @@ button:not(.calendar-day) {
 main > header {
   min-height: 6.5rem;
   padding-inline: 0.8rem 4.8rem;
-  background: url("../public/botanical.png") left center / 4.3rem auto no-repeat;
+  background: url("../public/botanical.webp") left center / 4.3rem auto
+    no-repeat;
   background-blend-mode: multiply;
 }
 main > header h1 {
@@ -642,7 +643,7 @@ button:not(:disabled):active {
   background: transparent;
 }
 :root[data-theme="dark"] .bottom-nav button[aria-current="page"],
-:root[data-theme="dark"] .document-tabs button[aria-selected="true"],
+:root[data-theme="dark"] .document-tabs button[aria-pressed="true"],
 :root[data-theme="dark"] .search-filters button[aria-pressed="true"] {
   background: #6d7b4b;
   color: #fff;
@@ -687,11 +688,113 @@ button:not(:disabled):active {
 :root[data-theme="dark"] :focus-visible {
   outline-color: #e5e9bc;
 }
-:root[data-theme="dark"] .document-tabs button[aria-selected="true"] {
+:root[data-theme="dark"] .document-tabs button[aria-pressed="true"] {
   background: #6d7b4b;
   color: #fff;
 }
 :root[data-theme="dark"] .documents-heading::before {
   mix-blend-mode: normal;
   opacity: 0.38;
+}
+
+/* Shared mobile-first interaction and feedback primitives. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  flex: 0 0 auto;
+  accent-color: #626d3b;
+}
+textarea {
+  width: 100%;
+  font: inherit;
+  border: 1px solid #cdbfa6;
+  border-radius: 0.55rem;
+  padding: 0.7rem;
+  background: #f7f1e5;
+  color: inherit;
+}
+:focus-visible {
+  outline: 3px solid #4b6036;
+  outline-offset: 2px;
+}
+button {
+  background-color: #626d3b;
+}
+.bottom-nav button[aria-current="page"],
+.document-tabs button[aria-pressed="true"],
+.search-filters button[aria-pressed="true"],
+.calendar-day[aria-pressed="true"] {
+  background-color: #626d3b;
+  color: #fff;
+}
+.bottom-nav {
+  scrollbar-width: thin;
+  scrollbar-color: #96866d transparent;
+}
+.network-status {
+  border: 1px solid #ad8053;
+  background: #fff3d9;
+  color: #593d20;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin: 0.8rem 0;
+}
+[role="alert"],
+.error {
+  overflow-wrap: anywhere;
+}
+:root[data-theme="dark"] .network-status {
+  border-color: #c7aa7d;
+  background: #443726;
+  color: #fff0cf;
+}
+
+:root[data-theme="dark"] .bottom-nav button:not([aria-current="page"]) {
+  background: transparent;
+}
+
+:root[data-theme="dark"] :focus-visible {
+  outline-color: #e5e9bc;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+:root[data-theme="dark"] {
+  color: #f2e9d7;
+  background: #26251e;
+}
+header p,
+section > p,
+.document-copy small,
+.documents-heading p,
+.paper-note {
+  color: #6d5c4b;
+}
+.weekday,
+.calendar-day.outside {
+  color: #6c5b4a;
+}
+:root[data-theme="dark"] .weekday,
+:root[data-theme="dark"] .calendar-day.outside {
+  color: #c9bca5;
+}
+:root[data-theme="dark"] .paper-note {
+  color: #f2e7d4;
+}
+:root[data-theme="dark"] main > header {
+  background-image: none;
+}
+:root[data-theme="dark"] main > header::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4.3rem;
+  background: url("../public/botanical.webp") center / contain no-repeat;
+  opacity: 0.22;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse, #000 35%, transparent 78%);
 }

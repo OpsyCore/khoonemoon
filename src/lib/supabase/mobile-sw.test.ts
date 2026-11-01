@@ -65,6 +65,10 @@ describe("standalone mobile service worker privacy", () => {
           '<script src="./assets/app-abc.js"></script><link href="./assets/app-abc.css">',
       }),
     };
+    cached.match.mockResolvedValueOnce({
+      text: async () =>
+        `@font-face{src:url("./font.woff2")} body{background:url(./flower.webp)} div{background:url(https://evil.test/assets/file.png)} i{background:url(./private.json)}`,
+    } as never);
     fetch
       .mockResolvedValueOnce(shellResponse as never)
       .mockResolvedValueOnce("navigation" as never);
@@ -91,6 +95,12 @@ describe("standalone mobile service worker privacy", () => {
       "https://example.test/app/assets/app-abc.css",
     ]);
     expect(requests.every((r) => r.credentials === "omit")).toBe(true);
+    const dependencies = cached.addAll.mock.calls[1][0] as Request[];
+    expect(dependencies.map((r) => r.url)).toEqual([
+      "https://example.test/app/assets/font.woff2",
+      "https://example.test/app/assets/flower.webp",
+    ]);
+    expect(dependencies.every((r) => r.credentials === "omit")).toBe(true);
     expect(cached.addAll.mock.invocationCallOrder[0]).toBeLessThan(
       cached.put.mock.invocationCallOrder[0],
     );
@@ -117,6 +127,33 @@ describe("standalone mobile service worker privacy", () => {
     expect(cached.match).toHaveBeenCalledWith(
       "https://example.test/app/index.html",
     );
+    expect(cached.put).not.toHaveBeenCalled();
+  });
+  it("does not replace the prior shell when a stylesheet dependency fails", async () => {
+    const { handlers, fetch, cached } = worker();
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => "text/html" },
+      clone: () => ({
+        text: async () =>
+          '<script src="./assets/app.js"></script><link href="./assets/app.css">',
+      }),
+    } as never);
+    cached.match.mockResolvedValueOnce({
+      text: async () => "body{background:url(./image.webp)}",
+    } as never);
+    cached.addAll
+      .mockResolvedValueOnce(undefined as never)
+      .mockRejectedValueOnce(new Error("offline"));
+    let install: Promise<unknown> | undefined;
+    handlers.install({
+      request: { method: "", url: "", mode: "" },
+      respondWith: vi.fn(),
+      waitUntil: (p) => {
+        install = p;
+      },
+    });
+    await expect(install).rejects.toThrow("offline");
     expect(cached.put).not.toHaveBeenCalled();
   });
 });

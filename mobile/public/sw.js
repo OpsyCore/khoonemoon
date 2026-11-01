@@ -33,6 +33,27 @@ async function refreshShell() {
   await cache.addAll(
     assets.map((url) => new Request(url, { credentials: "omit" })),
   );
+  // The shell depends on fonts and illustrations referenced by its stylesheet.
+  // Precache only same-origin, hashed static assets; never follow arbitrary URLs.
+  const dependencies = new Set();
+  for (const css of assets.filter((url) => url.endsWith(".css"))) {
+    const cssResponse = await cache.match(css);
+    if (!cssResponse) throw new Error("stylesheet unavailable");
+    const text = await cssResponse.text();
+    for (const match of text.matchAll(/url\(\s*["']?([^"')\s]+)["']?\s*\)/g)) {
+      const url = new URL(match[1], css);
+      if (
+        url.origin === scope.origin &&
+        url.pathname.startsWith(staticPrefix) &&
+        !url.search &&
+        /\.(woff2|png|webp|svg)$/.test(url.pathname)
+      )
+        dependencies.add(url.href);
+    }
+  }
+  await cache.addAll(
+    [...dependencies].map((url) => new Request(url, { credentials: "omit" })),
+  );
   await cache.put(shell, response);
 }
 self.addEventListener("install", (event) => {
@@ -67,7 +88,7 @@ self.addEventListener("fetch", (event) => {
   if (
     !url.pathname.startsWith(staticPrefix) ||
     url.search ||
-    !/\.(js|css|woff2|png|svg)$/.test(url.pathname)
+    !/\.(js|css|woff2|png|webp|svg)$/.test(url.pathname)
   )
     return;
   event.respondWith(

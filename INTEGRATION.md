@@ -86,3 +86,8 @@ persistence and system preference tracking; the dark palette keeps the journal
 style. Unit tests and a build pass, but screen-by-screen visual and contrast
 checks on actual browsers/Android are still required. PWA installation,
 offline shell behavior and switching theme on a real device remain unverified.
+
+Standalone foundation: offline status is announced explicitly and no private data
+is cached. The service worker precaches same-origin shell dependencies (including
+fonts and artwork) before replacing the fallback shell, and preserves the previous
+shell if an update fails. Manual offline/update and visual checks remain pending.

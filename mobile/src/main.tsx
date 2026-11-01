@@ -64,6 +64,16 @@ function App() {
     }
   });
   const [themePersisted, setThemePersisted] = useState(true);
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
   useEffect(() => {
     const media =
       typeof window.matchMedia === "function"
@@ -314,6 +324,12 @@ function App() {
         )}
       </header>
 
+      {!online && (
+        <p className="network-status" role="status">
+          اتصال اینترنت برقرار نیست. داده‌های خانه و ذخیره تغییرات به اینترنت
+          نیاز دارند.
+        </p>
+      )}
       {message && (
         <p role="alert" className="error">
           {message}
@@ -355,92 +371,99 @@ function App() {
           </form>
         </section>
       ) : !session ? (
-        <section>
-          <h2>
-            {authMode === "login"
-              ? "ورود"
-              : authMode === "signup"
-                ? "ساخت حساب"
-                : "بازیابی رمز عبور"}
-          </h2>
-          <form
-            onSubmit={
-              authMode === "login"
-                ? login
-                : authMode === "signup"
-                  ? signup
-                  : forgot
-            }
-          >
-            {authMode === "signup" && (
-              <label>
-                نام
-                <input
-                  autoComplete="name"
-                  required
-                  minLength={2}
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </label>
-            )}
-            <label>
-              ایمیل
-              <input
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </label>
-            {authMode !== "forgot" && (
-              <label>
-                رمز عبور
-                <input
-                  type="password"
-                  autoComplete={
-                    authMode === "login" ? "current-password" : "new-password"
-                  }
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </label>
-            )}
-            <button disabled={busy}>
+        <>
+          <section>
+            <h2>
               {authMode === "login"
                 ? "ورود"
                 : authMode === "signup"
-                  ? "ثبت‌نام"
-                  : "ارسال پیوند بازیابی"}
-            </button>
-          </form>
-          <button
-            className="minor"
-            disabled={busy}
-            onClick={() => {
-              setAuthMode(authMode === "login" ? "signup" : "login");
-              setMessage("");
-              setPassword("");
-            }}
-          >
-            {authMode === "login" ? "ساخت حساب جدید" : "بازگشت به ورود"}
-          </button>
-          {authMode === "login" && (
+                  ? "ساخت حساب"
+                  : "بازیابی رمز عبور"}
+            </h2>
+            <form
+              onSubmit={
+                authMode === "login"
+                  ? login
+                  : authMode === "signup"
+                    ? signup
+                    : forgot
+              }
+            >
+              {authMode === "signup" && (
+                <label>
+                  نام
+                  <input
+                    autoComplete="name"
+                    required
+                    minLength={2}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </label>
+              )}
+              <label>
+                ایمیل
+                <input
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </label>
+              {authMode !== "forgot" && (
+                <label>
+                  رمز عبور
+                  <input
+                    type="password"
+                    autoComplete={
+                      authMode === "login" ? "current-password" : "new-password"
+                    }
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </label>
+              )}
+              <button disabled={busy}>
+                {authMode === "login"
+                  ? "ورود"
+                  : authMode === "signup"
+                    ? "ثبت‌نام"
+                    : "ارسال پیوند بازیابی"}
+              </button>
+            </form>
             <button
               className="minor"
               disabled={busy}
               onClick={() => {
-                setAuthMode("forgot");
-                setPassword("");
+                setAuthMode(authMode === "login" ? "signup" : "login");
                 setMessage("");
+                setPassword("");
               }}
             >
-              رمز عبور را فراموش کرده‌ام
+              {authMode === "login" ? "ساخت حساب جدید" : "بازگشت به ورود"}
             </button>
-          )}
-        </section>
+            {authMode === "login" && (
+              <button
+                className="minor"
+                disabled={busy}
+                onClick={() => {
+                  setAuthMode("forgot");
+                  setPassword("");
+                  setMessage("");
+                }}
+              >
+                رمز عبور را فراموش کرده‌ام
+              </button>
+            )}
+          </section>
+          <ThemeSettings
+            mode={theme}
+            setMode={chooseTheme}
+            persisted={themePersisted}
+          />
+        </>
       ) : (
         <>
           <QuickAdd
