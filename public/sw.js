@@ -133,7 +133,12 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const targetUrl = event.notification.data?.url ?? "/today";
+  // Only app routes are allowed; notification payloads must not open an
+  // attacker-controlled origin or an arbitrary same-origin URL.
+  const paths = new Set(["/today", "/calendar", "/lists", "/finance"]);
+  const value = event.notification.data?.url;
+  const targetUrl =
+    typeof value === "string" && paths.has(value) ? value : "/today";
 
   event.waitUntil(
     (async () => {

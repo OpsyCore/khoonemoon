@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildPushPayload,
   isExpiredSubscriptionError,
+  isSafePushEndpoint,
   pushSubscriptionSchema,
 } from "./push";
 
@@ -44,6 +45,35 @@ describe("pushSubscriptionSchema", () => {
         endpoint: `https://example.com/${"x".repeat(2100)}`,
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("push endpoint safety", () => {
+  it("allows supported HTTPS browser push gateways only", () => {
+    expect(isSafePushEndpoint("https://fcm.googleapis.com/fcm/send/abc")).toBe(
+      true,
+    );
+    expect(
+      isSafePushEndpoint(
+        "https://updates.push.services.mozilla.com/wpush/v2/a",
+      ),
+    ).toBe(true);
+    expect(isSafePushEndpoint("https://web.push.apple.com/Q/a")).toBe(true);
+    for (const endpoint of [
+      "http://fcm.googleapis.com/a",
+      "https://fcm.googleapis.com.evil.test/a",
+      "https://fcm.googleapis.com@127.0.0.1/a",
+      "https://fcm.googleapis.com:8443/a",
+      "https://127.0.0.1/a",
+      "https://169.254.169.254/a",
+      "https://evil.test/a",
+    ]) {
+      expect(isSafePushEndpoint(endpoint)).toBe(false);
+      expect(
+        pushSubscriptionSchema.safeParse({ ...validSubscription, endpoint })
+          .success,
+      ).toBe(false);
+    }
   });
 });
 

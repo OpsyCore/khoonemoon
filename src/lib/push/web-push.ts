@@ -1,5 +1,8 @@
 import webpush from "web-push";
-import { isExpiredSubscriptionError } from "@/features/reminders/push";
+import {
+  isExpiredSubscriptionError,
+  isSafePushEndpoint,
+} from "@/features/reminders/push";
 
 type VapidConfig = {
   publicKey: string;
@@ -53,6 +56,9 @@ export async function sendPushNotification({
   subscription: StoredSubscription;
   payload: unknown;
 }): Promise<PushSendResult> {
+  // Rows can be written directly through RLS, bypassing API validation.
+  if (!isSafePushEndpoint(subscription.endpoint))
+    return { status: "failed", message: "unsupported push endpoint" };
   const config = getVapidConfig();
 
   if (!config) return { status: "not_configured" };
