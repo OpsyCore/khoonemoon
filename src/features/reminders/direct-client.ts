@@ -122,6 +122,21 @@ export function directReminders(client: SupabaseClient) {
       if (result.error || !result.data)
         throw new Error("تعویق یادآور ناموفق بود؛ دوباره تلاش کنید.");
     },
+    async cancel(id: string, expectedUpdatedAt: string): Promise<void> {
+      const user = await currentUser(client);
+      const { data, error } = await client
+        .from("reminders")
+        .update({ status: "CANCELED" })
+        .eq("id", id)
+        .eq("user_id", user)
+        .eq("updated_at", expectedUpdatedAt)
+        .in("status", ["PENDING", "SNOOZED"])
+        .is("delivered_at", null)
+        .select("id")
+        .maybeSingle();
+      if (error || !data)
+        throw new Error("وضعیت یادآور تغییر کرده است؛ فهرست را تازه کنید.");
+    },
     async remove(id: string): Promise<void> {
       const user = await currentUser(client);
       const { data, error } = await client

@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState, type FormEvent } from "react";
-import { searchWorkspace } from "@/features/search/direct-client";
+import { searchWorkspaceFiltered } from "@/features/search/direct-client";
 import {
   ALL_KINDS,
   DEFAULT_FILTERS,
   RANGE_LABELS,
-  filterResults,
+  hasActiveFilters,
+  parseSearchFilters,
   toggleKind,
   type SearchFilters,
   type SearchKind,
@@ -20,25 +21,66 @@ const labels: Record<SearchKind, string> = {
   finance: "مالی",
   chore: "کار خانه",
 };
+function initial() {
+  const params = new URLSearchParams(window.location.search);
+  const raw = new URLSearchParams();
+  params.getAll("search_kind").forEach((value) => raw.append("kind", value));
+  if (params.has("search_range"))
+    raw.set("range", params.get("search_range") || "");
+  return {
+    query: (params.get("search_q") ?? "").slice(0, 100),
+    filters: parseSearchFilters(raw),
+  };
+}
+function saveSearch(query: string, filters: SearchFilters) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("search_q");
+  url.searchParams.delete("search_kind");
+  url.searchParams.delete("search_range");
+  if (query) url.searchParams.set("search_q", query);
+  filters.kinds.forEach((kind) => url.searchParams.append("search_kind", kind));
+  if (filters.range !== "ANY")
+    url.searchParams.set("search_range", filters.range);
+  try {
+    window.history.replaceState(window.history.state, "", url);
+  } catch {
+    /* URL persistence is optional */
+  }
+}
 export function Search({ client }: { client: SupabaseClient }) {
-  const [query, setQuery] = useState("");
-  const [submitted, setSubmitted] = useState<{ query: string } | null>(null);
+  const [initialState] = useState(initial);
+  const [query, setQuery] = useState(initialState.query);
+  const [submitted, setSubmitted] = useState(
+    initialState.query.length >= 2 ? initialState.query : "",
+  );
+  const [filters, setFilters] = useState<SearchFilters>(
+    initialState.filters ?? DEFAULT_FILTERS,
+  );
+  const [offset, setOffset] = useState(0);
+  const [revision, setRevision] = useState(0);
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
+  const [counts, setCounts] = useState<Partial<Record<SearchKind, number>>>({});
+  const [total, setTotal] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
     if (!submitted) return;
     let alive = true;
-    void searchWorkspace(client, submitted.query)
-      .then((rows) => {
-        if (alive) {
-          setResults(rows);
-          setBusy(false);
-        }
+    // Request cancellation guard prevents stale filter responses replacing new ones.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBusy(true);
+    setError("");
+    void searchWorkspaceFiltered(client, submitted, filters, new Date(), offset)
+      .then((result) => {
+        if (!alive) return;
+        setResults(result.results);
+        setCounts(result.counts);
+        setTotal(result.total);
+        setBusy(false);
       })
       .catch(() => {
         if (alive) {
+          setResults([]);
           setError("جستجو ناموفق بود؛ اتصال اینترنت را بررسی کنید.");
           setBusy(false);
         }
@@ -46,22 +88,25 @@ export function Search({ client }: { client: SupabaseClient }) {
     return () => {
       alive = false;
     };
-  }, [client, submitted]);
+  }, [client, submitted, filters, offset, revision]);
   function submit(event: FormEvent) {
     event.preventDefault();
     const q = query.trim();
-    setResults([]);
-    setError("");
     if (q.length < 2) {
-      setSubmitted(null);
-      setBusy(false);
+      setSubmitted("");
       setError("حداقل دو حرف وارد کنید.");
       return;
     }
-    setBusy(true);
-    setSubmitted({ query: q });
+    setOffset(0);
+    setSubmitted(q);
+    setRevision((value) => value + 1);
+    saveSearch(q, filters);
   }
-  const visible = filterResults({ results, filters, now: new Date() });
+  function updateFilters(next: SearchFilters) {
+    setOffset(0);
+    setFilters(next);
+    saveSearch(submitted, next);
+  }
   return (
     <section>
       <h2>جستجو</h2>
@@ -85,11 +130,9 @@ export function Search({ client }: { client: SupabaseClient }) {
             className="minor"
             aria-pressed={filters.kinds.includes(kind)}
             key={kind}
-            onClick={() =>
-              setFilters((current) => toggleKind({ filters: current, kind }))
-            }
+            onClick={() => updateFilters(toggleKind({ filters, kind }))}
           >
-            {labels[kind]}
+            {labels[kind]} ({counts[kind] ?? 0})
           </button>
         ))}
       </div>
@@ -98,10 +141,7 @@ export function Search({ client }: { client: SupabaseClient }) {
         <select
           value={filters.range}
           onChange={(e) =>
-            setFilters((current) => ({
-              ...current,
-              range: e.target.value as TimeRange,
-            }))
+            updateFilters({ ...filters, range: e.target.value as TimeRange })
           }
         >
           {Object.entries(RANGE_LABELS).map(([value, label]) => (
@@ -115,15 +155,16 @@ export function Search({ client }: { client: SupabaseClient }) {
       {error && <p role="alert">{error}</p>}
       {submitted && !busy && !error && (
         <>
-          <p>
-            حداکثر ۵۰ نتیجهٔ مجاز نمایش داده می‌شود؛ فیلترها روی همین نتایج
-            اعمال می‌شوند.
-          </p>
-          {visible.length === 0 ? (
-            <p>نتیجه‌ای پیدا نشد.</p>
+          <p>{total} نتیجه؛ هر صفحه حداکثر ۵۰ مورد.</p>
+          {results.length === 0 ? (
+            <p>
+              {hasActiveFilters(filters)
+                ? "نتیجه‌ای با فیلترهای انتخابی پیدا نشد."
+                : "نتیجه‌ای پیدا نشد."}
+            </p>
           ) : (
             <ul>
-              {visible.map((item) => (
+              {results.map((item) => (
                 <li key={`${item.kind}:${item.entity_id}`}>
                   <div>
                     <strong>{item.title}</strong>
@@ -135,6 +176,27 @@ export function Search({ client }: { client: SupabaseClient }) {
                 </li>
               ))}
             </ul>
+          )}
+          <div>
+            <button
+              className="minor"
+              disabled={offset === 0}
+              onClick={() => setOffset(Math.max(0, offset - 50))}
+            >
+              صفحه قبل
+            </button>
+            <button
+              className="minor"
+              disabled={offset + 50 >= total || offset >= 10000}
+              onClick={() => setOffset(offset + 50)}
+            >
+              صفحه بعد
+            </button>
+          </div>
+          {total > 10050 && (
+            <p>
+              نمایش به ۱۰٬۰۵۰ نتیجه محدود است؛ عبارت یا فیلتر را دقیق‌تر کنید.
+            </p>
           )}
         </>
       )}

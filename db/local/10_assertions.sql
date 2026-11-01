@@ -785,3 +785,32 @@ begin
  if has_function_privilege('anon', 'public.complete_chore_expected_version(uuid,bigint)', 'execute') then raise exception 'anon can execute'; end if;
 end $$;
 rollback;
+
+-- Filtered search applies filters before the 50-result page and respects RLS.
+begin;
+insert into public.tasks (title, creator_id, owner_id, visibility, priority, due_at)
+select 'test-filtered-search', '00000000-0000-4000-8000-00000000000a',
+       '00000000-0000-4000-8000-00000000000a', 'PRIVATE', 'NORMAL', now() - interval '50 days'
+from generate_series(1, 55);
+insert into public.tasks (title, creator_id, owner_id, visibility, priority, due_at)
+values ('test-filtered-search', '00000000-0000-4000-8000-00000000000a',
+        '00000000-0000-4000-8000-00000000000a', 'PRIVATE', 'NORMAL', now());
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare answer jsonb;
+begin
+  answer := public.search_workspace_filtered('test-filtered-search',array['task'],now() - interval '7 days',now()+interval '1 day',0);
+  if (answer->>'total')::int <> 1 or jsonb_array_length(answer->'results') <> 1 then raise exception 'filtered search must filter before limit: %', answer; end if;
+  answer := public.search_workspace_filtered('test-filtered-search',array['task'],null,null,50);
+  if (answer->>'total')::int <> 56 or jsonb_array_length(answer->'results') <> 6 then raise exception 'search pagination failed: %', answer; end if;
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+  answer := public.search_workspace_filtered('test-filtered-search');
+  if (answer->>'total')::int <> 0 then raise exception 'search leaks private tasks: %', answer; end if;
+end $$;
+rollback;
+do $$ begin
+  if has_function_privilege('anon','public.search_workspace_filtered(text,text[],timestamptz,timestamptz,integer)','execute') then
+    raise exception 'anonymous filtered search must be denied';
+  end if;
+end $$;

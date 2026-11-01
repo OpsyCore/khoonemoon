@@ -55,6 +55,36 @@ export function directChores(client: SupabaseClient) {
       }
       return rows;
     },
+    async householdHistory(
+      householdId: string,
+      since: string,
+    ): Promise<
+      (ChoreCompletion & { chores: { id: string; title: string } })[]
+    > {
+      const rows: (ChoreCompletion & {
+        chores: { id: string; title: string };
+      })[] = [];
+      for (let offset = 0; offset <= 10000; offset += 500) {
+        const { data, error } = await client
+          .from("chore_completions")
+          .select(
+            "id,chore_id,completed_by,completed_at,due_at,note,chores!inner(id,title,household_id)",
+          )
+          .eq("chores.household_id", householdId)
+          .gte("completed_at", since)
+          .order("completed_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(offset, offset + 499);
+        if (error) throw new Error("دریافت تاریخچه کارهای خانه ناموفق بود.");
+        if (offset === 10000 && data?.length)
+          throw new Error(
+            "تاریخچه بیش از حد مجاز است؛ خلاصه قابل محاسبه نیست.",
+          );
+        rows.push(...((data ?? []) as unknown as typeof rows));
+        if (!data || data.length < 500) return rows;
+      }
+      return rows;
+    },
     async history(choreIds: string[]): Promise<ChoreCompletion[]> {
       if (!choreIds.length) return [];
       const { data, error } = await client

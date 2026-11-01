@@ -125,11 +125,11 @@ function App() {
     | "reminders"
     | "documents"
     | "search"
-  >(() =>
-    new URLSearchParams(window.location.search).get("page") === "reminders"
-      ? "reminders"
-      : "tasks",
-  );
+  >(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("page") === "reminders") return "reminders";
+    return params.has("search_q") ? "search" : "tasks";
+  });
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     const onMessage = (event: MessageEvent) => {

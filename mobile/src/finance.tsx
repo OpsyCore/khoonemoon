@@ -1,3 +1,4 @@
+import { FinanceChart } from "./finance-chart";
 import { taskEditTime } from "./task-edit-time";
 import {
   useCallback,
@@ -551,6 +552,7 @@ export function Finance({
             گزارش شامل قبض‌های پرداخت‌نشده هم هست و تاریخ پرداخت، سپس سررسید و
             در نهایت تاریخ ثبت را ملاک می‌گیرد.
           </p>
+          <FinanceChart analytics={analytics} currency={currency} />
           <ul>
             {analytics.months.map((month) => (
               <li key={month.key}>

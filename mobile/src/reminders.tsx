@@ -370,6 +370,24 @@ export function Reminders({
       </button>
       {!loaded && <p role="status">فهرست یادآورها هنوز دریافت نشده است.</p>}
       {loaded && inbox.sections.length === 0 && <p>یادآوری ثبت نشده است.</p>}
+      {loaded && (
+        <div aria-label="خلاصه یادآورها">
+          <p>
+            باز: {inbox.counts.open} · سررسیده: {inbox.counts.due} · امروز:{" "}
+            {inbox.counts.today} · پیش‌رو: {inbox.counts.upcoming} · ارسال‌شده:{" "}
+            {inbox.counts.delivered} · لغوشده: {inbox.counts.canceled}
+          </p>
+          {inbox.nextAt && (
+            <p>
+              نزدیک‌ترین یادآور:{" "}
+              {new Intl.DateTimeFormat("fa-IR", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }).format(new Date(inbox.nextAt))}
+            </p>
+          )}
+        </div>
+      )}
       {inbox.sections.map((section) => (
         <div key={section.state}>
           <h3>{labels[section.state]}</h3>
@@ -384,31 +402,69 @@ export function Reminders({
                       timeStyle: "short",
                     }).format(new Date(entry.effectiveAt))}
                   </p>
+                  {entry.snoozeCount > 0 && (
+                    <p>تعداد تعویق: {entry.snoozeCount}</p>
+                  )}
                 </div>
                 <div>
+                  {["DUE", "TODAY", "UPCOMING"].includes(section.state) &&
+                    [10, 60].map((minutes) => (
+                      <button
+                        key={minutes}
+                        className="minor"
+                        disabled={busy}
+                        onClick={() =>
+                          void action(async () => {
+                            await api.snooze(entry.id, minutes);
+                            window.dispatchEvent(
+                              new Event("khoonemoon:reminders-changed"),
+                            );
+                            try {
+                              await load();
+                            } catch {
+                              setLoaded(false);
+                              setRows([]);
+                              setMessage(
+                                "عملیات ثبت شد اما تازه‌سازی فهرست ناموفق بود؛ دوباره آن را ثبت نکنید.",
+                              );
+                            }
+                          })
+                        }
+                      >
+                        {minutes === 10 ? "۱۰ دقیقه بعد" : "یک ساعت بعد"}
+                      </button>
+                    ))}
                   {["DUE", "TODAY", "UPCOMING"].includes(section.state) && (
                     <button
                       className="minor"
                       disabled={busy}
-                      onClick={() =>
-                        void action(async () => {
-                          await api.snooze(entry.id, 15);
-                          window.dispatchEvent(
-                            new Event("khoonemoon:reminders-changed"),
-                          );
-                          try {
-                            await load();
-                          } catch {
-                            setLoaded(false);
-                            setRows([]);
-                            setMessage(
-                              "عملیات ثبت شد اما تازه‌سازی فهرست ناموفق بود؛ دوباره آن را ثبت نکنید.",
+                      onClick={() => {
+                        if (window.confirm("این یادآور لغو شود؟"))
+                          void action(async () => {
+                            const current = rows.find(
+                              (row) => row.id === entry.id,
                             );
-                          }
-                        })
-                      }
+                            if (!current)
+                              throw new Error(
+                                "یادآور پیدا نشد؛ فهرست را تازه کنید.",
+                              );
+                            await api.cancel(entry.id, current.updated_at);
+                            window.dispatchEvent(
+                              new Event("khoonemoon:reminders-changed"),
+                            );
+                            try {
+                              await load();
+                            } catch {
+                              setLoaded(false);
+                              setRows([]);
+                              setMessage(
+                                "یادآور لغو شد؛ تازه‌سازی ناموفق بود.",
+                              );
+                            }
+                          });
+                      }}
                     >
-                      ۱۵ دقیقه بعد
+                      لغو یادآور
                     </button>
                   )}
                   <button

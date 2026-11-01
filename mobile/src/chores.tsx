@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  summarizeChoreHistory,
+  groupChoreHistoryByDay,
+} from "@/features/chores/history";
 import { directChores } from "@/features/chores/direct-client";
 import type {
   ChoreRecord,
@@ -19,7 +23,10 @@ export function Chores({
 }) {
   const api = useMemo(() => directChores(client), [client]);
   const [chores, setChores] = useState<ChoreRecord[]>([]);
-  const [history, setHistory] = useState<ChoreCompletion[]>([]);
+  const [history, setHistory] = useState<
+    (ChoreCompletion & { chores: { id: string; title: string } })[]
+  >([]);
+  const [historyReady, setHistoryReady] = useState(false);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -49,17 +56,26 @@ export function Chores({
   useEffect(() => {
     let active = true;
     void api
-      .history(chores.map((c) => c.id))
+      .householdHistory(
+        householdId,
+        new Date(Date.now() - 30 * 86400000).toISOString(),
+      )
       .then((rows) => {
-        if (active) setHistory(rows);
+        if (active) {
+          setHistory(rows);
+          setHistoryReady(true);
+        }
       })
       .catch(() => {
-        if (active) setMessage("دریافت تاریخچه کارهای خانه ناموفق بود.");
+        if (active) {
+          setHistoryReady(false);
+          setMessage("دریافت تاریخچه کارهای خانه ناموفق بود.");
+        }
       });
     return () => {
       active = false;
     };
-  }, [api, chores]);
+  }, [api, chores, householdId]);
   useEffect(() => {
     let active = true;
     void client
@@ -78,6 +94,16 @@ export function Chores({
       active = false;
     };
   }, [client, householdId]);
+  const historySummary = summarizeChoreHistory({
+    completions: history,
+    chores: history.map((item) => item.chores),
+    members: Object.entries(memberNames).map(([user_id, full_name]) => ({
+      user_id,
+      full_name,
+    })),
+    now: new Date(),
+  });
+  const historyGroups = groupChoreHistoryByDay(historySummary.entries);
   async function create(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -346,28 +372,47 @@ export function Chores({
           </li>
         ))}
       </ul>
-      <h3>تاریخچه انجام کارها</h3>
-      {history.length === 0 ? (
-        <p>هنوز کاری ثبت نشده است.</p>
-      ) : (
-        <ul>
-          {history.map((item) => (
-            <li key={item.id}>
-              <span>
-                {chores.find((c) => c.id === item.chore_id)?.title ??
-                  "کار خانه"}{" "}
-                — {memberNames[item.completed_by] || "کاربر"}
-              </span>
-              <time>
-                {new Intl.DateTimeFormat("fa-IR", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                }).format(new Date(item.completed_at))}
-              </time>
-            </li>
-          ))}
-        </ul>
+      <h3>تاریخچه انجام کارها در ۳۰ روز گذشته</h3>
+      {!historyReady && <p>تاریخچه هنوز دریافت نشده است.</p>}
+      {historyReady && <p>{historySummary.total} مورد ثبت‌شده</p>}
+      {historyReady && historySummary.shares.length > 0 && (
+        <>
+          <h4>سهم اعضا</h4>
+          <ul>
+            {historySummary.shares.map((share) => (
+              <li key={share.memberId}>
+                <span>{share.memberName}</span>
+                <span>{share.count} مورد</span>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
+      {historyReady &&
+        (historySummary.total === 0 ? (
+          <p>در این بازه کاری ثبت نشده است.</p>
+        ) : (
+          historyGroups.map((group) => (
+            <div key={group.key}>
+              <h4>{group.label}</h4>
+              <ul>
+                {group.entries.map((item) => (
+                  <li key={item.id}>
+                    <span>
+                      {item.choreTitle} — {item.memberName}
+                      {item.note && ` · ${item.note}`}
+                    </span>
+                    <time>
+                      {new Intl.DateTimeFormat("fa-IR", {
+                        timeStyle: "short",
+                      }).format(new Date(item.completedAt))}
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        ))}
     </section>
   );
 }

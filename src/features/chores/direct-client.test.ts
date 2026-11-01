@@ -161,3 +161,33 @@ describe("atomic chore update", () => {
     });
   });
 });
+
+describe("household history", () => {
+  it("pages all household completions in the window, including archived chores", async () => {
+    const fetcher = vi.fn(
+      async (_url: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(
+          JSON.stringify(
+            fetcher.mock.calls.length === 1
+              ? Array.from({ length: 500 }, (_, i) => ({ id: String(i) }))
+              : [{ id: "last" }],
+          ),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    );
+    const client = createClient("https://example.supabase.co", "anon", {
+      global: { fetch: fetcher },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const result = await directChores(client).householdHistory(
+      "house",
+      "2026-01-01T00:00:00Z",
+    );
+    expect(result).toHaveLength(501);
+    const url = decodeURIComponent(String(fetcher.mock.calls[0][0]));
+    expect(url).toContain("chores.household_id=eq.house");
+    expect(url).toContain("completed_at=gte.2026-01-01T00:00:00Z");
+    expect(url).not.toContain("archived_at=is.null");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+});

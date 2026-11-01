@@ -102,6 +102,22 @@ describe("direct reminders", () => {
       }),
     ).rejects.toThrow("دسترسی");
   });
+  it("cancels only an unchanged active reminder while keeping its history", async () => {
+    const { api, fetcher } = setup();
+    fetcher.mockResolvedValueOnce(
+      new Response(JSON.stringify({ id: "reminder-1" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await api.cancel("reminder-1", "2026-10-01T00:00:00.000Z");
+    const url = decodeURIComponent(String(fetcher.mock.calls[0][0]));
+    expect(url).toContain("updated_at=eq.2026-10-01T00:00:00.000Z");
+    expect(url).toContain("status=in.(PENDING,SNOOZED)");
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      status: "CANCELED",
+    });
+  });
   it("saves notification preferences for the authenticated account", async () => {
     const { api, fetcher } = setup();
     await api.savePreferences({
