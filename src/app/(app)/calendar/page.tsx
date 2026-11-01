@@ -1,5 +1,5 @@
 import type { CalendarChore } from "@/features/chores/calendar-projection";
-import { PageHeader } from "@/shared/ui/page-header";
+import { directFinance } from "@/features/finance/direct-client";
 import { CalendarBoard } from "@/features/calendar/components/calendar-board";
 import type { EventRecord } from "@/features/calendar/types";
 import type { TaskRecord } from "@/features/tasks/types";
@@ -54,6 +54,12 @@ export default async function CalendarPage() {
     );
   }
 
+  const financialResult = await directFinance(supabase)
+    .list()
+    .then(
+      (rows) => ({ rows, error: false }),
+      () => ({ rows: [], error: true }),
+    );
   const householdId = membershipResult.data?.household_id ?? null;
   const choresResult = householdId
     ? await supabase
@@ -69,18 +75,14 @@ export default async function CalendarPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        title="تقویم ما"
-        subtitle="رویدادها و تسک‌ها را در نمای جلالی ماهانه، هفتگی و فهرستی مدیریت کنید."
-        decor
-      />
-
       <CalendarBoard
         tasks={(tasksResult.data ?? []) as TaskRecord[]}
         events={(eventsResult.data ?? []) as EventRecord[]}
         householdId={householdId}
         chores={(choresResult.data ?? []) as CalendarChore[]}
         choresLoadError={Boolean(choresResult.error)}
+        bills={financialResult.rows}
+        billsLoadError={financialResult.error}
       />
     </div>
   );

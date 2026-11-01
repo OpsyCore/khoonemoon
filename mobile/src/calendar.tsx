@@ -355,6 +355,7 @@ export function CalendarEvents({
           <button
             type="button"
             aria-label={view === "week" ? "هفته قبل" : "ماه قبل"}
+            disabled={view === "agenda"}
             onClick={() =>
               view === "week" ? navigateWeek(-1) : navigateMonth(-1)
             }
@@ -362,13 +363,16 @@ export function CalendarEvents({
             <ChevronRight size={20} />
           </button>
           <strong>
-            {view === "week"
-              ? formatJalaliLongDate(selected)
-              : formatJalaliMonthYear(cursor)}
+            {view === "agenda"
+              ? "۹۰ روز آینده"
+              : view === "week"
+                ? formatJalaliLongDate(selected)
+                : formatJalaliMonthYear(cursor)}
           </strong>
           <button
             type="button"
             aria-label={view === "week" ? "هفته بعد" : "ماه بعد"}
+            disabled={view === "agenda"}
             onClick={() =>
               view === "week" ? navigateWeek(1) : navigateMonth(1)
             }
