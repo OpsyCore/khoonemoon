@@ -166,3 +166,26 @@ all triggers has not been established for managed Supabase. Auth records,
 Storage bytes, project configuration and privileges still require an isolated,
 production-like recovery drill; existing fixture success does not establish a
 safe managed-project restore. No production restore or backup was performed.
+
+### M27 invitation retry and concurrent acceptance
+
+Migration `0048_invitation_retry.sql` is deployed to the active Supabase project.
+The mobile and legacy-web invitation creation flows retain the pending bearer
+code locally across an ambiguous response and retry its hash and expiry; the
+server serializes the same hash and returns its original pending invitation.
+The bearer code is temporarily stored in localStorage on that device (and can
+be read by scripts on the same origin); it is removed after confirmed creation.
+Clients with Web Locks serialize same-origin tabs where available. Independent
+creation attempts on different devices use different codes and are intentionally
+not merged: the system cannot infer whether two invitations were intended.
+
+Acceptance now locks the invitation row, so two accounts racing a one-use code
+cannot both join. A same-account retry returns the existing household only while
+that membership is still active; it cannot undo leaving. CI 41357540358 passed,
+including separate PostgreSQL sessions for concurrent creation and acceptance.
+Real-device / real-network tests remain outstanding. Older installed mobile
+versions continue using their existing create flow until updated. M27 is **not
+complete**: legacy-web task, chore, finance, shopping, event, reminder, and
+document creation paths still need equivalent retry handling and broader
+multi-device scenarios require explicit shared operation identity rather than
+merging independently intended actions.
