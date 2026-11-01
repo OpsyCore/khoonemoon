@@ -212,3 +212,26 @@ they are not silently merged. Browser tabs without Web Locks also do not have an
 atomic journal acquisition guarantee. A network-disconnect test on actual
 phones and web clients remains outstanding. Consequently universal M27
 coverage and cross-device recovery must not be claimed complete.
+
+### Explicit cross-device retry transfer
+
+The current branch provides a user-initiated transfer code for locally pending
+create requests, accessible under the mobile account page and web household
+page. The code transports the original UUID and a digest scoped to the user,
+operation type and canonical input; form values are not included. An invitation
+transfer code contains the bearer invitation itself and is explicitly marked
+confidential. Imports require the same account (and same household for an
+invitation) and refuse to replace a different pending operation. The second
+device must submit exactly the same input, context and file; timezone-dependent
+payloads may differ across device settings. The code does not itself submit a
+request and is not an authentication credential. Only codes from a trusted
+device should be imported. Independent creates are deliberately not merged.
+
+Local tests cover two separate storage instances, wrong account, collisions,
+invite transfer and clearing on confirmed success. This is not automatic
+cross-device synchronization: if the original device is unavailable and its
+code was not transferred, its journal cannot be recovered on another device.
+Old API write endpoints and already-installed APKs remain outside the current
+client protections, and actual two-device/offline tests remain outstanding.
+Also avoid reusing a transfer code after a confirmed creation followed by
+intentional deletion; not all single-row creates have durable tombstone receipts.

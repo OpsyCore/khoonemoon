@@ -38,6 +38,7 @@ import { Tasks } from "./tasks";
 import { Finance } from "./finance";
 import { Chores } from "./chores";
 import { Profile } from "./profile";
+import { PendingTransferPanel } from "@/features/households/pending-transfer-panel";
 import { HouseholdDetails } from "./household-details";
 import { ThemeSettings } from "./theme-settings";
 import { InstallGuide, useInstallPrompt } from "./install-guide";
@@ -706,6 +707,10 @@ function App() {
               />
               <InstallGuide state={installState} />
               <Profile key={session.user.id} client={client} />
+              <PendingTransferPanel
+                userId={session.user.id}
+                householdId={household ?? null}
+              />
               <ExportData key={`export:${session.user.id}`} client={client} />
             </>
           )}

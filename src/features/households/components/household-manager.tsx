@@ -24,6 +24,7 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { Input } from "@/shared/ui/input";
 import { formatPersianDate, formatPersianTime } from "@/shared/utils/locale";
 
+import { PendingTransferPanel } from "@/features/households/pending-transfer-panel";
 import { pendingInvitation } from "@/features/households/pending-invitation";
 
 type HouseholdManagerProps = {
@@ -305,6 +306,7 @@ export function HouseholdManager({
           </form>
         </Card>
 
+        <PendingTransferPanel userId={userId} householdId={null} />
         {errorMessage ? (
           <p className="text-sm text-rose-600 dark:text-rose-400">
             {errorMessage}
@@ -458,6 +460,8 @@ export function HouseholdManager({
           خروج از خانه
         </Button>
       </Card>
+
+      <PendingTransferPanel userId={userId} householdId={household.id} />
 
       {errorMessage ? (
         <p className="text-sm text-rose-600 dark:text-rose-400">
