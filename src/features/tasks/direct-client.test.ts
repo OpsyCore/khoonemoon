@@ -111,7 +111,11 @@ describe("atomic task creation", () => {
     );
     expect(
       JSON.parse(String(fetcher.mock.calls[0][1]?.body)).p_input,
-    ).toMatchObject({ title: "خرید", assigneeIds: [], nextOccurrenceAt: null });
+    ).toMatchObject({
+      title: "خرید",
+      assigneeIds: [],
+      recurrenceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
   });
 });
 

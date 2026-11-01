@@ -51,6 +51,12 @@ export function RepeatFields({
           ))}
         </select>
       </label>
+      {frequency !== "NONE" && (
+        <small>
+          تکرار بر اساس منطقهٔ زمانی دستگاه هنگام ذخیره محاسبه می‌شود:{" "}
+          {Intl.DateTimeFormat().resolvedOptions().timeZone}
+        </small>
+      )}
       {frequency === "INTERVAL_DAYS" && (
         <label>
           فاصله (روز)

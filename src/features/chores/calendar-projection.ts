@@ -1,3 +1,4 @@
+import { Temporal } from "@js-temporal/polyfill";
 import type { TaskRecurrenceFrequency } from "@/features/tasks/types";
 
 export type CalendarChore = {
@@ -7,60 +8,59 @@ export type CalendarChore = {
   frequency: TaskRecurrenceFrequency;
   interval_days: number | null;
   weekdays: number[] | null;
+  recurrence_timezone: string;
 };
 
-/** Mirrors calculate_next_chore_due on Supabase (UTC). Projected dates are
- * estimates: completing a chore advances the server's actual schedule. */
+/** Project in the schedule's stored zone. The server remains authoritative. */
 export function nextProjectedDue(
   current: Date,
   chore: CalendarChore,
 ): Date | null {
-  const base = new Date(
-    Date.UTC(
-      current.getUTCFullYear(),
-      current.getUTCMonth(),
-      current.getUTCDate(),
-    ),
-  );
-  switch (chore.frequency) {
-    case "NONE":
-      return null;
-    case "DAILY":
-      base.setUTCDate(base.getUTCDate() + 1);
-      break;
-    case "INTERVAL_DAYS":
-      base.setUTCDate(
-        base.getUTCDate() + Math.max(chore.interval_days ?? 1, 1),
-      );
-      break;
-    case "WEEKLY": {
-      const days = chore.weekdays?.filter((day) => day >= 0 && day <= 6) ?? [];
-      let offset = 7;
-      if (days.length) {
-        for (let i = 1; i <= 14; i++) {
-          if (days.includes((base.getUTCDay() + i) % 7)) {
-            offset = i;
-            break;
+  if (chore.frequency === "NONE") return null;
+  try {
+    const zone = chore.recurrence_timezone;
+    const local = Temporal.Instant.fromEpochMilliseconds(current.getTime())
+      .toZonedDateTimeISO(zone)
+      .toPlainDateTime();
+    let next: Temporal.PlainDateTime;
+    switch (chore.frequency) {
+      case "DAILY":
+        next = local.add({ days: 1 });
+        break;
+      case "INTERVAL_DAYS":
+        next = local.add({ days: Math.max(chore.interval_days ?? 1, 1) });
+        break;
+      case "WEEKLY": {
+        const days =
+          chore.weekdays?.filter((day) => day >= 0 && day <= 6) ?? [];
+        let offset = 7;
+        if (days.length) {
+          for (let i = 1; i <= 7; i++) {
+            // Temporal uses ISO Monday=1..Sunday=7; SQL uses Sunday=0.
+            if (days.includes(local.add({ days: i }).dayOfWeek % 7)) {
+              offset = i;
+              break;
+            }
           }
         }
+        next = local.add({ days: offset });
+        break;
       }
-      base.setUTCDate(base.getUTCDate() + offset);
-      break;
+      case "MONTHLY":
+        next = local.add({ months: 1 });
+        break;
+      case "YEARLY":
+        next = local.add({ years: 1 });
+        break;
     }
-    case "MONTHLY":
-    case "YEARLY": {
-      const day = base.getUTCDate();
-      const monthOffset = chore.frequency === "MONTHLY" ? 1 : 12;
-      base.setUTCDate(1);
-      base.setUTCMonth(base.getUTCMonth() + monthOffset);
-      const lastDay = new Date(
-        Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 0),
-      ).getUTCDate();
-      base.setUTCDate(Math.min(day, lastDay));
-      break;
-    }
+    // PostgreSQL resolves folds to the later instant and advances across gaps.
+    return new Date(
+      next.toZonedDateTime(zone, { disambiguation: "later" }).epochMilliseconds,
+    );
+  } catch {
+    // Never invent a projection for an invalid timezone or date.
+    return null;
   }
-  return base;
 }
 
 export function projectChoreDates(chore: CalendarChore, from: Date, to: Date) {

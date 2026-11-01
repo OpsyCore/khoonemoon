@@ -58,7 +58,9 @@ export default async function CalendarPage() {
   const choresResult = householdId
     ? await supabase
         .from("chores")
-        .select("id, title, next_due_at, frequency, interval_days, weekdays")
+        .select(
+          "id, title, next_due_at, frequency, interval_days, weekdays, recurrence_timezone",
+        )
         .eq("household_id", householdId)
         .eq("is_active", true)
         .is("archived_at", null)

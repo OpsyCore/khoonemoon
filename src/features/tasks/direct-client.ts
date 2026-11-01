@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { applyTaskCompletion } from "./security";
 import { z } from "zod";
 import { createTaskSchema } from "./schemas";
-import { getNextOccurrence } from "./recurrence";
 import type { TaskRecord } from "./types";
 
 const COLUMNS =
@@ -13,12 +12,11 @@ export function directTasks(client: SupabaseClient) {
   return {
     async create(input: unknown): Promise<string> {
       const task = createTaskSchema.parse(input);
-      const next = getNextOccurrence({
-        from: task.dueAt ? new Date(task.dueAt) : new Date(),
-        recurrence: task.recurrence,
-      });
       const { data, error } = await client.rpc("mobile_create_task", {
-        p_input: { ...task, nextOccurrenceAt: next?.toISOString() ?? null },
+        p_input: {
+          ...task,
+          recurrenceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
       });
       if (error || typeof data !== "string")
         throw new Error("ساخت تسک ناموفق بود.");
@@ -26,13 +24,12 @@ export function directTasks(client: SupabaseClient) {
     },
     async update(id: string, input: unknown): Promise<void> {
       const task = createTaskSchema.parse(input);
-      const next = getNextOccurrence({
-        from: task.dueAt ? new Date(task.dueAt) : new Date(),
-        recurrence: task.recurrence,
-      });
       const { data, error } = await client.rpc("mobile_update_task", {
         p_id: id,
-        p_input: { ...task, nextOccurrenceAt: next?.toISOString() ?? null },
+        p_input: {
+          ...task,
+          recurrenceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
       });
       if (error || data !== id) throw new Error("ویرایش تسک ناموفق بود.");
     },

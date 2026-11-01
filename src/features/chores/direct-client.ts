@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ChoreRecord, ChoreCompletion } from "./types";
 import { createChoreSchema, updateChoreSchema } from "./schemas";
 const COLUMNS =
-  "id, household_id, title, description, created_by, rotation_mode, current_rotation_index, frequency, interval_days, weekdays, next_due_at, is_active, archived_at, created_at, updated_at, chore_rotation_steps(id, chore_id, position, assignee_id)";
+  "id, household_id, title, description, created_by, rotation_mode, current_rotation_index, frequency, interval_days, weekdays, recurrence_timezone, next_due_at, is_active, archived_at, created_at, updated_at, chore_rotation_steps(id, chore_id, position, assignee_id)";
 
 /** Uses the existing transactional completion RPC and database RLS. */
 export function directChores(client: SupabaseClient) {
@@ -10,7 +10,10 @@ export function directChores(client: SupabaseClient) {
     async create(input: unknown): Promise<string> {
       const chore = createChoreSchema.parse(input);
       const { data, error } = await client.rpc("mobile_create_chore", {
-        p_input: chore,
+        p_input: {
+          ...chore,
+          recurrenceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
       });
       if (error || typeof data !== "string")
         throw new Error("ساخت کار خانه ناموفق بود.");
@@ -20,7 +23,10 @@ export function directChores(client: SupabaseClient) {
       const chore = createChoreSchema.parse(input);
       const { data, error } = await client.rpc("mobile_update_chore", {
         p_id: id,
-        p_input: chore,
+        p_input: {
+          ...chore,
+          recurrenceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
       });
       if (error || data !== id) throw new Error("ویرایش کار خانه ناموفق بود.");
     },

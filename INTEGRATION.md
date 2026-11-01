@@ -65,7 +65,10 @@ Export projections now include task assignment/recurrence, chore rotation,
 notification preferences and document links in addition to the previously
 selected data; local database checks validate the selected columns and grants.
 They still do not include all account/household metadata or provide restore.
-The current server recurrence function truncates due times to UTC midnight and
-interprets weekday selections in UTC; this must be fixed with an explicit
-timezone design and tested before claiming recurrence parity. Financial
+Migration 0022 implements zoned wall-clock recurrence and validates local DST,
+weekday and month-end cases. It has NOT been applied to production. Deploy it
+before installing this client: it reads the added timezone columns. Existing
+schedules inherit the creator profile timezone (UTC fallback), their current due
+dates are preserved and only the derived next task occurrence is recalculated.
+Real two-device testing is still required. Financial
 recurrence is only a flag and does not generate future records.

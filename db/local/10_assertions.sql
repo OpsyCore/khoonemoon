@@ -668,3 +668,34 @@ select id,household_id,owner_id,created_by,visibility,record_type,title,amount,c
 select id,household_id,created_by,title,description,visibility,category,mime_type,file_size,storage_path,created_at,updated_at from public.documents limit 0;
 select id,document_id,entity_type,entity_id,created_by,created_at from public.document_attachments limit 0;
 rollback;
+
+-- Recurrences use stored local wall time, including local weekday and DST.
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_task_id uuid; successor uuid; chore_id uuid; due timestamptz;
+begin
+  if public.next_zoned_recurrence('2026-03-01 14:00+00','WEEKLY',null,array[0],'America/New_York') <> '2026-03-08 13:00+00'::timestamptz then raise exception 'DST weekday'; end if;
+  if public.next_zoned_recurrence('2026-03-07 07:30+00','DAILY',null,null,'America/New_York') <> '2026-03-08 07:30+00'::timestamptz then raise exception 'DST gap'; end if;
+  if public.next_zoned_recurrence('2026-10-31 05:30+00','DAILY',null,null,'America/New_York') <> '2026-11-01 06:30+00'::timestamptz then raise exception 'DST fold'; end if;
+  if public.next_zoned_recurrence('2026-01-03 21:30+00','WEEKLY',null,array[0],'Asia/Tehran') <> '2026-01-10 21:30+00'::timestamptz then raise exception 'local weekday'; end if;
+  if public.next_zoned_recurrence('2026-01-31 12:00+00','MONTHLY',null,null,'UTC') <> '2026-02-28 12:00+00'::timestamptz then raise exception 'month end'; end if;
+  begin
+    perform public.mobile_create_task('{"title":"invalid timezone","visibility":"PRIVATE","recurrence":{"frequency":"DAILY"},"recurrenceTimezone":"not/a/zone"}'::jsonb);
+    raise exception 'invalid timezone was accepted';
+  exception when raise_exception then if sqlerrm <> 'INVALID_RECURRENCE_TIMEZONE' then raise; end if; end;
+  v_task_id := public.mobile_create_task('{"title":"test recurrence","visibility":"PRIVATE","priority":"NORMAL","dueAt":"2026-03-01T14:00:00Z","recurrence":{"frequency":"WEEKLY","weekdays":[0]},"recurrenceTimezone":"America/New_York"}'::jsonb);
+  if not exists(select 1 from public.task_recurrences where task_recurrences.task_id=v_task_id and next_occurrence_at='2026-03-08 13:00+00' and recurrence_timezone='America/New_York') then raise exception 'task create zone'; end if;
+  successor := public.mobile_complete_task(v_task_id);
+  if not exists(select 1 from public.tasks where id=successor and due_at='2026-03-08 13:00+00') then raise exception 'task successor zone'; end if;
+  if public.mobile_complete_task(v_task_id) <> successor then raise exception 'completion not idempotent'; end if;
+  if not exists(select 1 from public.task_recurrences where task_recurrences.task_id=successor and next_occurrence_at='2026-03-15 13:00+00' and recurrence_timezone='America/New_York') then raise exception 'successor recurrence zone'; end if;
+  chore_id := public.mobile_create_chore('{"title":"test chore","nextDueAt":"2026-03-01T14:00:00Z","frequency":"WEEKLY","weekdays":[0],"rotationMode":"FIXED","recurrenceTimezone":"America/New_York"}'::jsonb);
+  select c.next_due_at into due from public.complete_chore(chore_id) c;
+  if due <> '2026-03-08 13:00+00'::timestamptz then raise exception 'chore successor zone'; end if;
+  update public.chores set archived_at=now(), is_active=false where id=chore_id;
+  begin perform public.complete_chore(chore_id); raise exception 'inactive chore allowed';
+  exception when raise_exception then if sqlerrm <> 'CHORE_INACTIVE' then raise; end if; end;
+end $$;
+rollback;
