@@ -7,7 +7,7 @@ if [[ ! "${DATABASE_URL}" =~ ^postgres(ql)?://[^/]+@(127\.0\.0\.1|localhost)(:[0
   echo 'refusing concurrency drill outside disposable khoonemoon_check database' >&2; exit 1
 fi
 work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT
+trap 'status=$?; if [ "$status" -ne 0 ]; then for file in "$work"/*.log; do [ ! -f "$file" ] || { echo "--- $file" >&2; cat "$file" >&2; }; done; fi; rm -rf "$work"' EXIT
 uid=00000000-0000-4000-8000-0000000000a
 home=00000000-0000-4000-8000-0000000000f1
 one="household/$home/concurrency/linked.pdf"
