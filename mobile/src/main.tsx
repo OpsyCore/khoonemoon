@@ -13,6 +13,8 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { createRoot } from "react-dom/client";
+import { useDueReminderCount } from "./reminder-badge";
+import { describeBadge, formatBadgeCount } from "@/shared/utils/badge-count";
 import { useMobileNotifications } from "./notifications";
 import { Documents } from "./documents";
 import { Reminders } from "./reminders";
@@ -249,6 +251,8 @@ function App() {
 
   const userId = session?.user.id;
   const notificationStatus = useMobileNotifications(client, userId, ready);
+  const dueCount = useDueReminderCount(client, userId);
+  const badge = formatBadgeCount(dueCount ?? 0);
 
   useEffect(() => {
     // Clear the previous account’s data before loading the next account.
@@ -752,12 +756,22 @@ function App() {
                 key={id}
                 type="button"
                 aria-current={page === id ? "page" : undefined}
+                aria-label={
+                  id === "reminders" && dueCount
+                    ? `${label}، ${describeBadge(dueCount)}`
+                    : label
+                }
                 onClick={() => {
                   setPage(id);
                   window.scrollTo(0, 0);
                 }}
               >
                 <Icon size={20} aria-hidden="true" />
+                {id === "reminders" && badge && (
+                  <span className="reminder-badge" aria-hidden="true">
+                    {badge}
+                  </span>
+                )}
                 <span>{label}</span>
               </button>
             ))}

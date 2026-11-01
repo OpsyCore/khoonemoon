@@ -802,3 +802,20 @@ section > p,
 .calendar-day {
   min-height: 2.75rem;
 }
+
+.bottom-nav button {
+  position: relative;
+}
+.reminder-badge {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 10%;
+  min-width: 1.2rem;
+  border-radius: 999px;
+  background: #9a4b35;
+  color: #fff;
+  font-size: 0.68rem;
+  line-height: 1.25rem;
+  padding: 0 0.2rem;
+  text-align: center;
+}
