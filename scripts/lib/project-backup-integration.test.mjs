@@ -15,12 +15,18 @@ const testUrl = process.env.PROJECT_BACKUP_TEST_DATABASE_URL;
 async function run(command, args, env = {}, { input, output } = {}) {
   const child = spawn(command, args, {
     env: { ...process.env, ...env },
-    stdio: [input ? "pipe" : "ignore", output ? "pipe" : "ignore", "ignore"],
+    stdio: [input ? "pipe" : "ignore", output ? "pipe" : "ignore", "pipe"],
+  });
+  let stderr = "";
+  child.stderr.on("data", (chunk) => {
+    stderr = (stderr + chunk.toString()).slice(-4000);
   });
   const exited = new Promise((resolve, reject) => {
     child.on("error", reject);
     child.on("close", (code) =>
-      code === 0 ? resolve() : reject(new Error(`${command} failed (${code})`)),
+      code === 0
+        ? resolve()
+        : reject(new Error(`${command} failed (${code}): ${stderr}`)),
     );
   });
   const streams = [];
