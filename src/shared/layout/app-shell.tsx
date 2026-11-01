@@ -14,7 +14,7 @@ export function AppShell({
   dueReminderCount?: number;
 }) {
   return (
-    <div className="min-h-dvh bg-paper text-ink">
+    <div className="min-h-dvh text-ink">
       <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center">
         <ConnectionStatus offlineOnly />
       </div>

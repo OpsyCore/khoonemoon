@@ -49,7 +49,11 @@ export function BottomNav({
                       "-mt-4 size-11 bg-olive-deep text-cream shadow-paper-lg ring-4 ring-paper dark:text-[#221c14]",
                   )}
                 >
-                  <Icon className="size-5" />
+                  <Icon
+                    className="size-5"
+                    strokeWidth={1.7}
+                    aria-hidden="true"
+                  />
                   {item.href === "/today" && badge ? (
                     <span
                       aria-hidden="true"
