@@ -1,3 +1,4 @@
+import { spendingComparison } from "./weekly-comparison";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -38,7 +39,10 @@ export function WeeklySummary({ client }: { client: SupabaseClient }) {
   return (
     <section>
       <h2>این هفته</h2>
-      <p>مقایسهٔ هفت روز گذشته با هفت روز قبل از آن</p>
+      <p>
+        مقایسهٔ هفت روز گذشته با هفت روز قبل از آن؛ کارهای انجام‌شده حتی پس از
+        بایگانی در تعداد لحاظ می‌شوند.
+      </p>
       {error && <p role="alert">{error}</p>}
       {!summary && !error && <p>در حال دریافت…</p>}
       {summary && (
@@ -55,7 +59,8 @@ export function WeeklySummary({ client }: { client: SupabaseClient }) {
             <p key={currency}>
               خرج {currency}: {formatAmount(s.spent, currency)} · هفتهٔ قبل:{" "}
               {formatAmount(s.spentPrevious, currency)} · درآمد:{" "}
-              {formatAmount(s.earned, currency)}
+              {formatAmount(s.earned, currency)} ·{" "}
+              {spendingComparison(s.spentChange)}
             </p>
           ))}
         </>

@@ -107,6 +107,10 @@ await source.exec(`
     values ('${HOUSEHOLD}', '${USER_A}', '${USER_A}', 'خرید نان', 'HOUSEHOLD_SHARED');
   insert into public.shopping_lists (household_id, name, created_by)
     values ('${HOUSEHOLD}', 'لیست هفتگی', '${USER_A}');
+  insert into public.shopping_items (list_id, name, added_by) select id, 'شیر', '${USER_A}' from public.shopping_lists limit 1;
+  insert into public.events (owner_id,creator_id,title,visibility,start_at,end_at) values ('${USER_A}','${USER_A}','گردهمایی','PRIVATE','2026-11-01T10:00:00Z','2026-11-01T11:00:00Z');
+  insert into public.chores (household_id,created_by,title,frequency) values ('${HOUSEHOLD}','${USER_A}','ظرف‌ها','WEEKLY');
+  insert into public.reminders (user_id,household_id,target_type,target_id,remind_at) select '${USER_A}','${HOUSEHOLD}','TASK',id,'2026-11-01T09:00:00Z' from public.tasks limit 1;
   insert into public.financial_records (household_id, owner_id, created_by, title, amount, visibility, record_type)
     values ('${HOUSEHOLD}', '${USER_A}', '${USER_A}', 'قبض برق', 450000, 'HOUSEHOLD_SHARED', 'BILL');
 `);
@@ -162,7 +166,9 @@ for (const table of ALL_TABLES) {
   const restored = await target.query(
     `select * from ${qualified(table)} order by id`,
   );
-  const original = [...snapshot[table]].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const original = [...snapshot[table]].sort((a, b) =>
+    String(a.id).localeCompare(String(b.id)),
+  );
 
   assert(
     restored.rows.length === original.length,
@@ -179,8 +185,15 @@ for (const table of ALL_TABLES) {
 
       // `numeric`/`bigint` come back as strings or numbers depending on the driver.
       const same =
-        String(left) === String(right) ||
-        (Number.isFinite(Number(left)) && Number(left) === Number(right));
+        left === null || right === null
+          ? left === right
+          : typeof left === "object" || typeof right === "object"
+            ? JSON.stringify(left) === JSON.stringify(right)
+            : String(left) === String(right) ||
+              (String(left).trim() !== "" &&
+                String(right).trim() !== "" &&
+                Number.isFinite(Number(left)) &&
+                Number(left) === Number(right));
 
       assert(
         same,
@@ -197,7 +210,10 @@ const restoredTotal = ALL_TABLES.reduce(
   0,
 );
 
-assert(restoredTotal > 0, "نسخهٔ پشتیبان خالی بود؛ تمرین بی‌معناست.");
+assert(
+  ALL_TABLES.every((table) => sourceCounts[table] > 0),
+  "هر جدول تمرین باید داده نمونه داشته باشد.",
+);
 
 console.log(
   `\n✔ تمرین بازگردانی موفق بود: ${restoredTotal} ردیف در ${ALL_TABLES.length} جدول، ${checked} مقدار مقایسه شد و همه یکسان بودند.`,

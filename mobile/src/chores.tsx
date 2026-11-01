@@ -1,3 +1,4 @@
+import { choreChanges } from "./chore-correction";
 import { useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -104,19 +105,16 @@ export function Chores({
     now: new Date(),
   });
   const historyGroups = groupChoreHistoryByDay(historySummary.entries);
-  async function create(event: React.FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setMessage("");
-    try {
-      const original = editing;
-      const time = taskEditTime(
-        due,
-        original?.next_due_at ?? null,
-        original?.recurrence_timezone,
-        Intl.DateTimeFormat().resolvedOptions().timeZone,
-      );
-      const payload = {
+  function formPayload(original: ChoreRecord | null) {
+    const time = taskEditTime(
+      due,
+      original?.next_due_at ?? null,
+      original?.recurrence_timezone,
+      Intl.DateTimeFormat().resolvedOptions().timeZone,
+    );
+    return {
+      recurrenceTimezone: time.recurrenceTimezone,
+      payload: {
         title: newTitle,
         description,
         nextDueAt: time.dueAt,
@@ -125,12 +123,31 @@ export function Chores({
         frequency,
         intervalDays: frequency === "INTERVAL_DAYS" ? Number(interval) : null,
         weekdays: frequency === "WEEKLY" ? days : null,
-      };
+      },
+    };
+  }
+  let changes: string[] | null = null;
+  if (editing) {
+    try {
+      changes = choreChanges(editing, formPayload(editing).payload);
+    } catch {
+      /* Validation is shown on submit. */
+    }
+  }
+  async function create(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    try {
+      const original = editing;
+      const { payload, recurrenceTimezone } = formPayload(original);
+      if (original && choreChanges(original, payload).length === 0)
+        throw new Error("تغییری برای ذخیره وجود ندارد.");
       if (editing)
         await api.update(
           editing.id,
           payload,
-          time.recurrenceTimezone,
+          recurrenceTimezone,
           editing.updated_at,
         );
       else await api.create(payload);
@@ -144,9 +161,12 @@ export function Chores({
           "کار ذخیره شد، اما تازه‌سازی ناموفق بود؛ دوباره ثبت نکنید و صفحه را تازه کنید.",
         );
       }
-    } catch {
+    } catch (error) {
       setMessage(
-        "ذخیره تأیید نشد یا اطلاعات معتبر نیست؛ پیش از تلاش دوباره فهرست را تازه کنید.",
+        error instanceof Error &&
+          error.message === "تغییری برای ذخیره وجود ندارد."
+          ? error.message
+          : "ذخیره تأیید نشد یا اطلاعات معتبر نیست؛ پیش از تلاش دوباره فهرست را تازه کنید.",
       );
     } finally {
       setBusy(false);
@@ -320,6 +340,15 @@ export function Chores({
           days={days}
           setDays={setDays}
         />
+        {editing && (
+          <p role="status">
+            {changes === null
+              ? "اطلاعات و نوبت‌بندی را بررسی کنید."
+              : changes.length
+                ? `موارد تغییرکرده: ${changes.join("، ")}`
+                : "تغییری برای ذخیره وجود ندارد."}
+          </p>
+        )}
         <button disabled={busy}>
           {editing ? "ذخیره کار خانه" : "ساخت کار خانه"}
         </button>

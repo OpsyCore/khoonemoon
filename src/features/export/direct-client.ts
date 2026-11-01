@@ -20,7 +20,7 @@ const TABLES: Record<string, string> = {
   notification_preferences:
     "id,user_id,in_app_enabled,web_push_enabled,quiet_hours_enabled,quiet_hours_start,quiet_hours_end,created_at,updated_at",
   chores:
-    "id,household_id,title,description,created_by,rotation_mode,current_rotation_index,frequency,interval_days,weekdays,next_due_at,recurrence_timezone,is_active,archived_at,created_at,updated_at",
+    "id,household_id,title,description,created_by,rotation_mode,current_rotation_index,frequency,interval_days,weekdays,next_due_at,recurrence_timezone,is_active,completion_revision,archived_at,created_at,updated_at",
   chore_rotation_steps: "id,chore_id,position,assignee_id,created_at",
   chore_completions:
     "id,chore_id,completed_by,completed_at,due_at,note,created_at",

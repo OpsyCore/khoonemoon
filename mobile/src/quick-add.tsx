@@ -1,3 +1,4 @@
+import { ZodError } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { directTasks } from "@/features/tasks/direct-client";
@@ -147,9 +148,11 @@ export function QuickAdd({
       setMessage("مورد ثبت شد.");
     } catch (error) {
       setMessage(
-        error instanceof Error
-          ? `${error.message} پیش از تلاش دوباره، فهرست مربوط را بررسی کنید.`
-          : "ثبت تأیید نشد؛ پیش از تلاش دوباره فهرست مربوط را بررسی کنید.",
+        error instanceof ZodError
+          ? (error.issues[0]?.message ?? "اطلاعات واردشده معتبر نیست.")
+          : error instanceof Error
+            ? `${error.message} پیش از تلاش دوباره، فهرست مربوط را بررسی کنید.`
+            : "ثبت تأیید نشد؛ پیش از تلاش دوباره فهرست مربوط را بررسی کنید.",
       );
     } finally {
       setBusy(false);
