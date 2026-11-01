@@ -65,7 +65,7 @@ jobs:
 
           # Emit every line as an annotation so the failure is visible through
           # the checks API even without downloading workflow logs.
-          tail -25 db-verify.log | while IFS= read -r line; do
+          tail -9 db-verify.log | while IFS= read -r line; do
             [ -n "$line" ] && echo "::error title=db-verify::${line//$'\r'/}"
           done
 
