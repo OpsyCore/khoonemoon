@@ -746,3 +746,21 @@ begin
   if has_function_privilege('anon', 'public.complete_chore_expected_due(uuid,timestamptz)', 'execute') then raise exception 'anon can complete'; end if;
 end $$;
 rollback;
+
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare cid uuid; bid uuid; n integer;
+begin
+  cid := public.mobile_create_chore('{"title":"reminder chore","frequency":"DAILY","rotationMode":"FIXED","recurrenceTimezone":"UTC"}'::jsonb);
+  insert into public.financial_records(owner_id,created_by,visibility,record_type,title,amount) values(auth.uid(),auth.uid(),'PRIVATE','BILL','reminder bill',5) returning id into bid;
+  insert into public.reminders(user_id,target_type,target_id,household_id,remind_at) values(auth.uid(),'CHORE',cid,'00000000-0000-4000-8000-0000000000f1',now()), (auth.uid(),'BILL',bid,null,now());
+  select count(*) into n from public.reminders where target_id in (cid,bid);
+  if n <> 2 then raise exception 'new reminder targets missing'; end if;
+  if public.current_user_can_create_reminder('CHORE',cid,null) then raise exception 'invalid chore household'; end if;
+  if public.current_user_can_create_reminder('BILL',bid,'00000000-0000-4000-8000-0000000000f1') then raise exception 'invalid bill household'; end if;
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+  if public.current_user_can_create_reminder('CHORE',cid,'00000000-0000-4000-8000-0000000000f1') or public.current_user_can_create_reminder('BILL',bid,null) then raise exception 'unauthorized target access'; end if;
+end $$;
+rollback;

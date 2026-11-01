@@ -43,6 +43,36 @@ describe("direct reminders", () => {
       remind_at: "2026-12-01T11:30:00.000Z",
     });
   });
+  it.each([
+    ["CHORE", "chores"],
+    ["BILL", "financial_records"],
+  ] as const)(
+    "creates %s reminders using RLS-scoped targets",
+    async (type, table) => {
+      const { api, fetcher } = setup();
+      fetcher.mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: targetId, household_id: null }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+      await api.create({
+        targetType: type,
+        targetId,
+        baseDateTime: "2026-12-01T12:00:00.000Z",
+        offsets: [{ minutesBefore: 0 }],
+      });
+      expect(String(fetcher.mock.calls[0][0])).toContain(`/rest/v1/${table}`);
+      expect(
+        JSON.parse(String(fetcher.mock.calls[1][1]?.body))[0],
+      ).toMatchObject({
+        target_type: type,
+        target_id: targetId,
+        user_id: "me",
+        household_id: null,
+      });
+    },
+  );
   it("blocks invalid targets and missing auth", async () => {
     const { api, fetcher } = setup(false);
     await expect(

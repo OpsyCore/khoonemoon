@@ -106,28 +106,43 @@ export function resolveTargetTitle({
   reminder,
   tasks,
   events,
+  chores = [],
+  bills = [],
 }: {
   reminder: Pick<ReminderRecord, "target_type" | "target_id">;
   tasks: ReminderTarget[];
   events: ReminderTarget[];
+  chores?: ReminderTarget[];
+  bills?: ReminderTarget[];
 }): string {
-  const pool = reminder.target_type === "TASK" ? tasks : events;
+  const pool = { TASK: tasks, EVENT: events, CHORE: chores, BILL: bills }[
+    reminder.target_type
+  ];
   const found = pool.find((item) => item.id === reminder.target_id);
 
   if (found) return found.title;
 
-  return reminder.target_type === "TASK" ? "تسک حذف‌شده" : "رویداد حذف‌شده";
+  return {
+    TASK: "تسک حذف‌شده",
+    EVENT: "رویداد حذف‌شده",
+    CHORE: "کار خانه حذف‌شده یا غیرقابل دسترس",
+    BILL: "قبض حذف‌شده یا غیرقابل دسترس",
+  }[reminder.target_type];
 }
 
 function toEntry({
   reminder,
   tasks,
   events,
+  chores,
+  bills,
   now,
 }: {
   reminder: ReminderRecord;
   tasks: ReminderTarget[];
   events: ReminderTarget[];
+  chores: ReminderTarget[];
+  bills: ReminderTarget[];
   now: Date;
 }): InboxEntry {
   const effective = effectiveReminderAt(reminder);
@@ -136,7 +151,7 @@ function toEntry({
     id: reminder.id,
     state: classifyReminder({ reminder, now }),
     targetType: reminder.target_type,
-    title: resolveTargetTitle({ reminder, tasks, events }),
+    title: resolveTargetTitle({ reminder, tasks, events, chores, bills }),
     effectiveAt: Number.isNaN(effective.getTime())
       ? reminder.remind_at
       : effective.toISOString(),
@@ -156,15 +171,19 @@ export function buildReminderInbox({
   reminders,
   tasks,
   events,
+  chores = [],
+  bills = [],
   now,
 }: {
   reminders: ReminderRecord[];
   tasks: ReminderTarget[];
   events: ReminderTarget[];
+  chores?: ReminderTarget[];
+  bills?: ReminderTarget[];
   now: Date;
 }): ReminderInbox {
   const entries = reminders.map((reminder) =>
-    toEntry({ reminder, tasks, events, now }),
+    toEntry({ reminder, tasks, events, chores, bills, now }),
   );
 
   const isHistory = (entry: InboxEntry) =>

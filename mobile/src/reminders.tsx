@@ -9,6 +9,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { directReminders } from "@/features/reminders/direct-client";
 import { directTasks } from "@/features/tasks/direct-client";
 import { directCalendar } from "@/features/calendar/direct-client";
+import { directChores } from "@/features/chores/direct-client";
+import { directFinance } from "@/features/finance/direct-client";
 import {
   buildReminderInbox,
   type ReminderState,
@@ -29,15 +31,19 @@ type Target = { id: string; title: string; date: string | null };
 export function Reminders({
   client,
   notificationStatus,
+  householdId,
 }: {
   client: SupabaseClient;
   notificationStatus: string;
+  householdId: string | null;
 }) {
   const api = useMemo(() => directReminders(client), [client]);
   const [rows, setRows] = useState<ReminderRecord[]>([]);
   const [tasks, setTasks] = useState<Target[]>([]);
   const [events, setEvents] = useState<Target[]>([]);
-  const [type, setType] = useState<"TASK" | "EVENT">("TASK");
+  const [chores, setChores] = useState<Target[]>([]);
+  const [bills, setBills] = useState<Target[]>([]);
+  const [type, setType] = useState<"TASK" | "EVENT" | "CHORE" | "BILL">("TASK");
   const [target, setTarget] = useState("");
   const [date, setDate] = useState("");
   const [offset, setOffset] = useState("0");
@@ -45,24 +51,45 @@ export function Reminders({
   const [busy, setBusy] = useState(false);
   const [prefs, setPrefs] = useState<ReminderPreferenceRecord | null>(null);
   const [prefsReady, setPrefsReady] = useState(false);
+  const [prefsVersion, setPrefsVersion] = useState(0);
+  const [loaded, setLoaded] = useState(false);
   const [enabled, setEnabled] = useState(true);
   const [quiet, setQuiet] = useState(false);
   const [quietStart, setQuietStart] = useState("22:00");
   const [quietEnd, setQuietEnd] = useState("08:00");
   const load = useCallback(async () => {
-    const [r, t, e] = await Promise.all([
+    const [r, t, e, c, f] = await Promise.all([
       api.list(),
       directTasks(client).list(),
       directCalendar(client).list(),
+      householdId
+        ? directChores(client).list(householdId)
+        : Promise.resolve([]),
+      directFinance(client).list(),
     ]);
     setRows(r);
+    setLoaded(true);
     setTasks(
       t
         .filter((x) => !x.archived_at)
         .map((x) => ({ id: x.id, title: x.title, date: x.due_at })),
     );
     setEvents(e.map((x) => ({ id: x.id, title: x.title, date: x.start_at })));
-  }, [api, client]);
+    setChores(
+      c
+        .filter((x) => x.is_active)
+        .map((x) => ({ id: x.id, title: x.title, date: x.next_due_at })),
+    );
+    setBills(
+      f
+        .filter(
+          (x) =>
+            ["BILL", "SUBSCRIPTION", "INSTALLMENT"].includes(x.record_type) &&
+            !x.paid_at,
+        )
+        .map((x) => ({ id: x.id, title: x.title, date: x.due_at })),
+    );
+  }, [api, client, householdId]);
   useEffect(() => {
     let active = true;
     // Initial load reads remote state; updates happen after the request resolves.
@@ -101,11 +128,13 @@ export function Reminders({
     return () => {
       active = false;
     };
-  }, [api]);
+  }, [api, prefsVersion]);
   const inbox = buildReminderInbox({
     reminders: rows,
     tasks,
     events,
+    chores,
+    bills,
     now: new Date(),
   });
   async function action(fn: () => Promise<void>) {
@@ -159,8 +188,8 @@ export function Reminders({
           </button>
           <p>
             اعلان‌های دریافت‌شده روی این گوشی زمان‌بندی می‌شوند. تغییرات دستگاه
-            دیگر تا بازگشت به برنامه همگام نمی‌شوند؛ ممکن است اندروید اعلان را
-            با تأخیر نشان دهد.
+            دیگر با اتصال پس‌زمینه به‌صورت دوره‌ای همگام می‌شوند؛ شبکه و
+            محدودیت‌های اندروید ممکن است باعث تأخیر یا توقف شوند.
           </p>
         </>
       )}
@@ -231,7 +260,16 @@ export function Reminders({
             <button disabled={busy}>ذخیره تنظیمات</button>
           </form>
         ) : (
-          <p>تنظیمات در دسترس نیست؛ اتصال را بررسی کنید.</p>
+          <div>
+            <p>تنظیمات در دسترس نیست؛ اتصال را بررسی کنید.</p>
+            <button
+              type="button"
+              className="minor"
+              onClick={() => setPrefsVersion((n) => n + 1)}
+            >
+              تلاش دوباره
+            </button>
+          </div>
         )}
       </details>
       <form onSubmit={save}>
@@ -241,13 +279,15 @@ export function Reminders({
           <select
             value={type}
             onChange={(e) => {
-              setType(e.target.value as "TASK" | "EVENT");
+              setType(e.target.value as "TASK" | "EVENT" | "CHORE" | "BILL");
               setTarget("");
               setDate("");
             }}
           >
             <option value="TASK">تسک</option>
             <option value="EVENT">رویداد</option>
+            <option value="CHORE">کار خانه</option>
+            <option value="BILL">قبض یا قسط</option>
           </select>
         </label>
         <label>
@@ -257,9 +297,12 @@ export function Reminders({
             value={target}
             onChange={(e) => {
               setTarget(e.target.value);
-              const item = (type === "TASK" ? tasks : events).find(
-                (x) => x.id === e.target.value,
-              );
+              const item = {
+                TASK: tasks,
+                EVENT: events,
+                CHORE: chores,
+                BILL: bills,
+              }[type].find((x) => x.id === e.target.value);
               if (item?.date) {
                 const d = new Date(item.date);
                 setDate(
@@ -271,7 +314,9 @@ export function Reminders({
             }}
           >
             <option value="">انتخاب کنید</option>
-            {(type === "TASK" ? tasks : events).map((x) => (
+            {{ TASK: tasks, EVENT: events, CHORE: chores, BILL: bills }[
+              type
+            ].map((x) => (
               <option key={x.id} value={x.id}>
                 {x.title}
               </option>
@@ -296,7 +341,7 @@ export function Reminders({
             <option value="1440">یک روز قبل</option>
           </select>
         </label>
-        <button disabled={busy}>ثبت یادآور</button>
+        <button disabled={busy || !loaded}>ثبت یادآور</button>
       </form>
       <button
         type="button"
@@ -306,7 +351,8 @@ export function Reminders({
       >
         تازه‌سازی
       </button>
-      {inbox.sections.length === 0 && <p>یادآوری ثبت نشده است.</p>}
+      {!loaded && <p role="status">فهرست یادآورها هنوز دریافت نشده است.</p>}
+      {loaded && inbox.sections.length === 0 && <p>یادآوری ثبت نشده است.</p>}
       {inbox.sections.map((section) => (
         <div key={section.state}>
           <h3>{labels[section.state]}</h3>
@@ -333,7 +379,15 @@ export function Reminders({
                           window.dispatchEvent(
                             new Event("khoonemoon:reminders-changed"),
                           );
-                          await load();
+                          try {
+                            await load();
+                          } catch {
+                            setLoaded(false);
+                            setRows([]);
+                            setMessage(
+                              "عملیات ثبت شد اما تازه‌سازی فهرست ناموفق بود؛ دوباره آن را ثبت نکنید.",
+                            );
+                          }
                         })
                       }
                     >
@@ -350,7 +404,15 @@ export function Reminders({
                           window.dispatchEvent(
                             new Event("khoonemoon:reminders-changed"),
                           );
-                          await load();
+                          try {
+                            await load();
+                          } catch {
+                            setLoaded(false);
+                            setRows([]);
+                            setMessage(
+                              "عملیات ثبت شد اما تازه‌سازی فهرست ناموفق بود؛ دوباره آن را ثبت نکنید.",
+                            );
+                          }
                         });
                     }}
                   >

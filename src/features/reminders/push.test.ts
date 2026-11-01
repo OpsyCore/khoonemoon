@@ -8,7 +8,8 @@ import {
 const validSubscription = {
   endpoint: "https://fcm.googleapis.com/fcm/send/abc123",
   keys: {
-    p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
+    p256dh:
+      "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
     auth: "tBHItJI5svbpez7KI4CCXg",
   },
 };
@@ -73,6 +74,14 @@ describe("buildPushPayload", () => {
     expect(payload.title).toContain("رویداد");
   });
 
+  it("routes chore and bill notifications correctly", () => {
+    expect(
+      buildPushPayload({ targetType: "CHORE", remindAt: now, now }).url,
+    ).toBe("/lists");
+    expect(
+      buildPushPayload({ targetType: "BILL", remindAt: now, now }).url,
+    ).toBe("/finance");
+  });
   it("survives an invalid date without throwing", () => {
     const payload = buildPushPayload({
       targetType: "TASK",

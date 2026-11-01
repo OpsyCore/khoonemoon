@@ -150,7 +150,14 @@ export function ReminderInboxView({
                           {entry.title}
                         </p>
                         <p className="text-xs text-muted">
-                          {entry.targetType === "TASK" ? "تسک" : "رویداد"}
+                          {
+                            {
+                              TASK: "تسک",
+                              EVENT: "رویداد",
+                              CHORE: "کار خانه",
+                              BILL: "قبض",
+                            }[entry.targetType]
+                          }
                           {" · "}
                           {formatJalaliLongDate(date)} —{" "}
                           {formatPersianTime(date)}

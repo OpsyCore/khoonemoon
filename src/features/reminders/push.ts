@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ReminderTargetType } from "./types";
 
 export const pushSubscriptionSchema = z.object({
   endpoint: z.string().url("آدرس push نامعتبر است.").max(2000),
@@ -27,11 +28,15 @@ export type PushPayload = {
 const TARGET_LABEL: Record<string, string> = {
   TASK: "تسک",
   EVENT: "رویداد",
+  CHORE: "کار خانه",
+  BILL: "قبض",
 };
 
 const TARGET_PATH: Record<string, string> = {
   TASK: "/today",
   EVENT: "/calendar",
+  CHORE: "/lists",
+  BILL: "/finance",
 };
 
 /**
@@ -43,7 +48,7 @@ export function buildPushPayload({
   remindAt,
   now = new Date(),
 }: {
-  targetType: "TASK" | "EVENT";
+  targetType: ReminderTargetType;
   remindAt: string | Date;
   now?: Date;
 }): PushPayload {

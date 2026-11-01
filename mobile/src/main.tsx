@@ -668,6 +668,7 @@ function App() {
               key={session.user.id}
               client={client}
               notificationStatus={notificationStatus}
+              householdId={household ?? null}
             />
           )}
           {page === "profile" && (

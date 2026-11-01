@@ -64,14 +64,36 @@ export default async function RemindersPage() {
     ),
   ];
 
-  const [tasksResult, eventsResult] = await Promise.all([
-    taskIds.length
-      ? supabase.from("tasks").select("id, title").in("id", taskIds)
-      : Promise.resolve({ data: [], error: null }),
-    eventIds.length
-      ? supabase.from("events").select("id, title").in("id", eventIds)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
+  const choreIds = [
+    ...new Set(
+      reminders
+        .filter((r) => r.target_type === "CHORE")
+        .map((r) => r.target_id),
+    ),
+  ];
+  const billIds = [
+    ...new Set(
+      reminders.filter((r) => r.target_type === "BILL").map((r) => r.target_id),
+    ),
+  ];
+  const [tasksResult, eventsResult, choresResult, billsResult] =
+    await Promise.all([
+      taskIds.length
+        ? supabase.from("tasks").select("id, title").in("id", taskIds)
+        : Promise.resolve({ data: [], error: null }),
+      eventIds.length
+        ? supabase.from("events").select("id, title").in("id", eventIds)
+        : Promise.resolve({ data: [], error: null }),
+      choreIds.length
+        ? supabase.from("chores").select("id, title").in("id", choreIds)
+        : Promise.resolve({ data: [], error: null }),
+      billIds.length
+        ? supabase
+            .from("financial_records")
+            .select("id, title")
+            .in("id", billIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
   const tasks = (tasksResult.data ?? []) as ReminderTarget[];
   const events = (eventsResult.data ?? []) as ReminderTarget[];
@@ -88,6 +110,8 @@ export default async function RemindersPage() {
         reminders={reminders}
         tasks={tasks}
         events={events}
+        chores={(choresResult.data ?? []) as ReminderTarget[]}
+        bills={(billsResult.data ?? []) as ReminderTarget[]}
         now={new Date()}
       />
     </div>

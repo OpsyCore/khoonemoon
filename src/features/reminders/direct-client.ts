@@ -6,6 +6,16 @@ import {
   reminderPreferencesSchema,
 } from "./schemas";
 import type { ReminderRecord, ReminderPreferenceRecord } from "./types";
+import { z } from "zod";
+const mobileCreateSchema = createRemindersSchema.extend({
+  targetType: z.enum(["TASK", "EVENT", "CHORE", "BILL"]),
+});
+const targetTables = {
+  TASK: "tasks",
+  EVENT: "events",
+  CHORE: "chores",
+  BILL: "financial_records",
+} as const;
 
 const COLUMNS =
   "id, target_type, target_id, user_id, household_id, remind_at, status, snoozed_until, snooze_count, delivered_at, created_at, updated_at";
@@ -62,10 +72,10 @@ export function directReminders(client: SupabaseClient) {
       if (error) throw new Error("ذخیره تنظیمات یادآور ناموفق بود.");
     },
     async create(input: unknown): Promise<void> {
-      const parsed = createRemindersSchema.parse(input);
+      const parsed = mobileCreateSchema.parse(input);
       const user = await currentUser(client);
       const { data: target, error: targetError } = await client
-        .from(parsed.targetType === "TASK" ? "tasks" : "events")
+        .from(targetTables[parsed.targetType])
         .select("id,household_id")
         .eq("id", parsed.targetId)
         .maybeSingle();

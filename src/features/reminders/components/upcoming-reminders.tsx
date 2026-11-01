@@ -75,9 +75,14 @@ export function UpcomingReminders({
                 className="rounded-2xl border border-line p-3"
               >
                 <p className="text-sm font-semibold">
-                  {reminder.target_type === "TASK"
-                    ? "یادآور تسک"
-                    : "یادآور رویداد"}
+                  {
+                    {
+                      TASK: "یادآور تسک",
+                      EVENT: "یادآور رویداد",
+                      CHORE: "یادآور کار خانه",
+                      BILL: "یادآور قبض",
+                    }[reminder.target_type]
+                  }
                 </p>
                 <p className="text-xs text-muted">
                   {formatJalaliLongDate(d)} - {formatPersianTime(d)}
