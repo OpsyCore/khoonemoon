@@ -103,3 +103,42 @@ self.addEventListener("fetch", (event) => {
     })(),
   );
 });
+
+// Push payloads contain no private titles. Clicking always opens this app's
+// reminder inbox, never a URL supplied by the sender.
+self.addEventListener("push", (event) => {
+  event.waitUntil(
+    self.registration.showNotification("خونه‌مون", {
+      body: "زمان یک یادآور رسیده است.",
+      dir: "rtl",
+      lang: "fa",
+      icon: new URL("icons/icon-192.png", scope).href,
+      tag: "khoonemoon-reminder",
+      data: { page: "reminders" },
+    }),
+  );
+});
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    (async () => {
+      const target = new URL("?page=reminders", scope).href;
+      const clients = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const client of clients) {
+        const url = new URL(client.url);
+        if (
+          url.origin === scope.origin &&
+          url.pathname.startsWith(scope.pathname)
+        ) {
+          client.postMessage({ type: "khoonemoon:open-reminders" });
+          await client.focus();
+          return;
+        }
+      }
+      await self.clients.openWindow(target);
+    })(),
+  );
+});

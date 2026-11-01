@@ -125,7 +125,24 @@ function App() {
     | "reminders"
     | "documents"
     | "search"
-  >("tasks");
+  >(() =>
+    new URLSearchParams(window.location.search).get("page") === "reminders"
+      ? "reminders"
+      : "tasks",
+  );
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const onMessage = (event: MessageEvent) => {
+      if (
+        event.source === navigator.serviceWorker.controller &&
+        event.data?.type === "khoonemoon:open-reminders"
+      )
+        setPage("reminders");
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () =>
+      navigator.serviceWorker.removeEventListener("message", onMessage);
+  }, []);
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(!client);
   const [authError, setAuthError] = useState("");

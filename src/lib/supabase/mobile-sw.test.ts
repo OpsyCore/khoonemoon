@@ -11,11 +11,18 @@ function worker() {
     }) => void
   > = {};
   const self = {
-    registration: { scope: "https://example.test/app/" },
+    registration: {
+      scope: "https://example.test/app/",
+      showNotification: vi.fn().mockResolvedValue(undefined),
+    },
     addEventListener: (name: string, fn: (typeof handlers)[string]) => {
       handlers[name] = fn;
     },
-    clients: { claim: vi.fn() },
+    clients: {
+      claim: vi.fn(),
+      matchAll: vi.fn().mockResolvedValue([]),
+      openWindow: vi.fn().mockResolvedValue(undefined),
+    },
   };
   const fetch = vi.fn().mockRejectedValue(new Error("offline"));
   const cached = {
@@ -35,9 +42,37 @@ function worker() {
     URL,
     Request,
   });
-  return { handlers, fetch, caches, cached };
+  return { handlers, fetch, caches, cached, self };
 }
 describe("standalone mobile service worker privacy", () => {
+  it("shows generic push and opens only the scoped inbox", async () => {
+    const { handlers, self } = worker();
+    let work: Promise<unknown> | undefined;
+    const waitUntil = (p: Promise<unknown>) => {
+      work = p;
+    };
+    const basic = {
+      request: { method: "", url: "", mode: "" },
+      respondWith: vi.fn(),
+      waitUntil,
+    };
+    handlers.push(basic);
+    await work;
+    expect(self.registration.showNotification).toHaveBeenCalledWith(
+      "خونه‌مون",
+      expect.objectContaining({ body: "زمان یک یادآور رسیده است." }),
+    );
+    const close = vi.fn();
+    handlers.notificationclick({
+      ...basic,
+      notification: { close, data: { url: "https://evil.test/" } },
+    } as typeof basic);
+    await work;
+    expect(close).toHaveBeenCalledOnce();
+    expect(self.clients.openWindow).toHaveBeenCalledWith(
+      "https://example.test/app/?page=reminders",
+    );
+  });
   it("never handles Supabase, API, POST or arbitrary private files", () => {
     const { handlers } = worker();
     const respondWith = vi.fn();
