@@ -4,12 +4,14 @@ on:
     branches: ["arena/00d965b0-khoonemoon"]
     paths: [".github/workflows/backup-network-check.yml"]
 permissions:
+  contents: read
   id-token: write
 jobs:
   pooler:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
+      - uses: actions/checkout@v4
       - name: Test IPv4 access to the Supabase session pooler (no credentials)
         run: |
           python3 - <<'PY'
@@ -27,34 +29,17 @@ jobs:
       - name: Verify GitHub workload identity without exposing the token
         run: |
           node --input-type=module <<'JS'
-          import { createPublicKey, verify } from 'node:crypto';
-          const audience = 'khoonemoon-backup-isfzuxrkzeeeggvfcoah';
+          import { verifyGithubWorkloadIdentity } from './supabase/functions/project-backup/oidc.mjs';
           const url = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
-          url.searchParams.set('audience', audience);
+          url.searchParams.set('audience', 'khoonemoon-backup-isfzuxrkzeeeggvfcoah');
           const tokenResponse = await fetch(url, {
             headers: {authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}`},
           });
           if (!tokenResponse.ok) throw new Error('Identity endpoint unavailable');
           const {value} = await tokenResponse.json();
-          const parts = value.split('.');
-          if (parts.length !== 3) throw new Error('Malformed identity token');
-          const header = JSON.parse(Buffer.from(parts[0], 'base64url'));
-          const claims = JSON.parse(Buffer.from(parts[1], 'base64url'));
           const jwksResponse = await fetch('https://token.actions.githubusercontent.com/.well-known/jwks');
           if (!jwksResponse.ok) throw new Error('Identity keys unavailable');
-          const jwks = await jwksResponse.json();
-          const jwk = jwks.keys.find(k => k.kid === header.kid && k.kty === 'RSA');
-          if (!jwk || header.alg !== 'RS256' || !verify('RSA-SHA256', Buffer.from(parts[0]+'.'+parts[1]), createPublicKey({key:jwk,format:'jwk'}), Buffer.from(parts[2],'base64url'))) throw new Error('Invalid signature');
-          const now = Math.floor(Date.now()/1000);
-          const checks = [
-            claims.iss === 'https://token.actions.githubusercontent.com', claims.aud === audience,
-            Number.isInteger(claims.exp) && claims.exp > now && claims.exp <= now+600,
-            Number.isInteger(claims.nbf) && claims.nbf <= now,
-            claims.repository_id === '1338213501', claims.repository_owner_id === '241570151',
-            claims.actor_id === '241570151', claims.event_name === 'push',
-            claims.ref === 'refs/heads/arena/00d965b0-khoonemoon', claims.sha === process.env.GITHUB_SHA,
-            claims.workflow_ref === 'OpsyCore/khoonemoon/.github/workflows/backup-network-check.yml@refs/heads/arena/00d965b0-khoonemoon',
-          ];
-          if (checks.some(x => !x)) throw new Error('Identity claims failed validation');
+          const {keys} = await jwksResponse.json();
+          await verifyGithubWorkloadIdentity(value, keys, process.env.GITHUB_SHA);
           console.log('Signature and restricted workload claims verified');
           JS
