@@ -35,6 +35,14 @@ import { Finance } from "./finance";
 import { Chores } from "./chores";
 import { Profile } from "./profile";
 import { HouseholdDetails } from "./household-details";
+import { ThemeSettings } from "./theme-settings";
+import {
+  readTheme,
+  resolveTheme,
+  writeTheme,
+  THEME_KEY,
+  type ThemeMode,
+} from "./theme";
 import "./style.css";
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -48,6 +56,52 @@ const client =
 
 function App() {
   const [revision, setRevision] = useState(0);
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    try {
+      return readTheme(window.localStorage);
+    } catch {
+      return "system";
+    }
+  });
+  const [themePersisted, setThemePersisted] = useState(true);
+  useEffect(() => {
+    const media =
+      typeof window.matchMedia === "function"
+        ? window.matchMedia("(prefers-color-scheme: dark)")
+        : null;
+    const apply = () => {
+      const resolved = resolveTheme(theme, media?.matches ?? false);
+      document.documentElement.dataset.theme = resolved;
+      document.documentElement.style.colorScheme = resolved;
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute("content", resolved === "dark" ? "#26251e" : "#f4eddd");
+    };
+    apply();
+    media?.addEventListener("change", apply);
+    return () => media?.removeEventListener("change", apply);
+  }, [theme]);
+  useEffect(() => {
+    const changed = (event: StorageEvent) => {
+      if (event.key === THEME_KEY || event.key === null) {
+        try {
+          setTheme(readTheme(window.localStorage));
+        } catch {
+          setTheme("system");
+        }
+      }
+    };
+    window.addEventListener("storage", changed);
+    return () => window.removeEventListener("storage", changed);
+  }, []);
+  function chooseTheme(mode: ThemeMode) {
+    setTheme(mode);
+    try {
+      setThemePersisted(writeTheme(window.localStorage, mode));
+    } catch {
+      setThemePersisted(false);
+    }
+  }
   const [page, setPage] = useState<
     | "house"
     | "tasks"
@@ -503,6 +557,11 @@ function App() {
           )}
           {page === "profile" && (
             <>
+              <ThemeSettings
+                mode={theme}
+                setMode={chooseTheme}
+                persisted={themePersisted}
+              />
               <Profile key={session.user.id} client={client} />
               <ExportData key={`export:${session.user.id}`} client={client} />
             </>

@@ -79,3 +79,10 @@ zone; no automatic creation occurs while unpaid. Undo is blocked once a
 successor exists, and archiving the successor stops the chain. RLS assertions
 and idempotency checks ran locally and the migration was applied to the active
 Supabase project. Actual Android and two-account tests remain outstanding.
+
+
+The standalone client now offers light/dark/system appearance with local-only
+persistence and system preference tracking; the dark palette keeps the journal
+style. Unit tests and a build pass, but screen-by-screen visual and contrast
+checks on actual browsers/Android are still required. PWA installation,
+offline shell behavior and switching theme on a real device remain unverified.

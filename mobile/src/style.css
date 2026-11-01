@@ -569,3 +569,129 @@ button:not(:disabled):active {
     scroll-behavior: auto !important;
   }
 }
+
+/* Dark mode keeps the same journal/olive identity with readable contrast. */
+:root[data-theme="dark"] {
+  --paper: #26251e;
+  --paper-card: #343127;
+  --paper-line: #675d48;
+  --paper-ink: #f2e9d7;
+  --olive: #abb680;
+}
+:root[data-theme="dark"] body {
+  color: var(--paper-ink);
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(
+    92deg,
+    #ffffff08 0 1px,
+    transparent 1px 6px
+  );
+}
+:root[data-theme="dark"] header {
+  border-color: #685d49;
+}
+:root[data-theme="dark"] header h1,
+:root[data-theme="dark"] section h2,
+:root[data-theme="dark"] section h3,
+:root[data-theme="dark"] .documents-heading h2,
+:root[data-theme="dark"] .document-copy strong {
+  color: #f4ead6;
+}
+:root[data-theme="dark"] header p,
+:root[data-theme="dark"] section > p,
+:root[data-theme="dark"] .documents-heading p,
+:root[data-theme="dark"] .document-copy small {
+  color: #c9bca5;
+}
+:root[data-theme="dark"] section,
+:root[data-theme="dark"] section:not(.document-form),
+:root[data-theme="dark"] aside,
+:root[data-theme="dark"] .document-card {
+  background: linear-gradient(155deg, #39362b, #302d24);
+  border-color: #675d49;
+  box-shadow: 0 3px 8px #0004;
+}
+:root[data-theme="dark"] section li,
+:root[data-theme="dark"] section fieldset {
+  background: #39372c;
+  border-color: #665d49;
+}
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
+  background: #29281f;
+  border-color: #81745d;
+  color: #f5ecd9;
+}
+:root[data-theme="dark"] button {
+  background-color: #697647;
+  color: #fffdf4;
+}
+:root[data-theme="dark"] button.minor,
+:root[data-theme="dark"] .today-cards button {
+  background: #37392a;
+  border-color: #8a9770;
+  color: #edf0df;
+}
+:root[data-theme="dark"] .bottom-nav {
+  background: linear-gradient(#39362b, #2d2b22);
+  border-color: #756a53;
+}
+:root[data-theme="dark"] .bottom-nav button:not(.calendar-day) {
+  color: #e0d4c1;
+  background: transparent;
+}
+:root[data-theme="dark"] .bottom-nav button[aria-current="page"],
+:root[data-theme="dark"] .document-tabs button[aria-selected="true"],
+:root[data-theme="dark"] .search-filters button[aria-pressed="true"] {
+  background: #6d7b4b;
+  color: #fff;
+}
+:root[data-theme="dark"] .document-tabs button:not(.calendar-day) {
+  background: #3e3a2d;
+  color: #eee4d1;
+  border-color: #74684f;
+}
+:root[data-theme="dark"] .document-icon,
+:root[data-theme="dark"] .document-category,
+:root[data-theme="dark"] .overline {
+  color: #d2c4ab;
+  border-color: #766b54;
+}
+:root[data-theme="dark"] .document-add {
+  background: transparent;
+  color: #eee5d2;
+}
+:root[data-theme="dark"] .document-add svg {
+  background: #d5c5a5;
+  color: #2f281f;
+}
+:root[data-theme="dark"] .calendar-day {
+  background: transparent;
+  color: #f0e7d7;
+}
+:root[data-theme="dark"] .calendar-day.outside {
+  color: #ab9f8d;
+}
+:root[data-theme="dark"] .calendar-day[aria-pressed="true"] {
+  background: #778355;
+  color: white;
+}
+:root[data-theme="dark"] .paper-note {
+  background: repeating-linear-gradient(#484333 0 26px, #5a5240 27px 28px);
+  color: #f2e7d4;
+}
+:root[data-theme="dark"] .error {
+  color: #ffb5a5;
+}
+:root[data-theme="dark"] :focus-visible {
+  outline-color: #e5e9bc;
+}
+:root[data-theme="dark"] .document-tabs button[aria-selected="true"] {
+  background: #6d7b4b;
+  color: #fff;
+}
+:root[data-theme="dark"] .documents-heading::before {
+  mix-blend-mode: normal;
+  opacity: 0.38;
+}
