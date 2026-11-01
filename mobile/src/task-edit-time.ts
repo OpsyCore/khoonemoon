@@ -12,7 +12,9 @@ export function taskEditTime(
     : "";
   if (input === originalInput) {
     return {
-      dueAt: originalDue,
+      dueAt: originalDue?.endsWith("+00:00")
+        ? originalDue.slice(0, -6) + "Z"
+        : originalDue,
       recurrenceTimezone: originalZone || deviceZone,
     };
   }

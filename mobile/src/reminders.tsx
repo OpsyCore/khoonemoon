@@ -27,7 +27,12 @@ const labels: Record<ReminderState, string> = {
   DELIVERED: "ارسال‌شده",
   CANCELED: "لغوشده",
 };
-type Target = { id: string; title: string; date: string | null };
+type Target = {
+  id: string;
+  title: string;
+  date: string | null;
+  selectable?: boolean;
+};
 export function Reminders({
   client,
   notificationStatus,
@@ -72,22 +77,33 @@ export function Reminders({
     setTasks(
       t
         .filter((x) => !x.archived_at)
-        .map((x) => ({ id: x.id, title: x.title, date: x.due_at })),
+        .map((x) => ({
+          id: x.id,
+          title: x.title,
+          date: x.due_at,
+          selectable: x.status !== "COMPLETED" && x.status !== "SKIPPED",
+        })),
     );
     setEvents(e.map((x) => ({ id: x.id, title: x.title, date: x.start_at })));
     setChores(
-      c
-        .filter((x) => x.is_active)
-        .map((x) => ({ id: x.id, title: x.title, date: x.next_due_at })),
+      c.map((x) => ({
+        id: x.id,
+        title: x.title,
+        date: x.next_due_at,
+        selectable: x.is_active,
+      })),
     );
     setBills(
       f
-        .filter(
-          (x) =>
-            ["BILL", "SUBSCRIPTION", "INSTALLMENT"].includes(x.record_type) &&
-            !x.paid_at,
+        .filter((x) =>
+          ["BILL", "SUBSCRIPTION", "INSTALLMENT"].includes(x.record_type),
         )
-        .map((x) => ({ id: x.id, title: x.title, date: x.due_at })),
+        .map((x) => ({
+          id: x.id,
+          title: x.title,
+          date: x.due_at,
+          selectable: !x.paid_at,
+        })),
     );
   }, [api, client, householdId]);
   useEffect(() => {
@@ -317,8 +333,9 @@ export function Reminders({
             {{ TASK: tasks, EVENT: events, CHORE: chores, BILL: bills }[
               type
             ].map((x) => (
-              <option key={x.id} value={x.id}>
+              <option key={x.id} value={x.id} disabled={x.selectable === false}>
                 {x.title}
+                {x.selectable === false ? " (غیرفعال)" : ""}
               </option>
             ))}
           </select>

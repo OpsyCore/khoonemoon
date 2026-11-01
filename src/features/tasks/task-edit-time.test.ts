@@ -14,6 +14,13 @@ describe("standalone task edit time", () => {
       ),
     ).toEqual({ dueAt: instant, recurrenceTimezone: "America/New_York" });
   });
+  it("preserves PostgreSQL microseconds while normalizing the UTC offset", () => {
+    const instant = "2026-05-01T06:30:42.123456+00:00";
+    expect(
+      taskEditTime(toDateTimeLocal(new Date(instant)), instant, "UTC", "UTC")
+        .dueAt,
+    ).toBe("2026-05-01T06:30:42.123456Z");
+  });
   it("uses the current device zone when the user changes the due field", () => {
     const local = "2026-01-04T09:15";
     expect(taskEditTime(local, null, "Asia/Tehran", "Europe/Istanbul")).toEqual(

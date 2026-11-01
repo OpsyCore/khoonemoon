@@ -91,6 +91,8 @@ export function Shopping({
       });
     return () => {
       alive = false;
+      // Invalidate requests started for a list that is no longer selected.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       itemFetchSequence.current++;
     };
   }, [readItems, selected]);

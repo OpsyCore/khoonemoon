@@ -76,7 +76,11 @@ export function directFinance(client: SupabaseClient) {
       if (error || !data) throw new Error("ثبت اطلاعات مالی ناموفق بود.");
       return data as FinancialRecord;
     },
-    async update(id: string, input: unknown): Promise<FinancialRecord> {
+    async update(
+      id: string,
+      input: unknown,
+      expectedUpdatedAt?: string,
+    ): Promise<FinancialRecord> {
       const record = updateFinancialRecordSchema.parse(input);
       if (!Object.keys(record).length) throw new Error("تغییری ارسال نشد.");
       const patch: Record<string, unknown> = {};
@@ -90,12 +94,13 @@ export function directFinance(client: SupabaseClient) {
         patch.paid_at = record.paid ? new Date().toISOString() : null;
         patch.paid_by = record.paid ? user : null;
       }
-      const { data, error } = await client
+      let query = client
         .from("financial_records")
         .update(patch)
         .eq("id", id)
-        .select(COLUMNS)
-        .maybeSingle();
+        .is("archived_at", null);
+      if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
+      const { data, error } = await query.select(COLUMNS).maybeSingle();
       if (error || !data)
         throw new Error("به‌روزرسانی اطلاعات مالی ناموفق بود.");
       return data as FinancialRecord;

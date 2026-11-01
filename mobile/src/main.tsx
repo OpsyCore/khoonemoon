@@ -37,6 +37,7 @@ import { Chores } from "./chores";
 import { Profile } from "./profile";
 import { HouseholdDetails } from "./household-details";
 import { ThemeSettings } from "./theme-settings";
+import { InstallGuide, useInstallPrompt } from "./install-guide";
 import {
   readTheme,
   resolveTheme,
@@ -57,6 +58,7 @@ const client =
 
 function App() {
   const [revision, setRevision] = useState(0);
+  const installState = useInstallPrompt();
   const [theme, setTheme] = useState<ThemeMode>(() => {
     try {
       return readTheme(window.localStorage);
@@ -678,6 +680,7 @@ function App() {
                 setMode={chooseTheme}
                 persisted={themePersisted}
               />
+              <InstallGuide state={installState} />
               <Profile key={session.user.id} client={client} />
               <ExportData key={`export:${session.user.id}`} client={client} />
             </>

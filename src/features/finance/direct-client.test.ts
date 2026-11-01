@@ -104,6 +104,22 @@ describe("direct finance transport", () => {
       paid_by: null,
     });
   });
+  it("guards edits and payments with the displayed record version", async () => {
+    const { api, fetcher } = setup();
+    await api.update("record-1", { paid: true }, "2026-11-01T12:00:00Z");
+    const url = decodeURIComponent(String(fetcher.mock.calls[0][0]));
+    expect(url).toContain("updated_at=eq.2026-11-01T12:00:00Z");
+    expect(url).toContain("archived_at=is.null");
+    fetcher.mockResolvedValueOnce(
+      new Response("null", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await expect(
+      api.update("record-1", { paid: true }, "2026-11-01T12:00:00Z"),
+    ).rejects.toThrow();
+  });
   it("returns an error when RLS hides an updated row", async () => {
     const { api, fetcher } = setup();
     fetcher.mockResolvedValueOnce(

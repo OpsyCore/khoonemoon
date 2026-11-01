@@ -1,3 +1,4 @@
+import { taskEditTime } from "./task-edit-time";
 import {
   useCallback,
   useEffect,
@@ -248,17 +249,26 @@ export function Finance({
     try {
       const value = parseAmount(amount);
       if (value === null) throw new Error("مبلغ معتبر وارد کنید.");
-      const dueAt = due ? new Date(due).toISOString() : null;
+      const dueAt = taskEditTime(
+        due,
+        editing?.due_at ?? null,
+        null,
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      ).dueAt;
       if (billTypes.has(kind) && !dueAt)
         throw new Error("تاریخ سررسید قبض یا قسط لازم است.");
       if (editing)
-        await api.update(editing.id, {
-          title,
-          amount: value,
-          category: category || null,
-          note: note || null,
-          dueAt,
-        });
+        await api.update(
+          editing.id,
+          {
+            title,
+            amount: value,
+            category: category || null,
+            note: note || null,
+            dueAt,
+          },
+          editing.updated_at,
+        );
       else
         await api.create({
           title,
@@ -298,7 +308,7 @@ export function Finance({
     setBusy(true);
     setMessage("");
     try {
-      await api.update(record.id, { paid: !record.paid_at });
+      await api.update(record.id, { paid: !record.paid_at }, record.updated_at);
       try {
         await load();
       } catch {
@@ -309,7 +319,11 @@ export function Finance({
         );
       }
     } catch {
-      setMessage("تغییر وضعیت پرداخت ناموفق بود.");
+      setRecords([]);
+      setLoaded(false);
+      setMessage(
+        "وضعیت پرداخت تأیید نشد یا تغییر کرده است؛ پیش از تلاش دوباره اطلاعات را تازه کنید.",
+      );
     } finally {
       setBusy(false);
     }
