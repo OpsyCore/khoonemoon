@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import "@fontsource-variable/vazirmatn";
+import { MobileLogin } from "./login";
 import { createClient, type Session } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
@@ -354,28 +355,36 @@ function App() {
   }
 
   return (
-    <main>
-      <header
-        className={
-          page === "calendar" && session && !recovery
-            ? "calendar-shell-header"
-            : undefined
-        }
-      >
-        {!(page === "calendar" && session && !recovery) && (
-          <>
-            <h1>خونه‌مون</h1>
-            <p>دفتر کوچک خانه و خانوادهٔ ما</p>
-          </>
-        )}
-        {session && !recovery && client && ready && (
-          <MobileNavigation
-            page={page}
-            dueCount={dueCount ?? 0}
-            onNavigate={setPage}
-          />
-        )}
-      </header>
+    <main
+      className={
+        !session && ready && client && authMode === "login"
+          ? "login-mobile-main"
+          : undefined
+      }
+    >
+      {!(ready && client && !session && authMode === "login") && (
+        <header
+          className={
+            page === "calendar" && session && !recovery
+              ? "calendar-shell-header"
+              : undefined
+          }
+        >
+          {!(page === "calendar" && session && !recovery) && (
+            <>
+              <h1>خونه‌مون</h1>
+              <p>دفتر کوچک خانه و خانوادهٔ ما</p>
+            </>
+          )}
+          {session && !recovery && client && ready && (
+            <MobileNavigation
+              page={page}
+              dueCount={dueCount ?? 0}
+              onNavigate={setPage}
+            />
+          )}
+        </header>
+      )}
 
       {!online && (
         <p className="network-status" role="status">
@@ -440,25 +449,33 @@ function App() {
             <button disabled={busy}>ذخیره رمز جدید</button>
           </form>
         </section>
+      ) : !session && authMode === "login" ? (
+        <MobileLogin
+          email={email}
+          setEmail={setEmail}
+          password={password}
+          setPassword={setPassword}
+          busy={busy}
+          onSubmit={login}
+          onForgot={() => {
+            setAuthMode("forgot");
+            setPassword("");
+            setMessage("");
+          }}
+          onSignup={() => {
+            setAuthMode("signup");
+            setPassword("");
+            setMessage("");
+          }}
+          theme={theme}
+          setTheme={chooseTheme}
+          themePersisted={themePersisted}
+        />
       ) : !session ? (
         <>
           <section>
-            <h2>
-              {authMode === "login"
-                ? "ورود"
-                : authMode === "signup"
-                  ? "ساخت حساب"
-                  : "بازیابی رمز عبور"}
-            </h2>
-            <form
-              onSubmit={
-                authMode === "login"
-                  ? login
-                  : authMode === "signup"
-                    ? signup
-                    : forgot
-              }
-            >
+            <h2>{authMode === "signup" ? "ساخت حساب" : "بازیابی رمز عبور"}</h2>
+            <form onSubmit={authMode === "signup" ? signup : forgot}>
               {authMode === "signup" && (
                 <label>
                   نام
@@ -481,14 +498,12 @@ function App() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </label>
-              {authMode !== "forgot" && (
+              {authMode === "signup" && (
                 <label>
                   رمز عبور
                   <input
                     type="password"
-                    autoComplete={
-                      authMode === "login" ? "current-password" : "new-password"
-                    }
+                    autoComplete="new-password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -496,37 +511,20 @@ function App() {
                 </label>
               )}
               <button disabled={busy}>
-                {authMode === "login"
-                  ? "ورود"
-                  : authMode === "signup"
-                    ? "ثبت‌نام"
-                    : "ارسال پیوند بازیابی"}
+                {authMode === "signup" ? "ثبت‌نام" : "ارسال پیوند بازیابی"}
               </button>
             </form>
             <button
               className="minor"
               disabled={busy}
               onClick={() => {
-                setAuthMode(authMode === "login" ? "signup" : "login");
+                setAuthMode("login");
                 setMessage("");
                 setPassword("");
               }}
             >
-              {authMode === "login" ? "ساخت حساب جدید" : "بازگشت به ورود"}
+              بازگشت به ورود
             </button>
-            {authMode === "login" && (
-              <button
-                className="minor"
-                disabled={busy}
-                onClick={() => {
-                  setAuthMode("forgot");
-                  setPassword("");
-                  setMessage("");
-                }}
-              >
-                رمز عبور را فراموش کرده‌ام
-              </button>
-            )}
           </section>
           <ThemeSettings
             mode={theme}
