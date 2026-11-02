@@ -365,13 +365,19 @@ function App() {
       {!(ready && client && !session && authMode === "login") && (
         <header
           className={
-            (page === "calendar" || page === "shopping") && session && !recovery
+            (page === "calendar" ||
+              page === "shopping" ||
+              page === "documents") &&
+            session &&
+            !recovery
               ? "calendar-shell-header"
               : undefined
           }
         >
           {!(
-            (page === "calendar" || page === "shopping") &&
+            (page === "calendar" ||
+              page === "shopping" ||
+              page === "documents") &&
             session &&
             !recovery
           ) && (
@@ -538,13 +544,15 @@ function App() {
         </>
       ) : (
         <>
-          {page !== "calendar" && page !== "shopping" && (
-            <QuickAdd
-              client={client}
-              householdId={household ?? null}
-              onDone={() => setRevision((n) => n + 1)}
-            />
-          )}
+          {page !== "calendar" &&
+            page !== "shopping" &&
+            page !== "documents" && (
+              <QuickAdd
+                client={client}
+                householdId={household ?? null}
+                onDone={() => setRevision((n) => n + 1)}
+              />
+            )}
           {page === "house" && (
             <section>
               <h2>خانه و اعضا</h2>
@@ -680,6 +688,7 @@ function App() {
               key={`${session.user.id}:${household ?? "none"}:${revision}`}
               client={client}
               householdId={household ?? null}
+              onBack={() => setPage("house")}
             />
           )}
           {page === "reminders" && (

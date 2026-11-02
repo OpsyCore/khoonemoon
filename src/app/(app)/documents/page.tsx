@@ -1,26 +1,32 @@
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
-import { DocumentsManager } from "@/features/documents/components/documents-manager";
-import { PageHeader } from "@/shared/ui/page-header";
+import { DocumentsReference } from "@/features/documents/components/documents-reference";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { ErrorState } from "@/shared/ui/error-state";
 
-export default function DocumentsPage() {
-  return (
-    <div className="space-y-7">
-      <div className="space-y-4">
-        <Link
-          href="/home"
-          className="inline-flex items-center gap-1 text-[12px] font-medium text-muted transition hover:text-ink"
-        >
-          <ChevronRight className="size-3.5" strokeWidth={1.75} />
-          بازگشت به خونه
-        </Link>
-        <PageHeader
-          kicker="بایگانی خانه"
-          title="مدارک"
-          subtitle="اسناد و مدارک مهم زندگی مشترک، مرتب و در دسترس."
-        />
-      </div>
-      <DocumentsManager />
-    </div>
-  );
+export default async function DocumentsPage() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user)
+    return (
+      <ErrorState
+        title="دسترسی غیرمجاز"
+        description="برای مشاهده مدارک وارد حساب شوید."
+      />
+    );
+  const { data: membership, error: memberError } = await supabase
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", user.id)
+    .is("left_at", null)
+    .maybeSingle();
+  if (memberError)
+    return (
+      <ErrorState
+        title="خطا در بارگذاری خانه"
+        description="اطلاعات خانه قابل دریافت نیست؛ دوباره تلاش کنید."
+      />
+    );
+  return <DocumentsReference householdId={membership?.household_id ?? null} />;
 }
