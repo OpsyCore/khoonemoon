@@ -6,9 +6,12 @@ import {
   CircleDollarSign,
   House,
   Leaf,
+  Map,
   MapPin,
   Pencil,
   Plus,
+  ShoppingCart,
+  Soup,
   Trash2,
   UsersRound,
   X,
@@ -409,19 +412,6 @@ export function CalendarEvents({
           {message}
         </p>
       )}
-      <button
-        type="button"
-        className="calendar-refresh"
-        disabled={loading || busy}
-        onClick={() => {
-          setMessage("");
-          setCalendarError("");
-          setLoading(true);
-          setLoadVersion((n) => n + 1);
-        }}
-      >
-        تازه‌سازی تقویم
-      </button>
       {calendarError && (
         <div className="calendar-error" role="alert">
           <span>{calendarError}</span>
@@ -548,7 +538,15 @@ export function CalendarEvents({
           )}
           <ul className="calendar-agenda-list">
             {shownItems.map((item) => {
-              const Icon = itemIcons[item.kind];
+              const Icon = /صبحانه|ناهار|شام|غذا|breakfast|lunch|dinner/i.test(
+                item.title,
+              )
+                ? Soup
+                : /سفر|مسافرت|trip|travel/i.test(item.title)
+                  ? Map
+                  : /خرید|shopping/i.test(item.title)
+                    ? ShoppingCart
+                    : itemIcons[item.kind];
               const event =
                 item.kind === "event"
                   ? events.find((e) => e.id === item.id)
@@ -572,7 +570,19 @@ export function CalendarEvents({
                     </div>
                   </div>
                   <div className="calendar-agenda-meta">
-                    <time>
+                    <time
+                      dir={
+                        !item.allDay &&
+                        item.end &&
+                        (!event ||
+                          isSameDay(
+                            new Date(event.start_at),
+                            new Date(event.end_at),
+                          ))
+                          ? "ltr"
+                          : undefined
+                      }
+                    >
                       {item.allDay
                         ? "تمام روز"
                         : event &&
@@ -624,6 +634,19 @@ export function CalendarEvents({
           </ul>
         </div>
       </div>
+      <button
+        type="button"
+        className="calendar-refresh"
+        disabled={loading || busy}
+        onClick={() => {
+          setMessage("");
+          setCalendarError("");
+          setLoading(true);
+          setLoadVersion((n) => n + 1);
+        }}
+      >
+        تازه‌سازی تقویم
+      </button>
       <p className="calendar-footnote">خانه، جایی برای حالِ خوب</p>
       <button
         type="button"
