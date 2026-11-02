@@ -1,8 +1,9 @@
 import type { CalendarChore } from "@/features/chores/calendar-projection";
+import { directCalendar } from "@/features/calendar/direct-client";
+import { directChores } from "@/features/chores/direct-client";
 import { directFinance } from "@/features/finance/direct-client";
+import { directTasks } from "@/features/tasks/direct-client";
 import { CalendarBoard } from "@/features/calendar/components/calendar-board";
-import type { EventRecord } from "@/features/calendar/types";
-import type { TaskRecord } from "@/features/tasks/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/shared/ui/error-state";
 
@@ -10,42 +11,42 @@ export const dynamic = "force-dynamic";
 
 export default async function CalendarPage() {
   const supabase = await createSupabaseServerClient();
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (!user) {
+  if (!user)
     return (
       <ErrorState
         title="دسترسی غیرمجاز"
         description="برای مشاهده تقویم باید وارد حساب شوید."
       />
     );
-  }
 
-  const [membershipResult, tasksResult, eventsResult] = await Promise.all([
-    supabase
-      .from("household_members")
-      .select("household_id")
-      .eq("user_id", user.id)
-      .is("left_at", null)
-      .maybeSingle(),
-    supabase
-      .from("tasks")
-      .select(
-        "id, title, description, creator_id, owner_id, household_id, visibility, status, priority, due_at, completed_at, archived_at, created_at, updated_at, task_assignees(assignee_id), task_recurrences(frequency, interval_days, weekdays)",
-      )
-      .is("archived_at", null),
-    supabase
-      .from("events")
-      .select(
-        "id, title, description, creator_id, owner_id, household_id, visibility, start_at, end_at, all_day, location, created_at, updated_at",
-      )
-      .order("start_at", { ascending: true }),
+  const membership = await supabase
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", user.id)
+    .is("left_at", null)
+    .maybeSingle();
+  if (membership.error)
+    return (
+      <ErrorState
+        title="خطا در بارگذاری تقویم"
+        description="لطفاً دوباره تلاش کنید."
+      />
+    );
+  const householdId = membership.data?.household_id ?? null;
+  // All collections use stable pagination. In particular, PostgREST's default
+  // 1000-row limit must not silently hide calendar entries on the web.
+  const [tasks, events, financial, chores] = await Promise.allSettled([
+    directTasks(supabase).list(),
+    directCalendar(supabase).list(),
+    directFinance(supabase).list(),
+    householdId
+      ? directChores(supabase).list(householdId)
+      : Promise.resolve([]),
   ]);
-
-  if (membershipResult.error || tasksResult.error || eventsResult.error) {
+  if (tasks.status === "rejected" || events.status === "rejected") {
     return (
       <ErrorState
         title="خطا در بارگذاری تقویم"
@@ -53,36 +54,31 @@ export default async function CalendarPage() {
       />
     );
   }
-
-  const financialResult = await directFinance(supabase)
-    .list()
-    .then(
-      (rows) => ({ rows, error: false }),
-      () => ({ rows: [], error: true }),
-    );
-  const householdId = membershipResult.data?.household_id ?? null;
-  const choresResult = householdId
-    ? await supabase
-        .from("chores")
-        .select(
-          "id, title, next_due_at, frequency, interval_days, weekdays, recurrence_timezone, completion_revision",
-        )
-        .eq("household_id", householdId)
-        .eq("is_active", true)
-        .is("archived_at", null)
-        .not("next_due_at", "is", null)
-    : { data: [], error: null };
-
+  const calendarChores: CalendarChore[] =
+    chores.status === "fulfilled"
+      ? chores.value
+          .filter((chore) => chore.is_active && chore.next_due_at !== null)
+          .map((chore) => ({
+            id: chore.id,
+            title: chore.title,
+            next_due_at: chore.next_due_at!,
+            frequency: chore.frequency,
+            interval_days: chore.interval_days,
+            weekdays: chore.weekdays,
+            recurrence_timezone: chore.recurrence_timezone,
+            completion_revision: chore.completion_revision,
+          }))
+      : [];
   return (
     <div className="space-y-4">
       <CalendarBoard
-        tasks={(tasksResult.data ?? []) as TaskRecord[]}
-        events={(eventsResult.data ?? []) as EventRecord[]}
+        tasks={tasks.value}
+        events={events.value}
         householdId={householdId}
-        chores={(choresResult.data ?? []) as CalendarChore[]}
-        choresLoadError={Boolean(choresResult.error)}
-        bills={financialResult.rows}
-        billsLoadError={financialResult.error}
+        chores={calendarChores}
+        choresLoadError={chores.status === "rejected"}
+        bills={financial.status === "fulfilled" ? financial.value : []}
+        billsLoadError={financial.status === "rejected"}
       />
     </div>
   );
