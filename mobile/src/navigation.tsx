@@ -18,6 +18,7 @@ import { describeBadge, formatBadgeCount } from "@/shared/utils/badge-count";
 export type MobilePage =
   | "house"
   | "tasks"
+  | "task-new"
   | "calendar"
   | "shopping"
   | "finance"

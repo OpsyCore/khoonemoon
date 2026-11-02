@@ -205,3 +205,55 @@ describe("reminder retry after a lost response", () => {
     expect(new Set(ids[0]).size).toBe(2);
   });
 });
+
+describe("task reminder creation retry", () => {
+  it("reuses the same reminder ID after an ambiguous insert and confirms the existing row", async () => {
+    const { api, fetcher } = setup();
+    const input = {
+      targetId,
+      baseDateTime: "2026-12-01T12:00:00.000Z",
+      minutesBefore: 10,
+    };
+    const target = new Response(
+      JSON.stringify({ id: targetId, household_id: null }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+    fetcher.mockResolvedValueOnce(target);
+    fetcher.mockRejectedValueOnce(new Error("lost response"));
+    fetcher.mockResolvedValueOnce(
+      new Response("null", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await expect(api.createTaskReminderOnce(input)).rejects.toThrow();
+    const first = JSON.parse(String(fetcher.mock.calls[1][1]?.body));
+    fetcher.mockResolvedValueOnce(
+      new Response(JSON.stringify({ id: targetId, household_id: null }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    fetcher.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: "duplicate" }), {
+        status: 409,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    fetcher.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          id: first.id,
+          target_type: "TASK",
+          target_id: targetId,
+          user_id: "me",
+          remind_at: first.remind_at,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    await expect(api.createTaskReminderOnce(input)).resolves.toBeUndefined();
+    const second = JSON.parse(String(fetcher.mock.calls[4][1]?.body));
+    expect(second.id).toBe(first.id);
+  });
+});

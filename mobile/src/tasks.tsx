@@ -13,9 +13,11 @@ import { taskEditTime } from "./task-edit-time";
 export function Tasks({
   client,
   householdId,
+  onNewTask,
 }: {
   client: SupabaseClient;
   householdId: string | null;
+  onNewTask?: () => void;
 }) {
   const api = useMemo(() => directTasks(client), [client]);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
@@ -193,87 +195,94 @@ export function Tasks({
       >
         تازه‌سازی تسک‌ها
       </button>
-      <form onSubmit={(e) => void create(e)}>
-        <label>
-          عنوان تسک
-          <input
-            required
-            minLength={2}
-            maxLength={180}
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-          />
-        </label>
-        <label>
-          توضیحات
-          <input
-            maxLength={2000}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </label>
-        <label>
-          سررسید
-          <input
-            type="datetime-local"
-            value={due}
-            onChange={(e) => setDue(e.target.value)}
-          />
-        </label>
-        {editing && frequency !== "NONE" && (
-          <p>
-            تکرار با منطقه زمانی ثبت‌شده انجام می‌شود؛ تغییر سررسید منطقه زمانی
-            این دستگاه را اعمال می‌کند.
-          </p>
-        )}
-        <label>
-          اولویت
-          <select
-            value={priority}
-            onChange={(e) => setPriority(e.target.value as TaskPriority)}
-          >
-            <option value="LOW">کم</option>
-            <option value="NORMAL">عادی</option>
-            <option value="HIGH">زیاد</option>
-            <option value="CRITICAL">فوری</option>
-          </select>
-        </label>
-        {householdId && (
-          <label className="item">
+      {onNewTask && (
+        <button type="button" onClick={onNewTask}>
+          تسک جدید
+        </button>
+      )}
+      {(!onNewTask || editing) && (
+        <form onSubmit={(e) => void create(e)}>
+          <label>
+            عنوان تسک
             <input
-              type="checkbox"
-              checked={shared}
-              onChange={(e) => {
-                setShared(e.target.checked);
-                setAssignees([]);
-              }}
+              required
+              minLength={2}
+              maxLength={180}
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
             />
-            اشتراک با خانه
           </label>
-        )}
-        {shared && householdId && (
-          <MemberFields
-            client={client}
-            householdId={householdId}
-            selected={assignees}
-            setSelected={setAssignees}
+          <label>
+            توضیحات
+            <input
+              maxLength={2000}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </label>
+          <label>
+            سررسید
+            <input
+              type="datetime-local"
+              value={due}
+              onChange={(e) => setDue(e.target.value)}
+            />
+          </label>
+          {editing && frequency !== "NONE" && (
+            <p>
+              تکرار با منطقه زمانی ثبت‌شده انجام می‌شود؛ تغییر سررسید منطقه
+              زمانی این دستگاه را اعمال می‌کند.
+            </p>
+          )}
+          <label>
+            اولویت
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as TaskPriority)}
+            >
+              <option value="LOW">کم</option>
+              <option value="NORMAL">عادی</option>
+              <option value="HIGH">زیاد</option>
+              <option value="CRITICAL">فوری</option>
+            </select>
+          </label>
+          {householdId && (
+            <label className="item">
+              <input
+                type="checkbox"
+                checked={shared}
+                onChange={(e) => {
+                  setShared(e.target.checked);
+                  setAssignees([]);
+                }}
+              />
+              اشتراک با خانه
+            </label>
+          )}
+          {shared && householdId && (
+            <MemberFields
+              client={client}
+              householdId={householdId}
+              selected={assignees}
+              setSelected={setAssignees}
+            />
+          )}
+          <RepeatFields
+            frequency={frequency}
+            setFrequency={setFrequency}
+            interval={interval}
+            setInterval={setInterval}
+            days={days}
+            setDays={setDays}
           />
-        )}
-        <RepeatFields
-          frequency={frequency}
-          setFrequency={setFrequency}
-          interval={interval}
-          setInterval={setInterval}
-          days={days}
-          setDays={setDays}
-        />
-        <button disabled={busy}>{editing ? "ذخیره تسک" : "ساخت تسک"}</button>
-        {editing && (
-          <button type="button" className="minor" onClick={resetForm}>
-            انصراف
-          </button>
-        )}
-      </form>
+          <button disabled={busy}>{editing ? "ذخیره تسک" : "ساخت تسک"}</button>
+          {editing && (
+            <button type="button" className="minor" onClick={resetForm}>
+              انصراف
+            </button>
+          )}
+        </form>
+      )}
       {message && (
         <p role="alert" className="error">
           {message}

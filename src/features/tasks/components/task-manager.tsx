@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { directTasks } from "@/features/tasks/direct-client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -295,163 +296,175 @@ export function TaskManager({
 
   return (
     <div className="space-y-4">
-      <Card className="space-y-3">
-        <CardTitle>{editingTask ? "ویرایش تسک" : "تسک جدید"}</CardTitle>
-        <form
-          className="space-y-3"
-          onSubmit={handleSubmit(onSubmit)}
-          noValidate
+      {!editingTask && (
+        <Link
+          href="/tasks/new"
+          className="block rounded-2xl bg-olive px-4 py-3 text-center font-semibold text-cream"
         >
-          <Input
-            label="عنوان"
-            error={errors.title?.message}
-            {...register("title")}
-          />
-
-          <Input
-            label="توضیحات"
-            error={errors.description?.message}
-            {...register("description")}
-          />
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-ink">حریم خصوصی</label>
-              <select
-                className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
-                {...register("visibility")}
-              >
-                <option value="PRIVATE">خصوصی</option>
-                <option value="HOUSEHOLD_SHARED" disabled={!householdId}>
-                  اشتراکی خانه
-                </option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-ink">اولویت</label>
-              <select
-                className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
-                {...register("priority")}
-              >
-                <option value="LOW">کم</option>
-                <option value="NORMAL">عادی</option>
-                <option value="HIGH">زیاد</option>
-                <option value="CRITICAL">بحرانی</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-ink">وضعیت</label>
-              <select
-                className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
-                {...register("status")}
-              >
-                <option value="PENDING">در انتظار</option>
-                <option value="IN_PROGRESS">در حال انجام</option>
-                <option value="COMPLETED">تکمیل‌شده</option>
-                <option value="SKIPPED">رد شده</option>
-              </select>
-            </div>
+          تسک جدید
+        </Link>
+      )}
+      {editingTask && (
+        <Card className="space-y-3">
+          <CardTitle>ویرایش تسک</CardTitle>
+          <form
+            className="space-y-3"
+            onSubmit={handleSubmit(onSubmit)}
+            noValidate
+          >
+            <Input
+              label="عنوان"
+              error={errors.title?.message}
+              {...register("title")}
+            />
 
             <Input
-              label="موعد"
-              type="datetime-local"
-              value={toDateTimeLocal(dueAtValue ?? null)}
-              onChange={(event) => {
-                setValue("dueAt", fromDateTimeLocal(event.target.value));
-              }}
+              label="توضیحات"
+              error={errors.description?.message}
+              {...register("description")}
             />
-          </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-ink">مسئول</label>
-            <select
-              multiple
-              className="min-h-24 w-full rounded-2xl border border-line-strong bg-paper px-3 py-2 text-sm text-ink"
-              {...register("assigneeIds")}
-            >
-              {visibility === "PRIVATE" ? (
-                <option value={userId}>من</option>
-              ) : (
-                members.map((member) => (
-                  <option key={member.user_id} value={member.user_id}>
-                    {member.full_name}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-ink">
+                  حریم خصوصی
+                </label>
+                <select
+                  className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
+                  {...register("visibility")}
+                >
+                  <option value="PRIVATE">خصوصی</option>
+                  <option value="HOUSEHOLD_SHARED" disabled={!householdId}>
+                    اشتراکی خانه
                   </option>
-                ))
-              )}
-            </select>
-            {errors.assigneeIds ? (
-              <p className="text-xs text-rose-600 dark:text-rose-400">
-                {errors.assigneeIds.message as string}
-              </p>
-            ) : null}
-          </div>
+                </select>
+              </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-ink">تکرار</label>
-              <select
-                className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
-                {...register("recurrence.frequency")}
-              >
-                <option value="NONE">بدون تکرار</option>
-                <option value="DAILY">روزانه</option>
-                <option value="INTERVAL_DAYS">هر چند روز</option>
-                <option value="WEEKLY">هفتگی (روزهای منتخب)</option>
-                <option value="MONTHLY">ماهانه</option>
-                <option value="YEARLY">سالانه</option>
-              </select>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-ink">اولویت</label>
+                <select
+                  className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
+                  {...register("priority")}
+                >
+                  <option value="LOW">کم</option>
+                  <option value="NORMAL">عادی</option>
+                  <option value="HIGH">زیاد</option>
+                  <option value="CRITICAL">بحرانی</option>
+                </select>
+              </div>
             </div>
 
-            {recurrenceFrequency === "INTERVAL_DAYS" ? (
-              <Input
-                label="فاصله روز"
-                type="number"
-                min={1}
-                max={365}
-                error={errors.recurrence?.intervalDays?.message}
-                {...register("recurrence.intervalDays", {
-                  valueAsNumber: true,
-                })}
-              />
-            ) : null}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-ink">وضعیت</label>
+                <select
+                  className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
+                  {...register("status")}
+                >
+                  <option value="PENDING">در انتظار</option>
+                  <option value="IN_PROGRESS">در حال انجام</option>
+                  <option value="COMPLETED">تکمیل‌شده</option>
+                  <option value="SKIPPED">رد شده</option>
+                </select>
+              </div>
 
-            {recurrenceFrequency === "WEEKLY" ? (
               <Input
-                label="روزهای هفته (مثلاً 1,4)"
-                hint="۰=یکشنبه تا ۶=شنبه"
-                error={
-                  errors.recurrence?.weekdays?.message as string | undefined
-                }
+                label="موعد"
+                type="datetime-local"
+                value={toDateTimeLocal(dueAtValue ?? null)}
                 onChange={(event) => {
-                  const values = event.target.value
-                    .split(",")
-                    .map((item) => Number(item.trim()))
-                    .filter(
-                      (item) =>
-                        Number.isInteger(item) && item >= 0 && item <= 6,
-                    );
-                  setValue("recurrence.weekdays", values);
+                  setValue("dueAt", fromDateTimeLocal(event.target.value));
                 }}
               />
-            ) : null}
-          </div>
+            </div>
 
-          <div className="flex gap-2">
-            <Button type="submit" className="flex-1" isLoading={isSubmitting}>
-              {editingTask ? "ذخیره تغییرات" : "افزودن تسک"}
-            </Button>
-            {editingTask ? (
-              <Button type="button" variant="ghost" onClick={clearEdit}>
-                انصراف
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-ink">مسئول</label>
+              <select
+                multiple
+                className="min-h-24 w-full rounded-2xl border border-line-strong bg-paper px-3 py-2 text-sm text-ink"
+                {...register("assigneeIds")}
+              >
+                {visibility === "PRIVATE" ? (
+                  <option value={userId}>من</option>
+                ) : (
+                  members.map((member) => (
+                    <option key={member.user_id} value={member.user_id}>
+                      {member.full_name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {errors.assigneeIds ? (
+                <p className="text-xs text-rose-600 dark:text-rose-400">
+                  {errors.assigneeIds.message as string}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-ink">تکرار</label>
+                <select
+                  className="h-11 w-full rounded-2xl border border-line-strong bg-paper px-3 text-sm text-ink"
+                  {...register("recurrence.frequency")}
+                >
+                  <option value="NONE">بدون تکرار</option>
+                  <option value="DAILY">روزانه</option>
+                  <option value="INTERVAL_DAYS">هر چند روز</option>
+                  <option value="WEEKLY">هفتگی (روزهای منتخب)</option>
+                  <option value="MONTHLY">ماهانه</option>
+                  <option value="YEARLY">سالانه</option>
+                </select>
+              </div>
+
+              {recurrenceFrequency === "INTERVAL_DAYS" ? (
+                <Input
+                  label="فاصله روز"
+                  type="number"
+                  min={1}
+                  max={365}
+                  error={errors.recurrence?.intervalDays?.message}
+                  {...register("recurrence.intervalDays", {
+                    valueAsNumber: true,
+                  })}
+                />
+              ) : null}
+
+              {recurrenceFrequency === "WEEKLY" ? (
+                <Input
+                  label="روزهای هفته (مثلاً 1,4)"
+                  hint="۰=یکشنبه تا ۶=شنبه"
+                  error={
+                    errors.recurrence?.weekdays?.message as string | undefined
+                  }
+                  onChange={(event) => {
+                    const values = event.target.value
+                      .split(",")
+                      .map((item) => Number(item.trim()))
+                      .filter(
+                        (item) =>
+                          Number.isInteger(item) && item >= 0 && item <= 6,
+                      );
+                    setValue("recurrence.weekdays", values);
+                  }}
+                />
+              ) : null}
+            </div>
+
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1" isLoading={isSubmitting}>
+                {editingTask ? "ذخیره تغییرات" : "افزودن تسک"}
               </Button>
-            ) : null}
-          </div>
-        </form>
-      </Card>
+              {editingTask ? (
+                <Button type="button" variant="ghost" onClick={clearEdit}>
+                  انصراف
+                </Button>
+              ) : null}
+            </div>
+          </form>
+        </Card>
+      )}
 
       <Card className="grid grid-cols-3 gap-2 text-center">
         <div>

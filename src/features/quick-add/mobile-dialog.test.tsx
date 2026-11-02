@@ -46,4 +46,30 @@ describe("quick add modal", () => {
       root.unmount();
     });
   });
+  it("opens the full task form instead of a second abbreviated create path", async () => {
+    const node = document.createElement("div");
+    document.body.append(node);
+    const root = createRoot(node);
+    const openTask = vi.fn();
+    await act(async () =>
+      root.render(
+        <QuickAdd
+          client={{} as SupabaseClient}
+          householdId={null}
+          onDone={vi.fn()}
+          onNewTask={openTask}
+        />,
+      ),
+    );
+    await act(async () =>
+      node.querySelector<HTMLButtonElement>("button")!.click(),
+    );
+    const form = [
+      ...node.querySelectorAll<HTMLButtonElement>("dialog button"),
+    ].find((b) => b.textContent?.includes("تسک جدید"))!;
+    expect(form).toBeTruthy();
+    await act(async () => form.click());
+    expect(openTask).toHaveBeenCalledOnce();
+    await act(async () => root.unmount());
+  });
 });

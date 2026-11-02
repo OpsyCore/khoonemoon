@@ -3,6 +3,6 @@
   "defaultMaxGzipBytes": 240000,
   "sharedMaxGzipBytes": 145000,
   "routes": {},
-  "mobileBudgetNote": "سقف موبایل برای داشبورد تنظیمات با کنترل اعلان، خروجی و گزینه‌های واقعی به‌روز شد؛ مجموع gzip فایل‌های JS مستقل همچنان کنترل می‌شود.",
-  "mobileMaxGzipBytes": 276000
+  "mobileBudgetNote": "سقف موبایل برای فرم تسک جدید با تقویم شمسی، تکرار و ثبت ایمن یادآوری افزایش یافت؛ مجموع gzip فایل‌های JS مستقل همچنان کنترل می‌شود.",
+  "mobileMaxGzipBytes": 279000
 }

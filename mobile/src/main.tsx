@@ -24,6 +24,7 @@ import {
 } from "./recovery";
 import { CalendarEvents } from "./calendar";
 import { Tasks } from "./tasks";
+import { NewTask } from "./new-task";
 import { Finance } from "./finance";
 import { Chores } from "./chores";
 import { Profile } from "./profile";
@@ -351,7 +352,8 @@ function App() {
               page === "finance" ||
               page === "tasks" ||
               page === "search" ||
-              page === "settings") &&
+              page === "settings" ||
+              page === "task-new") &&
             session &&
             !recovery
               ? "calendar-shell-header"
@@ -366,7 +368,8 @@ function App() {
               page === "finance" ||
               page === "tasks" ||
               page === "search" ||
-              page === "settings") &&
+              page === "settings" ||
+              page === "task-new") &&
             session &&
             !recovery
           ) && (
@@ -539,11 +542,16 @@ function App() {
             page !== "house" &&
             page !== "finance" &&
             page !== "search" &&
-            page !== "settings" && (
+            page !== "settings" &&
+            page !== "task-new" && (
               <QuickAdd
                 client={client}
                 householdId={household ?? null}
                 floating={page === "tasks"}
+                onNewTask={() => {
+                  setPage("task-new");
+                  window.scrollTo(0, 0);
+                }}
                 onDone={() => setRevision((n) => n + 1)}
               />
             )}
@@ -637,6 +645,10 @@ function App() {
                 key={`${session.user.id}:${household ?? "none"}:${revision}`}
                 client={client}
                 householdId={household ?? null}
+                onNewTask={() => {
+                  setPage("task-new");
+                  window.scrollTo(0, 0);
+                }}
               />
             </details>
           )}
@@ -645,6 +657,23 @@ function App() {
               <summary>مدیریت کارهای خانه</summary>
               <Chores key={household} client={client} householdId={household} />
             </details>
+          )}
+          {page === "task-new" && (
+            <NewTask
+              key={session.user.id}
+              client={client}
+              userId={session.user.id}
+              householdId={household ?? null}
+              onDone={() => {
+                setRevision((n) => n + 1);
+                setPage("tasks");
+                window.scrollTo(0, 0);
+              }}
+              onCancel={() => {
+                setPage("tasks");
+                window.scrollTo(0, 0);
+              }}
+            />
           )}
           {page === "finance" && (
             <Finance
