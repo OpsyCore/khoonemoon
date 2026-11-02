@@ -1,16 +1,19 @@
-import { PageHeader } from "@/shared/ui/page-header";
-import { SearchPanel } from "@/features/search/components/search-panel";
-
-export default function SearchPage() {
-  return (
-    <div className="space-y-4">
-      <PageHeader
-        title="جستجو"
-        subtitle="بین تسک‌ها، رویدادها، لیست خرید، کارهای خانه و رکوردهای مالی جستجو کنید. نتایج همیشه با مجوزهای خانه فیلتر می‌شوند."
-        decor
+import { SearchReference } from "@/features/search/components/search-reference";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { ErrorState } from "@/shared/ui/error-state";
+export const dynamic = "force-dynamic";
+export default async function SearchPage() {
+  const client = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error,
+  } = await client.auth.getUser();
+  if (error || !user)
+    return (
+      <ErrorState
+        title="دسترسی غیرمجاز"
+        description="برای جستجو وارد حساب خود شوید."
       />
-
-      <SearchPanel />
-    </div>
-  );
+    );
+  return <SearchReference userId={user.id} />;
 }

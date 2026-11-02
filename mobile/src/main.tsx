@@ -348,7 +348,8 @@ function App() {
               page === "documents" ||
               page === "house" ||
               page === "finance" ||
-              page === "tasks") &&
+              page === "tasks" ||
+              page === "search") &&
             session &&
             !recovery
               ? "calendar-shell-header"
@@ -361,7 +362,8 @@ function App() {
               page === "documents" ||
               page === "house" ||
               page === "finance" ||
-              page === "tasks") &&
+              page === "tasks" ||
+              page === "search") &&
             session &&
             !recovery
           ) && (
@@ -532,7 +534,8 @@ function App() {
             page !== "shopping" &&
             page !== "documents" &&
             page !== "house" &&
-            page !== "finance" && (
+            page !== "finance" &&
+            page !== "search" && (
               <QuickAdd
                 client={client}
                 householdId={household ?? null}
@@ -649,7 +652,37 @@ function App() {
             />
           )}
           {page === "search" && (
-            <Search key={session.user.id} client={client} />
+            <Search
+              key={session.user.id}
+              client={client}
+              userId={session.user.id}
+              onNavigate={(kind) => {
+                if (kind === "task" || kind === "chore") {
+                  if (kind === "chore" && !household) {
+                    setPage("house");
+                    return;
+                  }
+                  setPage("tasks");
+                  window.requestAnimationFrame(() => {
+                    const target = document.getElementById(
+                      kind === "task" ? "task-list" : "chore-list",
+                    );
+                    const container = target?.closest("details");
+                    if (container) container.open = true;
+                    target?.scrollIntoView({ block: "start" });
+                  });
+                } else
+                  setPage(
+                    (
+                      {
+                        event: "calendar",
+                        shopping_item: "shopping",
+                        finance: "finance",
+                      } as const
+                    )[kind],
+                  );
+              }}
+            />
           )}
           {page === "documents" && (
             <Documents
