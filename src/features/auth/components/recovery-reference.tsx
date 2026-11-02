@@ -60,7 +60,7 @@ export function RecoveryReference({
           <br /> زیباتر می‌کند.<span>ـــــــ　❧</span>
         </p>
       </div>
-      <form className="recovery-form" onSubmit={onSubmit}>
+      <form method="post" className="recovery-form" onSubmit={onSubmit}>
         <label htmlFor="recovery-email">آدرس ایمیل</label>
         <div className="recovery-email">
           <Mail size={25} aria-hidden="true" />
