@@ -474,8 +474,13 @@ do $$
 declare original uuid; successor uuid; repeated uuid; denied boolean := false;
 begin
   original := public.mobile_create_task('{"title":"تکرار","visibility":"PRIVATE","dueAt":"2026-11-01T00:00:00Z","assigneeIds":[],"nextOccurrenceAt":"2026-11-02T00:00:00Z","recurrence":{"frequency":"DAILY"}}'::jsonb);
+  insert into public.reminders(target_type,target_id,user_id,remind_at,status)
+    values ('TASK',original,'00000000-0000-4000-8000-00000000000a','2026-10-31T23:45:00Z','SENT'),
+           ('TASK',original,'00000000-0000-4000-8000-00000000000a','2026-10-31T23:30:00Z','CANCELED');
   successor := public.mobile_complete_task(original);
   repeated := public.mobile_complete_task(original);
+  if (select count(*) from public.reminders where target_type='TASK' and target_id=successor) <> 1 then raise exception 'recurring reminders must be copied once and cancellations respected'; end if;
+  if not exists(select 1 from public.reminders where target_id=successor and user_id='00000000-0000-4000-8000-00000000000a' and status='PENDING' and remind_at='2026-11-01T23:45:00Z' and delivered_at is null) then raise exception 'recurring reminder offset or ownership wrong'; end if;
   if successor is null or successor <> repeated then raise exception 'completion must be idempotent'; end if;
   if not exists(select 1 from public.tasks where id=original and status='COMPLETED') then raise exception 'original not completed'; end if;
   if not exists(select 1 from public.tasks where id=successor and status='PENDING' and due_at='2026-11-02T00:00:00Z') then raise exception 'successor wrong'; end if;
