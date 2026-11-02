@@ -123,8 +123,8 @@ export function resolveTargetTitle({
   if (found) return found.title;
 
   return {
-    TASK: "تسک حذف‌شده",
-    EVENT: "رویداد حذف‌شده",
+    TASK: "کار حذف‌شده یا غیرقابل دسترس",
+    EVENT: "رویداد حذف‌شده یا غیرقابل دسترس",
     CHORE: "کار خانه حذف‌شده یا غیرقابل دسترس",
     BILL: "قبض حذف‌شده یا غیرقابل دسترس",
   }[reminder.target_type];

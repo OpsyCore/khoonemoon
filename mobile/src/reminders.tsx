@@ -1,3 +1,21 @@
+import { filterReminderInbox } from "@/features/reminders/reference-filter";
+import {
+  AlarmClock,
+  CalendarDays,
+  Check,
+  CircleAlert,
+  Clock,
+  FileText,
+  List,
+  MoreHorizontal,
+  Sprout,
+  X,
+  Bell,
+  Plus,
+} from "lucide-react";
+import { formatPersianDate } from "@/shared/utils/locale";
+import { completeReminderTarget } from "./reminder-completion";
+import "./reminders.css";
 import { BrowserPushSettings } from "./browser-push-settings";
 import {
   useCallback,
@@ -33,6 +51,7 @@ type Target = {
   title: string;
   date: string | null;
   selectable?: boolean;
+  priority?: "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
 };
 export function Reminders({
   client,
@@ -44,6 +63,13 @@ export function Reminders({
   householdId: string | null;
 }) {
   const api = useMemo(() => directReminders(client), [client]);
+  const [filter, setFilter] = useState<ReminderState | "ALL">("ALL");
+  const [native, setNative] = useState(false);
+  useEffect(() => {
+    // The native bridge is available only after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNative(!!window.KhoonemoonNotifications);
+  }, []);
   const [rows, setRows] = useState<ReminderRecord[]>([]);
   const [tasks, setTasks] = useState<Target[]>([]);
   const [events, setEvents] = useState<Target[]>([]);
@@ -82,6 +108,7 @@ export function Reminders({
           id: x.id,
           title: x.title,
           date: x.due_at,
+          priority: x.priority,
           selectable: x.status !== "COMPLETED" && x.status !== "SKIPPED",
         })),
     );
@@ -186,324 +213,489 @@ export function Reminders({
       }
     });
   }
+  const now = new Date();
+  const visible = filterReminderInbox(inbox, filter, now);
+  const todayCount = filterReminderInbox(inbox, "TODAY", now).length;
+  const countByState = {
+    DUE: inbox.counts.due,
+    TODAY: todayCount,
+    UPCOMING: inbox.counts.upcoming,
+    DELIVERED: inbox.counts.delivered,
+    CANCELED: inbox.counts.canceled,
+  };
+  const categories = {
+    TASK: "کارها",
+    EVENT: "رویدادها",
+    CHORE: "کارهای خانه",
+    BILL: "قبوض و پرداخت‌ها",
+  };
+  const priorityLabels = {
+    LOW: "اولویت کم",
+    NORMAL: "اولویت متوسط",
+    HIGH: "با اولویت بالا",
+    CRITICAL: "اولویت فوری",
+  };
+  async function refreshAfterMutation() {
+    window.dispatchEvent(new Event("khoonemoon:reminders-changed"));
+    window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
+    try {
+      await load();
+    } catch {
+      setLoaded(false);
+      setRows([]);
+      setMessage(
+        "عملیات ثبت شد اما تازه‌سازی ناموفق بود؛ پیش از تلاش دوباره فهرست را بررسی کنید.",
+      );
+    }
+  }
   return (
-    <section>
-      <h2>یادآورها</h2>
-      <p>
-        {window.KhoonemoonNotifications
-          ? notificationStatus || "در حال بررسی اعلان‌ها…"
-          : "تنظیمات اعلان مرورگر در ادامه آمده است."}
-      </p>
-      {!window.KhoonemoonNotifications && (
-        <BrowserPushSettings
-          client={client}
-          onChanged={() => setPrefsVersion((value) => value + 1)}
-        />
-      )}
-      {window.KhoonemoonNotifications && (
-        <>
-          <button
-            type="button"
-            className="minor"
-            onClick={() => window.KhoonemoonNotifications?.request()}
-          >
-            مجوز و تنظیمات اعلان
-          </button>
-          <p>
-            اعلان‌های دریافت‌شده روی این گوشی زمان‌بندی می‌شوند. تغییرات دستگاه
-            دیگر با اتصال پس‌زمینه به‌صورت دوره‌ای همگام می‌شوند؛ شبکه و
-            محدودیت‌های اندروید ممکن است باعث تأخیر یا توقف شوند.
-          </p>
-        </>
-      )}
+    <section className="reminder-ref" dir="rtl">
+      <header className="reminder-ref-header">
+        <span className="reminder-ref-branch one" aria-hidden="true" />
+        <span className="reminder-ref-branch two" aria-hidden="true" />
+        <div className="reminder-ref-bell">
+          <span className="reminder-ref-bell-art" aria-hidden="true" />
+          {loaded && inbox.counts.due > 0 && (
+            <span>{inbox.counts.due.toLocaleString("fa-IR")}</span>
+          )}
+        </div>
+        <h1>یادآورهای ما</h1>
+        <p>
+          هیچ چیز از قلم نمی‌افته،
+          <br />
+          با هم به یاد می‌مونیم.
+        </p>
+      </header>
       {message && (
-        <p role="alert" className="error">
+        <p role="alert" className="reminder-ref-error">
           {message}
         </p>
       )}
-      <details>
-        <summary>تنظیمات یادآور و ساعات سکوت</summary>
-        {prefsReady ? (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void action(async () => {
-                await api.savePreferences({
-                  inAppEnabled: enabled,
-                  webPushEnabled: prefs?.web_push_enabled ?? false,
-                  quietHoursEnabled: quiet,
-                  quietHoursStart: quiet ? quietStart : null,
-                  quietHoursEnd: quiet ? quietEnd : null,
-                });
-                window.dispatchEvent(new Event("khoonemoon:reminders-changed"));
-              });
-            }}
+      <div className="reminder-ref-stats" aria-label="خلاصه یادآورها">
+        <button type="button" onClick={() => setFilter("ALL")}>
+          <span>
+            <List /> {loaded ? rows.length.toLocaleString("fa-IR") : "–"}
+          </span>
+          همه یادآورها
+        </button>
+        <button type="button" onClick={() => setFilter("TODAY")}>
+          <span>
+            <CalendarDays /> {loaded ? todayCount.toLocaleString("fa-IR") : "–"}
+          </span>
+          یادآور امروز
+        </button>
+        <button type="button" onClick={() => setFilter("DUE")}>
+          <span>
+            <CircleAlert />{" "}
+            {loaded ? inbox.counts.due.toLocaleString("fa-IR") : "–"}
+          </span>
+          نیاز به توجه
+        </button>
+      </div>
+      <nav className="reminder-ref-filters" aria-label="فیلتر یادآورها">
+        {(
+          [
+            "DUE",
+            "TODAY",
+            "UPCOMING",
+            "DELIVERED",
+            "CANCELED",
+          ] as ReminderState[]
+        ).map((state) => (
+          <button
+            key={state}
+            type="button"
+            aria-pressed={filter === state}
+            onClick={() => setFilter(state)}
           >
-            <label className="item">
-              <input
-                type="checkbox"
-                checked={enabled}
-                onChange={(e) => setEnabled(e.target.checked)}
-              />{" "}
-              فعال بودن یادآوری در برنامه و اعلان محلی
-            </label>
-            <label className="item">
-              <input
-                type="checkbox"
-                checked={quiet}
-                onChange={(e) => setQuiet(e.target.checked)}
-              />{" "}
-              ساعات سکوت
-            </label>
-            {quiet && (
-              <>
-                <label>
-                  از ساعت
-                  <input
-                    type="time"
-                    required
-                    value={quietStart}
-                    onChange={(e) => setQuietStart(e.target.value)}
-                  />
-                </label>
-                <label>
-                  تا ساعت
-                  <input
-                    type="time"
-                    required
-                    value={quietEnd}
-                    onChange={(e) => setQuietEnd(e.target.value)}
-                  />
-                </label>
-                <small>
-                  یادآوری به پایان ساعت سکوت طبق ساعت گوشی موکول می‌شود.
-                </small>
-              </>
-            )}
-            <button disabled={busy}>ذخیره تنظیمات</button>
-          </form>
-        ) : (
-          <div>
-            <p>تنظیمات در دسترس نیست؛ اتصال را بررسی کنید.</p>
-            <button
-              type="button"
-              className="minor"
-              onClick={() => setPrefsVersion((n) => n + 1)}
-            >
-              تلاش دوباره
-            </button>
-          </div>
-        )}
-      </details>
-      <form onSubmit={save}>
-        <h3>یادآور جدید</h3>
-        <label>
-          نوع
-          <select
-            value={type}
-            onChange={(e) => {
-              setType(e.target.value as "TASK" | "EVENT" | "CHORE" | "BILL");
-              setTarget("");
-              setDate("");
-            }}
-          >
-            <option value="TASK">تسک</option>
-            <option value="EVENT">رویداد</option>
-            <option value="CHORE">کار خانه</option>
-            <option value="BILL">قبض یا قسط</option>
-          </select>
-        </label>
-        <label>
-          مورد
-          <select
-            required
-            value={target}
-            onChange={(e) => {
-              setTarget(e.target.value);
-              const item = {
-                TASK: tasks,
-                EVENT: events,
-                CHORE: chores,
-                BILL: bills,
-              }[type].find((x) => x.id === e.target.value);
-              if (item?.date) {
-                const d = new Date(item.date);
-                setDate(
-                  new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-                    .toISOString()
-                    .slice(0, 16),
-                );
-              } else setDate("");
-            }}
-          >
-            <option value="">انتخاب کنید</option>
-            {{ TASK: tasks, EVENT: events, CHORE: chores, BILL: bills }[
-              type
-            ].map((x) => (
-              <option key={x.id} value={x.id} disabled={x.selectable === false}>
-                {x.title}
-                {x.selectable === false ? " (غیرفعال)" : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          تاریخ و زمان مبنا
-          <input
-            type="datetime-local"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </label>
-        <label>
-          چه زمانی یادآوری شود؟
-          <select value={offset} onChange={(e) => setOffset(e.target.value)}>
-            <option value="0">در زمان تعیین‌شده</option>
-            <option value="15">۱۵ دقیقه قبل</option>
-            <option value="60">یک ساعت قبل</option>
-            <option value="1440">یک روز قبل</option>
-          </select>
-        </label>
-        <button disabled={busy || !loaded}>ثبت یادآور</button>
-      </form>
-      <button
-        type="button"
-        className="minor"
-        disabled={busy}
-        onClick={() => void action(load)}
-      >
-        تازه‌سازی
-      </button>
-      {!loaded && <p role="status">فهرست یادآورها هنوز دریافت نشده است.</p>}
-      {loaded && inbox.sections.length === 0 && <p>یادآوری ثبت نشده است.</p>}
-      {loaded && (
-        <div aria-label="خلاصه یادآورها">
-          <p>
-            باز: {inbox.counts.open} · سررسیده: {inbox.counts.due} · امروز:{" "}
-            {inbox.counts.today} · پیش‌رو: {inbox.counts.upcoming} · ارسال‌شده:{" "}
-            {inbox.counts.delivered} · لغوشده: {inbox.counts.canceled}
-          </p>
-          {inbox.nextAt && (
-            <p>
-              نزدیک‌ترین یادآور:{" "}
-              {new Intl.DateTimeFormat("fa-IR", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              }).format(new Date(inbox.nextAt))}
-            </p>
-          )}
-        </div>
-      )}
-      {inbox.sections.map((section) => (
-        <div key={section.state}>
-          <h3>{labels[section.state]}</h3>
-          <ul>
-            {section.entries.map((entry) => (
-              <li key={entry.id}>
-                <div>
-                  <strong>{entry.title}</strong>
-                  <p>
-                    {new Intl.DateTimeFormat("fa-IR", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }).format(new Date(entry.effectiveAt))}
-                  </p>
-                  {entry.snoozeCount > 0 && (
-                    <p>تعداد تعویق: {entry.snoozeCount}</p>
+            <b>{loaded ? countByState[state].toLocaleString("fa-IR") : "–"}</b>
+            {labels[state]}
+          </button>
+        ))}
+      </nav>
+      {!loaded ? (
+        <p role="status">فهرست یادآورها هنوز دریافت نشده است.</p>
+      ) : visible.length === 0 ? (
+        <p className="reminder-ref-empty">
+          {filter === "ALL"
+            ? "یادآوری ثبت نشده است."
+            : "یادآوری در این دسته نیست."}
+        </p>
+      ) : (
+        <div className="reminder-ref-list">
+          {visible.map((entry) => {
+            const row = rows.find((r) => r.id === entry.id)!;
+            const target = {
+              TASK: tasks,
+              EVENT: events,
+              CHORE: chores,
+              BILL: bills,
+            }[entry.targetType].find((t) => t.id === row.target_id);
+            const active = ["DUE", "TODAY", "UPCOMING"].includes(entry.state);
+            const canComplete =
+              active &&
+              !!target &&
+              target.selectable !== false &&
+              (entry.targetType === "TASK" ||
+                entry.targetType === "BILL" ||
+                (entry.targetType === "CHORE" && !!target.date));
+            const Icon = {
+              TASK: List,
+              EVENT: CalendarDays,
+              CHORE: Sprout,
+              BILL: FileText,
+            }[entry.targetType];
+            const at = new Date(entry.effectiveAt);
+            return (
+              <article
+                key={entry.id}
+                className={`reminder-ref-card ${entry.state.toLowerCase()} ${target?.priority?.toLowerCase() ?? ""}`}
+              >
+                <div className="reminder-ref-card-head">
+                  <span className="reminder-ref-icon">
+                    <Icon />
+                  </span>
+                  <div>
+                    <h2>{entry.title}</h2>
+                    <p>{categories[entry.targetType]}</p>
+                  </div>
+                  {target?.priority && active && (
+                    <span className="reminder-ref-priority">
+                      ● {priorityLabels[target.priority]}
+                    </span>
                   )}
                 </div>
-                <div>
-                  {["DUE", "TODAY", "UPCOMING"].includes(section.state) &&
-                    [10, 60].map((minutes) => (
+                <div className="reminder-ref-time">
+                  <span>
+                    <CalendarDays />
+                    {Number.isNaN(at.getTime())
+                      ? "زمان نامعتبر"
+                      : formatPersianDate(at)}
+                  </span>
+                  <span>
+                    <Clock />
+                    {Number.isNaN(at.getTime())
+                      ? ""
+                      : new Intl.DateTimeFormat("fa-IR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }).format(at)}
+                  </span>
+                </div>
+                {entry.snoozeCount > 0 && (
+                  <small>
+                    تعداد تعویق: {entry.snoozeCount.toLocaleString("fa-IR")}
+                  </small>
+                )}
+                {active ? (
+                  <div className="reminder-ref-actions">
+                    {canComplete && (
                       <button
-                        key={minutes}
-                        className="minor"
+                        type="button"
+                        className="reminder-ref-done"
                         disabled={busy}
-                        onClick={() =>
+                        onClick={() => {
+                          if (
+                            !window.confirm(
+                              `${entry.targetType === "CHORE" && target?.date ? `نوبت فعلی کار خانه (${formatPersianDate(target.date)})` : entry.targetType === "BILL" ? "پرداخت قبض" : "این کار"} انجام شده است؟ با تأیید، همین یادآور فعال نیز لغو می‌شود.`,
+                            )
+                          )
+                            return;
                           void action(async () => {
-                            await api.snooze(entry.id, minutes);
-                            window.dispatchEvent(
-                              new Event("khoonemoon:reminders-changed"),
+                            const result = await completeReminderTarget(
+                              client,
+                              row,
+                              target?.date ?? null,
+                              () => api.cancel(entry.id, row.updated_at),
                             );
-                            try {
-                              await load();
-                            } catch {
-                              setLoaded(false);
-                              setRows([]);
+                            await refreshAfterMutation();
+                            if (result === "cancel-unconfirmed")
                               setMessage(
-                                "عملیات ثبت شد اما تازه‌سازی فهرست ناموفق بود؛ دوباره آن را ثبت نکنید.",
+                                "مورد انجام شد اما لغو یادآور تأیید نشد؛ وضعیت آن را بررسی کنید و مورد را دوباره انجام ندهید.",
                               );
-                            }
-                          })
-                        }
+                          });
+                        }}
                       >
-                        {minutes === 10 ? "۱۰ دقیقه بعد" : "یک ساعت بعد"}
+                        <Check /> انجام شد
                       </button>
-                    ))}
-                  {["DUE", "TODAY", "UPCOMING"].includes(section.state) && (
+                    )}
+                    <details className="reminder-ref-snooze">
+                      <summary>
+                        <AlarmClock /> یادآوری بعداً
+                      </summary>
+                      <div>
+                        {[10, 60].map((minutes) => (
+                          <button
+                            key={minutes}
+                            type="button"
+                            disabled={busy}
+                            onClick={() =>
+                              void action(async () => {
+                                await api.snooze(entry.id, minutes);
+                                await refreshAfterMutation();
+                              })
+                            }
+                          >
+                            {minutes === 10 ? "۱۰ دقیقه بعد" : "یک ساعت بعد"}
+                          </button>
+                        ))}
+                      </div>
+                    </details>
+                    <details className="reminder-ref-more">
+                      <summary aria-label="گزینه‌های بیشتر">
+                        <MoreHorizontal />
+                      </summary>
+                      <div>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => {
+                            if (window.confirm("این یادآور لغو شود؟"))
+                              void action(async () => {
+                                await api.cancel(entry.id, row.updated_at);
+                                await refreshAfterMutation();
+                              });
+                          }}
+                        >
+                          لغو یادآور
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => {
+                            if (window.confirm("این یادآور حذف شود؟"))
+                              void action(async () => {
+                                await api.remove(entry.id);
+                                await refreshAfterMutation();
+                              });
+                          }}
+                        >
+                          حذف
+                        </button>
+                      </div>
+                    </details>
+                  </div>
+                ) : (
+                  <div className="reminder-ref-history">
+                    <span>
+                      {entry.state === "DELIVERED" ? <Check /> : <X />}
+                      {labels[entry.state]}
+                    </span>
                     <button
-                      className="minor"
+                      type="button"
                       disabled={busy}
                       onClick={() => {
-                        if (window.confirm("این یادآور لغو شود؟"))
+                        if (window.confirm("این یادآور حذف شود؟"))
                           void action(async () => {
-                            const current = rows.find(
-                              (row) => row.id === entry.id,
-                            );
-                            if (!current)
-                              throw new Error(
-                                "یادآور پیدا نشد؛ فهرست را تازه کنید.",
-                              );
-                            await api.cancel(entry.id, current.updated_at);
-                            window.dispatchEvent(
-                              new Event("khoonemoon:reminders-changed"),
-                            );
-                            try {
-                              await load();
-                            } catch {
-                              setLoaded(false);
-                              setRows([]);
-                              setMessage(
-                                "یادآور لغو شد؛ تازه‌سازی ناموفق بود.",
-                              );
-                            }
+                            await api.remove(entry.id);
+                            await refreshAfterMutation();
                           });
                       }}
                     >
-                      لغو یادآور
+                      حذف
                     </button>
-                  )}
-                  <button
-                    className="minor"
-                    disabled={busy}
-                    onClick={() => {
-                      if (window.confirm("این یادآور حذف شود؟"))
-                        void action(async () => {
-                          await api.remove(entry.id);
-                          window.dispatchEvent(
-                            new Event("khoonemoon:reminders-changed"),
-                          );
-                          try {
-                            await load();
-                          } catch {
-                            setLoaded(false);
-                            setRows([]);
-                            setMessage(
-                              "عملیات ثبت شد اما تازه‌سازی فهرست ناموفق بود؛ دوباره آن را ثبت نکنید.",
-                            );
-                          }
-                        });
-                    }}
-                  >
-                    حذف
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+                  </div>
+                )}
+              </article>
+            );
+          })}
         </div>
-      ))}
+      )}
+      <details className="reminder-ref-panel">
+        <summary>
+          <Plus /> یادآور جدید
+        </summary>
+        <form onSubmit={save}>
+          <h3>یادآور جدید</h3>
+          <label>
+            نوع
+            <select
+              value={type}
+              onChange={(e) => {
+                setType(e.target.value as "TASK" | "EVENT" | "CHORE" | "BILL");
+                setTarget("");
+                setDate("");
+              }}
+            >
+              <option value="TASK">تسک</option>
+              <option value="EVENT">رویداد</option>
+              <option value="CHORE">کار خانه</option>
+              <option value="BILL">قبض یا قسط</option>
+            </select>
+          </label>
+          <label>
+            مورد
+            <select
+              required
+              value={target}
+              onChange={(e) => {
+                setTarget(e.target.value);
+                const item = {
+                  TASK: tasks,
+                  EVENT: events,
+                  CHORE: chores,
+                  BILL: bills,
+                }[type].find((x) => x.id === e.target.value);
+                if (item?.date) {
+                  const d = new Date(item.date);
+                  setDate(
+                    new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+                      .toISOString()
+                      .slice(0, 16),
+                  );
+                } else setDate("");
+              }}
+            >
+              <option value="">انتخاب کنید</option>
+              {{ TASK: tasks, EVENT: events, CHORE: chores, BILL: bills }[
+                type
+              ].map((x) => (
+                <option
+                  key={x.id}
+                  value={x.id}
+                  disabled={x.selectable === false}
+                >
+                  {x.title}
+                  {x.selectable === false ? " (غیرفعال)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            تاریخ و زمان مبنا
+            <input
+              type="datetime-local"
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </label>
+          <label>
+            چه زمانی یادآوری شود؟
+            <select value={offset} onChange={(e) => setOffset(e.target.value)}>
+              <option value="0">در زمان تعیین‌شده</option>
+              <option value="15">۱۵ دقیقه قبل</option>
+              <option value="60">یک ساعت قبل</option>
+              <option value="1440">یک روز قبل</option>
+            </select>
+          </label>
+          <button disabled={busy || !loaded}>ثبت یادآور</button>
+        </form>
+      </details>
+      <details className="reminder-ref-panel">
+        <summary>
+          <Bell /> اعلان‌ها و تنظیمات
+        </summary>
+        <p>
+          {native
+            ? notificationStatus || "در حال بررسی اعلان‌ها…"
+            : "تنظیمات اعلان مرورگر در ادامه آمده است."}
+        </p>
+        {!native ? (
+          <BrowserPushSettings
+            client={client}
+            onChanged={() => setPrefsVersion((value) => value + 1)}
+          />
+        ) : (
+          <>
+            <button
+              type="button"
+              className="minor"
+              onClick={() => window.KhoonemoonNotifications?.request()}
+            >
+              مجوز و تنظیمات اعلان
+            </button>
+            <p>
+              اعلان‌های گوشی به‌صورت دوره‌ای همگام می‌شوند؛ شبکه و محدودیت‌های
+              اندروید ممکن است باعث تأخیر یا توقف شوند.
+            </p>
+          </>
+        )}
+        <details>
+          <summary>تنظیمات یادآور و ساعات سکوت</summary>
+          {prefsReady ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void action(async () => {
+                  await api.savePreferences({
+                    inAppEnabled: enabled,
+                    webPushEnabled: prefs?.web_push_enabled ?? false,
+                    quietHoursEnabled: quiet,
+                    quietHoursStart: quiet ? quietStart : null,
+                    quietHoursEnd: quiet ? quietEnd : null,
+                  });
+                  window.dispatchEvent(
+                    new Event("khoonemoon:reminders-changed"),
+                  );
+                });
+              }}
+            >
+              <label className="item">
+                <input
+                  type="checkbox"
+                  checked={enabled}
+                  onChange={(e) => setEnabled(e.target.checked)}
+                />{" "}
+                فعال بودن یادآوری در برنامه و اعلان محلی
+              </label>
+              <label className="item">
+                <input
+                  type="checkbox"
+                  checked={quiet}
+                  onChange={(e) => setQuiet(e.target.checked)}
+                />{" "}
+                ساعات سکوت
+              </label>
+              {quiet && (
+                <>
+                  <label>
+                    از ساعت
+                    <input
+                      type="time"
+                      required
+                      value={quietStart}
+                      onChange={(e) => setQuietStart(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    تا ساعت
+                    <input
+                      type="time"
+                      required
+                      value={quietEnd}
+                      onChange={(e) => setQuietEnd(e.target.value)}
+                    />
+                  </label>
+                  <small>
+                    یادآوری به پایان ساعت سکوت طبق ساعت گوشی موکول می‌شود.
+                  </small>
+                </>
+              )}
+              <button disabled={busy}>ذخیره تنظیمات</button>
+            </form>
+          ) : (
+            <div>
+              <p>تنظیمات در دسترس نیست؛ اتصال را بررسی کنید.</p>
+              <button
+                type="button"
+                className="minor"
+                onClick={() => setPrefsVersion((n) => n + 1)}
+              >
+                تلاش دوباره
+              </button>
+            </div>
+          )}
+        </details>
+      </details>
+      <button
+        type="button"
+        className="minor reminder-ref-refresh"
+        disabled={busy}
+        onClick={() => void action(load)}
+      >
+        تازه‌سازی فهرست
+      </button>
     </section>
   );
 }

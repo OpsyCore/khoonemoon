@@ -92,6 +92,6 @@ describe("<ReminderInbox />", () => {
   it("labels a deleted target instead of leaving the title blank", () => {
     const html = renderToStaticMarkup(view([reminder({ target_id: "gone" })]));
 
-    expect(html).toContain("تسک حذف‌شده");
+    expect(html).toContain("کار حذف‌شده یا غیرقابل دسترس");
   });
 });
