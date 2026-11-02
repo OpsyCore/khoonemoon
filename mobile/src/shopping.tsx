@@ -1,3 +1,14 @@
+import {
+  Apple,
+  House,
+  MoreHorizontal,
+  Plus,
+  Search,
+  ShoppingBasket,
+  SprayCan,
+  X,
+} from "lucide-react";
+import "./shopping.css";
 import { reloadAfterSave } from "./after-save";
 import {
   useCallback,
@@ -21,9 +32,15 @@ export function Shopping({
 }) {
   const api = useMemo(() => directShopping(client), [client]);
   const [lists, setLists] = useState<ShoppingList[]>([]);
+  const [listsLoading, setListsLoading] = useState(true);
+  const [itemsLoading, setItemsLoading] = useState(false);
   const [selected, setSelected] = useState("");
   const [items, setItems] = useState<ShoppingItem[]>([]);
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [listName, setListName] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [filter, setFilter] = useState("همه");
+  const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<ShoppingItem | null>(null);
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -74,6 +91,9 @@ export function Shopping({
       })
       .catch(() => {
         if (alive) setMessage("دریافت لیست‌ها ناموفق بود.");
+      })
+      .finally(() => {
+        if (alive) setListsLoading(false);
       });
     return () => {
       alive = false;
@@ -81,14 +101,52 @@ export function Shopping({
   }, [api, householdId]);
   useEffect(() => {
     let alive = true;
+    void Promise.resolve(
+      client.rpc("household_member_names", {
+        target_household_id: householdId,
+      }),
+    )
+      .then(({ data, error }) => {
+        if (alive && !error)
+          setMemberNames(
+            Object.fromEntries(
+              (data ?? [])
+                .filter(
+                  (member: { id: string; full_name: string | null }) =>
+                    member.full_name,
+                )
+                .map((member: { id: string; full_name: string }) => [
+                  member.id,
+                  member.full_name,
+                ]),
+            ),
+          );
+      })
+      .catch(() => {
+        /* Names are optional; the list remains usable offline. */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [client, householdId]);
+  useEffect(() => {
+    let alive = true;
     // Clear the previous list before requesting the next one.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems([]);
     itemFetchSequence.current++;
-    if (selected)
-      void readItems(selected).catch(() => {
-        if (alive) setMessage("دریافت اقلام ناموفق بود.");
-      });
+    if (selected) {
+      setItemsLoading(true);
+      void readItems(selected)
+        .catch(() => {
+          if (alive) setMessage("دریافت اقلام ناموفق بود.");
+        })
+        .finally(() => {
+          if (alive) setItemsLoading(false);
+        });
+    } else {
+      setItemsLoading(false);
+    }
     return () => {
       alive = false;
       // Invalidate requests started for a list that is no longer selected.
@@ -243,6 +301,7 @@ export function Shopping({
     setUnit(item.unit ?? "");
     setCategory(item.category ?? "");
     setNote(item.note ?? "");
+    setFormOpen(true);
   }
   function save(e: FormEvent) {
     e.preventDefault();
@@ -260,63 +319,48 @@ export function Shopping({
       if (editing) await api.updateItem(editing.id, data);
       else await api.addItem({ listId: selected, ...data });
       clear();
+      setFormOpen(false);
       await reloadItemsAfterSave(selected);
     });
   }
+  const purchased = items.filter((item) => item.purchased).length;
+  const percent = items.length
+    ? Math.round((purchased * 100) / items.length)
+    : 0;
+  const visibleItems = items.filter(
+    (item) =>
+      (filter === "همه" ||
+        (filter === "سایر"
+          ? !item.category ||
+            !["خوراکی", "خانه", "بهداشتی"].includes(item.category)
+          : item.category === filter)) &&
+      `${item.name} ${item.note ?? ""}`.includes(query.trim()),
+  );
+  const categories = [
+    { name: "همه", icon: ShoppingBasket },
+    { name: "خوراکی", icon: Apple },
+    { name: "خانه", icon: House },
+    { name: "بهداشتی", icon: SprayCan },
+    { name: "سایر", icon: MoreHorizontal },
+  ];
   return (
-    <section>
-      <h2>لیست‌های خرید</h2>
-      {message && (
-        <p role="alert" className="error">
-          {message}
-        </p>
-      )}
-      <p>{sync}</p>
-      <button
-        className="minor"
-        disabled={busy}
-        onClick={() =>
-          void action(async () => {
-            await refreshLists();
-            if (selected) await readItems(selected);
-          })
-        }
-      >
-        تازه‌سازی
-      </button>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void action(async () => {
-            const list = await api.createList(householdId, { name: listName });
-            setSelected(list.id);
-            setListName("");
-            await reloadListsAfterSave();
-          });
-        }}
-      >
-        <label>
-          نام لیست جدید
-          <input
-            required
-            minLength={2}
-            maxLength={120}
-            value={listName}
-            onChange={(e) => setListName(e.target.value)}
-          />
-        </label>
-        <button disabled={busy}>ساخت لیست</button>
-      </form>
-      {lists.length > 0 && (
-        <>
-          <label>
-            انتخاب لیست
+    <div className="shopping-page" dir="rtl">
+      <div className="shopping-hero">
+        <span className="shopping-branch" aria-hidden="true" />
+        <span className="shopping-house" aria-hidden="true" />
+        <h2>لیست خرید ما</h2>
+        {lists.length > 0 && (
+          <label className="shopping-select">
+            <span className="shopping-sr">انتخاب لیست</span>
             <select
               value={selected}
               onChange={(e) => {
                 setSelected(e.target.value);
                 clear();
+                setFormOpen(false);
+                setFilter("همه");
               }}
+              aria-label="انتخاب لیست"
             >
               {lists.map((l) => (
                 <option key={l.id} value={l.id}>
@@ -325,136 +369,316 @@ export function Shopping({
               ))}
             </select>
           </label>
-          <button
-            className="minor"
-            disabled={busy}
-            onClick={() => {
-              const current = lists.find((l) => l.id === selected);
-              const next = window.prompt("نام جدید لیست", current?.name);
-              if (next !== null)
-                void action(async () => {
-                  await api.updateList(selected, next);
-                  await reloadListsAfterSave();
-                });
-            }}
-          >
-            ویرایش نام لیست
-          </button>
-          <button
-            className="minor"
-            disabled={busy}
-            onClick={() => {
-              if (window.confirm("لیست بایگانی شود؟"))
-                void action(async () => {
-                  await api.archiveList(selected);
-                  await reloadListsAfterSave();
-                });
-            }}
-          >
-            بایگانی لیست
-          </button>
-        </>
+        )}
+        <p className="shopping-sync" title={sync}>
+          <span />{" "}
+          {sync.startsWith("اتصال زنده برقرار")
+            ? "اتصال زنده برقرار است"
+            : "برای دریافت تغییرات تازه‌سازی کنید"}
+        </p>
+        <span className="shopping-motto">
+          با هم
+          <br />
+          برای زندگی بهتر
+        </span>
+      </div>
+      {message && (
+        <p role="alert" className="error shopping-message">
+          {message}
+        </p>
       )}
-      {selected && (
+      <details className="shopping-manage">
+        <summary>مدیریت لیست‌ها و تازه‌سازی</summary>
+        <p>{sync}</p>
+        <button
+          className="minor"
+          disabled={busy}
+          onClick={() =>
+            void action(async () => {
+              await refreshLists();
+              if (selected) await readItems(selected);
+            })
+          }
+        >
+          تازه‌سازی
+        </button>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void action(async () => {
+              const list = await api.createList(householdId, {
+                name: listName,
+              });
+              setSelected(list.id);
+              setListName("");
+              await reloadListsAfterSave();
+            });
+          }}
+        >
+          <label>
+            نام لیست جدید
+            <input
+              required
+              minLength={2}
+              maxLength={120}
+              value={listName}
+              onChange={(e) => setListName(e.target.value)}
+            />
+          </label>
+          <button disabled={busy}>ساخت لیست</button>
+        </form>
+        {selected && (
+          <div className="shopping-manage-actions">
+            <button
+              className="minor"
+              disabled={busy}
+              onClick={() => {
+                const current = lists.find((l) => l.id === selected);
+                const next = window.prompt("نام جدید لیست", current?.name);
+                if (next !== null)
+                  void action(async () => {
+                    await api.updateList(selected, next);
+                    await reloadListsAfterSave();
+                  });
+              }}
+            >
+              ویرایش نام لیست
+            </button>
+            <button
+              className="minor"
+              disabled={busy}
+              onClick={() => {
+                if (window.confirm("لیست بایگانی شود؟"))
+                  void action(async () => {
+                    await api.archiveList(selected);
+                    await reloadListsAfterSave();
+                  });
+              }}
+            >
+              بایگانی لیست
+            </button>
+          </div>
+        )}
+      </details>
+      {selected ? (
         <>
-          <form onSubmit={save}>
-            <h3>{editing ? "ویرایش قلم" : "افزودن قلم"}</h3>
-            <label>
-              نام
-              <input
-                required
-                maxLength={160}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </label>
-            <label>
-              مقدار
-              <input
-                inputMode="decimal"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-              />
-            </label>
-            <label>
-              واحد
-              <input
-                maxLength={24}
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-              />
-            </label>
-            <label>
-              دسته
-              <input
-                maxLength={60}
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              />
-            </label>
-            <label>
-              یادداشت
-              <input
-                maxLength={500}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-              />
-            </label>
-            <button disabled={busy}>ذخیره</button>
-            {editing && (
-              <button type="button" className="minor" onClick={clear}>
-                انصراف
+          <div className="shopping-progress">
+            <div className="shopping-progress-heading">
+              <strong>{percent.toLocaleString("fa-IR")}٪</strong>
+              <strong>
+                {purchased.toLocaleString("fa-IR")} از{" "}
+                {items.length.toLocaleString("fa-IR")} قلم
+              </strong>
+            </div>
+            <div className="shopping-progress-track">
+              <span style={{ width: `${percent}%` }} />
+            </div>
+            <p>
+              <ShoppingBasket size={21} /> تاکنون{" "}
+              {purchased.toLocaleString("fa-IR")} مورد خریداری شده است
+            </p>
+          </div>
+          <div className="shopping-search">
+            <button
+              type="button"
+              aria-label="افزودن قلم جدید"
+              disabled={busy}
+              onClick={() => {
+                clear();
+                setFormOpen(true);
+              }}
+            >
+              <Plus size={25} />
+            </button>
+            <input
+              aria-label="جستجو در اقلام"
+              placeholder="کالا یا موردی را جستجو کنید..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <Search size={23} />
+          </div>
+          <div className="shopping-categories" aria-label="دسته‌بندی اقلام">
+            {categories.map(({ name: cat, icon: Icon }) => (
+              <button
+                type="button"
+                key={cat}
+                aria-pressed={filter === cat}
+                onClick={() => setFilter(cat)}
+              >
+                <Icon size={20} />
+                {cat}
               </button>
-            )}
-          </form>
-          <ul>
-            {items.map((item) => (
-              <li key={item.id}>
-                <div>
-                  <label className="item">
+            ))}
+          </div>
+          {formOpen && (
+            <div className="shopping-form-card">
+              <div className="shopping-form-heading">
+                <h3>{editing ? "ویرایش قلم" : "افزودن قلم جدید"}</h3>
+                <button
+                  type="button"
+                  aria-label="بستن"
+                  onClick={() => {
+                    clear();
+                    setFormOpen(false);
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <form onSubmit={save}>
+                <label>
+                  نام
+                  <input
+                    required
+                    maxLength={160}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </label>
+                <div className="shopping-form-row">
+                  <label>
+                    مقدار
                     <input
-                      type="checkbox"
-                      checked={item.purchased}
-                      disabled={busy}
-                      onChange={(e) => {
-                        void togglePurchased(item, e.target.checked);
-                      }}
+                      inputMode="decimal"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
                     />
-                    {item.name}
                   </label>
+                  <label>
+                    واحد
+                    <input
+                      maxLength={24}
+                      value={unit}
+                      onChange={(e) => setUnit(e.target.value)}
+                    />
+                  </label>
+                </div>
+                <label>
+                  دسته
+                  <input
+                    list="shopping-categories-list"
+                    maxLength={60}
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                  />
+                  <datalist id="shopping-categories-list">
+                    <option value="خوراکی" />
+                    <option value="خانه" />
+                    <option value="بهداشتی" />
+                    <option value="سایر" />
+                  </datalist>
+                </label>
+                <label>
+                  یادداشت
+                  <input
+                    maxLength={500}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                </label>
+                <button disabled={busy}>ذخیره</button>
+              </form>
+            </div>
+          )}
+          <ul className="shopping-items">
+            {visibleItems.map((item) => (
+              <li
+                className={item.purchased ? "is-purchased" : ""}
+                key={item.id}
+              >
+                <details className="shopping-item-menu">
+                  <summary aria-label={`عملیات ${item.name}`}>
+                    <MoreHorizontal size={22} />
+                  </summary>
+                  <div>
+                    <button disabled={busy} onClick={() => edit(item)}>
+                      ویرایش
+                    </button>
+                    <button
+                      disabled={busy}
+                      onClick={() => {
+                        if (window.confirm("این قلم حذف شود؟"))
+                          void action(async () => {
+                            await api.deleteItem(item.id);
+                            await reloadItemsAfterSave(selected);
+                          });
+                      }}
+                    >
+                      حذف
+                    </button>
+                  </div>
+                </details>
+                {memberNames[item.added_by] && (
+                  <div className="shopping-item-member" title="افزوده‌شده توسط">
+                    <span className="shopping-avatar" aria-hidden="true">
+                      {memberNames[item.added_by].slice(0, 1)}
+                    </span>
+                    <span>
+                      {memberNames[item.added_by]}
+                      <small>افزوده‌کننده</small>
+                    </span>
+                  </div>
+                )}
+                <div className="shopping-item-info">
+                  <strong>{item.name}</strong>
                   <small>
                     {[item.quantity, item.unit, item.category, item.note]
-                      .filter(Boolean)
+                      .filter((v) => v !== null && v !== "")
                       .join(" · ")}
                   </small>
                 </div>
-                <div>
-                  <button
-                    className="minor"
+                <label className="shopping-check">
+                  <span className="shopping-sr">{`وضعیت خرید ${item.name}`}</span>
+                  <input
+                    type="checkbox"
+                    checked={item.purchased}
                     disabled={busy}
-                    onClick={() => edit(item)}
-                  >
-                    ویرایش
-                  </button>
-                  <button
-                    className="minor"
-                    disabled={busy}
-                    onClick={() => {
-                      if (window.confirm("این قلم حذف شود؟"))
-                        void action(async () => {
-                          await api.deleteItem(item.id);
-                          await reloadItemsAfterSave(selected);
-                        });
-                    }}
-                  >
-                    حذف
-                  </button>
-                </div>
+                    onChange={(e) =>
+                      void togglePurchased(item, e.target.checked)
+                    }
+                  />
+                </label>
               </li>
             ))}
           </ul>
+          {items.length > 0 && visibleItems.length === 0 && (
+            <p className="shopping-no-results">
+              موردی در این دسته یا جستجو پیدا نشد.
+            </p>
+          )}
+          <button
+            type="button"
+            className="shopping-add"
+            disabled={busy}
+            onClick={() => {
+              clear();
+              setFormOpen(true);
+            }}
+          >
+            <Plus size={22} /> افزودن قلم جدید
+          </button>
+          {!itemsLoading && !message && items.length === 0 && (
+            <div className="shopping-empty">
+              <div>
+                <strong>هنوز موردی در لیست نیست</strong>
+                <p>با افزودن اولین قلم، خرید دسته‌جمعی را شروع کنید.</p>
+              </div>
+              <span className="shopping-basket" aria-hidden="true" />
+            </div>
+          )}
         </>
-      )}
-    </section>
+      ) : listsLoading ? (
+        <p role="status">در حال دریافت لیست‌ها…</p>
+      ) : !message ? (
+        <div className="shopping-empty">
+          <div>
+            <strong>هنوز لیست خریدی ندارید</strong>
+            <p>از بخش مدیریت لیست‌ها، اولین لیست را بسازید.</p>
+          </div>
+          <span className="shopping-basket" aria-hidden="true" />
+        </div>
+      ) : null}
+    </div>
   );
 }

@@ -365,12 +365,16 @@ function App() {
       {!(ready && client && !session && authMode === "login") && (
         <header
           className={
-            page === "calendar" && session && !recovery
+            (page === "calendar" || page === "shopping") && session && !recovery
               ? "calendar-shell-header"
               : undefined
           }
         >
-          {!(page === "calendar" && session && !recovery) && (
+          {!(
+            (page === "calendar" || page === "shopping") &&
+            session &&
+            !recovery
+          ) && (
             <>
               <h1>خونه‌مون</h1>
               <p>دفتر کوچک خانه و خانوادهٔ ما</p>
@@ -534,7 +538,7 @@ function App() {
         </>
       ) : (
         <>
-          {page !== "calendar" && (
+          {page !== "calendar" && page !== "shopping" && (
             <QuickAdd
               client={client}
               householdId={household ?? null}

@@ -2,14 +2,15 @@
 
 import { Home, Receipt, ShoppingBasket } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChoreBoard } from "@/features/chores/components/chore-board";
 import type { ChoreCompletion, ChoreRecord } from "@/features/chores/types";
 import { FinanceBoard } from "@/features/finance/components/finance-board";
 import { FinanceCharts } from "@/features/finance/components/finance-charts";
 import { SettlementCard } from "@/features/finance/components/settlement-card";
 import type { FinancialRecord } from "@/features/finance/types";
-import { ShoppingBoard } from "@/features/shopping/components/shopping-board";
+import { Shopping } from "../../../../mobile/src/shopping";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { ShoppingItem, ShoppingList } from "@/features/shopping/types";
 import type { TaskMember } from "@/features/tasks/types";
 import { cn } from "@/shared/utils/cn";
@@ -23,15 +24,13 @@ const TABS: { key: TabKey; label: string; icon: typeof ShoppingBasket }[] = [
 ];
 
 export function ListsTabs({
-  lists,
-  items,
   chores,
   completions,
   records,
   members,
-  activeListId,
   canShare,
   currentUserId,
+  householdId,
 }: {
   lists: ShoppingList[];
   items: ShoppingItem[];
@@ -42,7 +41,9 @@ export function ListsTabs({
   activeListId: string | null;
   canShare: boolean;
   currentUserId: string;
+  householdId: string | null;
 }) {
+  const client = useMemo(() => createSupabaseBrowserClient(), []);
   const [tab, setTab] = useState<TabKey>("shopping");
 
   return (
@@ -75,11 +76,11 @@ export function ListsTabs({
       </div>
 
       {tab === "shopping" ? (
-        <ShoppingBoard
-          lists={lists}
-          initialItems={items}
-          initialListId={activeListId}
-        />
+        householdId ? (
+          <Shopping client={client} householdId={householdId} />
+        ) : (
+          <p>برای خرید مشترک ابتدا به یک خانه بپیوندید.</p>
+        )
       ) : null}
 
       {tab === "chores" ? (

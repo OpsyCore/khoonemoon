@@ -158,6 +158,7 @@ export default async function ListsPage() {
         activeListId={activeListId}
         canShare={Boolean(householdId)}
         currentUserId={user.id}
+        householdId={householdId}
       />
     </div>
   );
