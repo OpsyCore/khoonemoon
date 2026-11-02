@@ -1,3 +1,5 @@
+import { ArrowLeft, Settings } from "lucide-react";
+import { FinanceOverview } from "./finance-overview";
 import { ledgerCurrency, ledgerFromUrl, ledgerUrl } from "./ledger-url";
 import { financeCorrection, financePatchLabels } from "./finance-correction";
 import { FinanceChart } from "./finance-chart";
@@ -6,6 +8,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -54,9 +57,15 @@ function localInput(value: string | null) {
 export function Finance({
   client,
   householdId,
+  initialUrl,
+  onSettings,
+  onBack,
 }: {
   client: SupabaseClient;
   householdId: string | null;
+  initialUrl?: string;
+  onSettings?: () => void;
+  onBack?: () => void;
 }) {
   const api = useMemo(() => directFinance(client), [client]);
   const [records, setRecords] = useState<FinancialRecord[]>([]);
@@ -69,6 +78,28 @@ export function Finance({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [editing, setEditing] = useState<FinancialRecord | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [ledgerOpen, setLedgerOpen] = useState(() => {
+    const url = new URL(
+      initialUrl ??
+        (typeof window === "undefined"
+          ? "https://local.invalid"
+          : window.location.href),
+    );
+    return [
+      "ledger_category",
+      "ledger_type",
+      "ledger_paid",
+      "ledger_days",
+      "ledger_q",
+    ].some((key) => url.searchParams.has(key));
+  });
+  const formRef = useRef<HTMLDivElement>(null);
+  const ledgerRef = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (formOpen)
+      formRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  }, [formOpen, editing]);
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [kind, setKind] = useState<FinancialRecordType>("EXPENSE");
@@ -82,20 +113,48 @@ export function Finance({
     "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY"
   >("MONTHLY");
   const [currency, setCurrency] = useState(() =>
-    ledgerCurrency(new URL(window.location.href)),
+    ledgerCurrency(
+      new URL(
+        initialUrl ??
+          (typeof window === "undefined"
+            ? "https://local.invalid"
+            : window.location.href),
+      ),
+    ),
   );
   const [recordCurrency, setRecordCurrency] = useState("IRR");
   const [filters, setFilters] = useState(() =>
-    ledgerFromUrl(new URL(window.location.href)),
+    ledgerFromUrl(
+      new URL(
+        initialUrl ??
+          (typeof window === "undefined"
+            ? "https://local.invalid"
+            : window.location.href),
+      ),
+    ),
   );
-  function updateFilters(next: typeof filters) {
+  const [categoryFilter, setCategoryFilter] = useState(() =>
+    (
+      new URL(
+        initialUrl ??
+          (typeof window === "undefined"
+            ? "https://local.invalid"
+            : window.location.href),
+      ).searchParams.get("ledger_category") ?? ""
+    ).slice(0, 60),
+  );
+  function updateFilters(
+    next: typeof filters,
+    selectedCategory = categoryFilter,
+  ) {
     setFilters(next);
+    setCategoryFilter(selectedCategory);
     try {
-      window.history.replaceState(
-        window.history.state,
-        "",
-        ledgerUrl(new URL(window.location.href), next, currency),
-      );
+      const url = ledgerUrl(new URL(window.location.href), next, currency);
+      if (selectedCategory)
+        url.searchParams.set("ledger_category", selectedCategory);
+      else url.searchParams.delete("ledger_category");
+      window.history.replaceState(window.history.state, "", url);
     } catch {
       /* link persistence is optional */
     }
@@ -222,18 +281,30 @@ export function Finance({
     };
   }, [client, householdId]);
   const now = new Date();
-  // Do not add different currencies together. The current form records IRR only.
+  // Never add different currencies together.
   const money = useMemo(
     () => records.filter((record) => record.currency === currency),
     [records, currency],
   );
   const summary = summarizeFinance(money, now);
   const analytics = buildFinanceAnalytics({ records: money, now });
-  const ledger = filterLedger({ records: money, filters, now });
+  const ledger = filterLedger({
+    records: categoryFilter
+      ? money.filter(
+          (record) => (record.category ?? "").trim() === categoryFilter,
+        )
+      : money,
+    filters,
+    now,
+  });
   const settlement = useMemo(
     () =>
       settleHousehold({
-        records: money.filter((record) => record.household_id === householdId),
+        records: money.filter(
+          (record) =>
+            record.household_id === householdId &&
+            record.record_type !== "DEBT",
+        ),
         members,
       }),
     [money, members, householdId],
@@ -251,6 +322,7 @@ export function Finance({
     }
   }
   function reset() {
+    setFormOpen(false);
     setEditing(null);
     setRecordCurrency("IRR");
     setTitle("");
@@ -265,6 +337,7 @@ export function Finance({
   }
   function beginEdit(record: FinancialRecord) {
     setEditing(record);
+    setFormOpen(true);
     setRecordCurrency(record.currency);
     setTitle(record.title);
     setAmount(String(record.amount));
@@ -348,6 +421,7 @@ export function Finance({
       await api.update(record.id, { paid: !record.paid_at }, record.updated_at);
       try {
         await load();
+        if (editing?.id === record.id) reset();
       } catch {
         setRecords([]);
         setLoaded(false);
@@ -390,12 +464,33 @@ export function Finance({
     }
   }
   return (
-    <section>
-      <h2>مالی و قبض‌ها</h2>
-      <p>{sync}</p>
+    <div className="finance-page" dir="rtl">
+      <div className="fin-heading">
+        {onBack && (
+          <button
+            className="fin-heading-back"
+            onClick={onBack}
+            aria-label="بازگشت به خانه"
+          >
+            <ArrowLeft size={22} />
+          </button>
+        )}
+        {onSettings && (
+          <button
+            className="fin-heading-settings"
+            onClick={onSettings}
+            aria-label="حساب و تنظیمات"
+          >
+            <Settings size={22} />
+          </button>
+        )}
+        <h2>مالی خونه</h2>
+        <p>با هم، شفاف‌تر و آرام‌تر</p>
+      </div>
+      <p className="finance-sync">{sync}</p>
       <button
         type="button"
-        className="minor"
+        className="minor finance-refresh"
         onClick={() =>
           void load().catch(() => {
             setRecords([]);
@@ -411,161 +506,10 @@ export function Finance({
           {message}
         </p>
       )}
-      <form onSubmit={(e) => void save(e)}>
-        <h3>{editing ? "ویرایش مورد مالی" : "ثبت مورد مالی"}</h3>
-        <label>
-          عنوان
-          <input
-            required
-            minLength={2}
-            maxLength={180}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </label>
-        <label>
-          نوع
-          <select
-            disabled={Boolean(editing)}
-            value={kind}
-            onChange={(e) => (
-              setKind(e.target.value as FinancialRecordType),
-              setRecurring(false)
-            )}
-          >
-            {Object.entries(TYPE_LABELS)
-              .filter(([key]) => key !== "ALL")
-              .map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-          </select>
-        </label>
-        <label>
-          مبلغ ({recordCurrency === "IRR" ? "تومان" : recordCurrency})
-          <input
-            required
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-        </label>
-        <label>
-          ارز{" "}
-          <select
-            value={recordCurrency}
-            disabled={Boolean(editing)}
-            onChange={(e) => setRecordCurrency(e.target.value)}
-          >
-            <option value="IRR">تومان</option>
-            <option value="USD">دلار آمریکا</option>
-            <option value="EUR">یورو</option>
-            <option value="TRY">لیر ترکیه</option>
-            {!["IRR", "USD", "EUR", "TRY"].includes(recordCurrency) && (
-              <option value={recordCurrency}>{recordCurrency}</option>
-            )}
-          </select>
-        </label>
-        <label>
-          دسته‌بندی
-          <input
-            maxLength={60}
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          />
-        </label>
-        <label>
-          یادداشت
-          <input
-            maxLength={1000}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-        </label>
-        <label>
-          سررسید
-          <input
-            type="datetime-local"
-            required={billTypes.has(kind)}
-            value={due}
-            onChange={(e) => setDue(e.target.value)}
-          />
-        </label>
-        {!editing && (
-          <label>
-            تاریخ ثبت
-            <input
-              type="datetime-local"
-              value={occurred}
-              onChange={(e) => setOccurred(e.target.value)}
-            />
-          </label>
-        )}
-        {!editing && householdId && (
-          <label className="item">
-            <input
-              type="checkbox"
-              checked={shared}
-              onChange={(e) => setShared(e.target.checked)}
-            />
-            مشترک با خانه
-          </label>
-        )}
-        {!editing && billTypes.has(kind) && (
-          <label className="item">
-            <input
-              type="checkbox"
-              checked={recurring}
-              onChange={(e) => setRecurring(e.target.checked)}
-            />
-            قبض تکرارشونده
-          </label>
-        )}
-        {!editing && recurring && billTypes.has(kind) && (
-          <>
-            <label>
-              دوره تکرار
-              <select
-                value={recurrenceRule}
-                onChange={(e) =>
-                  setRecurrenceRule(e.target.value as typeof recurrenceRule)
-                }
-              >
-                <option value="DAILY">روزانه</option>
-                <option value="WEEKLY">هفتگی</option>
-                <option value="MONTHLY">ماهانه</option>
-                <option value="YEARLY">سالانه</option>
-              </select>
-            </label>
-            <small>
-              با ثبت پرداخت، قبض بعدی یک‌بار ساخته می‌شود؛ در صورت عدم پرداخت
-              خودکار ساخته نمی‌شود. منطقهٔ زمانی:{" "}
-              {Intl.DateTimeFormat().resolvedOptions().timeZone}
-            </small>
-          </>
-        )}
-        {editing && recurring && (
-          <small>تغییرات فقط روی همین قبض اعمال می‌شود.</small>
-        )}
-        {editing && (
-          <p role="status">
-            {correctionPreview.length
-              ? `موارد تغییرکرده: ${correctionPreview.join("، ")}`
-              : "تغییری قابل ذخیره نیست یا ورودی نیاز به اصلاح دارد."}
-          </p>
-        )}
-        <button disabled={busy}>{editing ? "ذخیره تغییرات" : "ثبت"}</button>
-        {editing && (
-          <button type="button" className="minor" onClick={reset}>
-            انصراف
-          </button>
-        )}
-      </form>
       {loaded && (
         <>
-          <label>
-            ارز گزارش و دفتر
+          <label className="fin-currency">
+            ارز گزارش{" "}
             <select
               value={currency}
               onChange={(e) => {
@@ -578,7 +522,7 @@ export function Finance({
                     ledgerUrl(new URL(window.location.href), filters, value),
                   );
                 } catch {
-                  /* optional link persistence */
+                  /* optional */
                 }
               }}
             >
@@ -595,7 +539,237 @@ export function Finance({
               ))}
             </select>
           </label>
-          <p>مبالغ فقط برای ارز انتخاب‌شده محاسبه می‌شوند.</p>
+          <FinanceOverview
+            records={money}
+            now={now}
+            currency={currency}
+            settlement={settlement}
+            householdId={householdId}
+            membersReady={membersReady}
+            excluded={excludedSettlementRecords(
+              money.filter(
+                (record) =>
+                  record.household_id === householdId &&
+                  record.record_type !== "DEBT",
+              ),
+              members,
+            )}
+            onAdd={() => {
+              reset();
+              setFormOpen(true);
+            }}
+            onRecord={beginEdit}
+            onCategory={(category, income) => {
+              updateFilters(
+                {
+                  ...filters,
+                  query: "",
+                  type: income ? "INCOME" : "ALL",
+                },
+                income ? "" : category,
+              );
+              setLedgerOpen(true);
+              window.setTimeout(
+                () =>
+                  ledgerRef.current?.scrollIntoView?.({
+                    behavior: "smooth",
+                    block: "start",
+                  }),
+                0,
+              );
+            }}
+          />
+        </>
+      )}
+      {formOpen && (
+        <div className="finance-form" ref={formRef}>
+          <form onSubmit={(e) => void save(e)}>
+            <h3>{editing ? "ویرایش مورد مالی" : "ثبت مورد مالی"}</h3>
+            <label>
+              عنوان
+              <input
+                required
+                minLength={2}
+                maxLength={180}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </label>
+            <label>
+              نوع
+              <select
+                disabled={Boolean(editing)}
+                value={kind}
+                onChange={(e) => (
+                  setKind(e.target.value as FinancialRecordType),
+                  setRecurring(false)
+                )}
+              >
+                {Object.entries(TYPE_LABELS)
+                  .filter(([key]) => key !== "ALL")
+                  .map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label>
+              مبلغ ({recordCurrency === "IRR" ? "تومان" : recordCurrency})
+              <input
+                required
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </label>
+            <label>
+              ارز{" "}
+              <select
+                value={recordCurrency}
+                disabled={Boolean(editing)}
+                onChange={(e) => setRecordCurrency(e.target.value)}
+              >
+                <option value="IRR">تومان</option>
+                <option value="USD">دلار آمریکا</option>
+                <option value="EUR">یورو</option>
+                <option value="TRY">لیر ترکیه</option>
+                {!["IRR", "USD", "EUR", "TRY"].includes(recordCurrency) && (
+                  <option value={recordCurrency}>{recordCurrency}</option>
+                )}
+              </select>
+            </label>
+            <label>
+              دسته‌بندی
+              <input
+                maxLength={60}
+                list="finance-category-options"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              />
+            </label>
+            <datalist id="finance-category-options">
+              <option value="رفت‌وآمد" />
+              <option value="مسکن" />
+              <option value="خوراک" />
+              <option value="خرید" />
+              <option value="سلامت" />
+              <option value="تفریح" />
+              <option value="سایر" />
+            </datalist>
+            <label>
+              یادداشت
+              <input
+                maxLength={1000}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </label>
+            <label>
+              سررسید
+              <input
+                type="datetime-local"
+                required={billTypes.has(kind)}
+                value={due}
+                onChange={(e) => setDue(e.target.value)}
+              />
+            </label>
+            {!editing && (
+              <label>
+                تاریخ ثبت
+                <input
+                  type="datetime-local"
+                  value={occurred}
+                  onChange={(e) => setOccurred(e.target.value)}
+                />
+              </label>
+            )}
+            {!editing && householdId && (
+              <label className="item">
+                <input
+                  type="checkbox"
+                  checked={shared}
+                  onChange={(e) => setShared(e.target.checked)}
+                />
+                مشترک با خانه
+              </label>
+            )}
+            {!editing && billTypes.has(kind) && (
+              <label className="item">
+                <input
+                  type="checkbox"
+                  checked={recurring}
+                  onChange={(e) => setRecurring(e.target.checked)}
+                />
+                قبض تکرارشونده
+              </label>
+            )}
+            {!editing && recurring && billTypes.has(kind) && (
+              <>
+                <label>
+                  دوره تکرار
+                  <select
+                    value={recurrenceRule}
+                    onChange={(e) =>
+                      setRecurrenceRule(e.target.value as typeof recurrenceRule)
+                    }
+                  >
+                    <option value="DAILY">روزانه</option>
+                    <option value="WEEKLY">هفتگی</option>
+                    <option value="MONTHLY">ماهانه</option>
+                    <option value="YEARLY">سالانه</option>
+                  </select>
+                </label>
+                <small>
+                  با ثبت پرداخت، قبض بعدی یک‌بار ساخته می‌شود؛ در صورت عدم
+                  پرداخت خودکار ساخته نمی‌شود. منطقهٔ زمانی:{" "}
+                  {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                </small>
+              </>
+            )}
+            {editing && recurring && (
+              <small>تغییرات فقط روی همین قبض اعمال می‌شود.</small>
+            )}
+            {editing && (
+              <p role="status">
+                {correctionPreview.length
+                  ? `موارد تغییرکرده: ${correctionPreview.join("، ")}`
+                  : "تغییری قابل ذخیره نیست یا ورودی نیاز به اصلاح دارد."}
+              </p>
+            )}
+            {editing &&
+              (isBillRecord(editing) ||
+                (editing.record_type === "EXPENSE" &&
+                  Boolean(editing.due_at))) &&
+              !(
+                editing.paid_at &&
+                editing.is_recurring &&
+                editing.recurrence_rule
+              ) && (
+                <button
+                  type="button"
+                  className="minor"
+                  disabled={busy}
+                  onClick={() => void paid(editing)}
+                >
+                  {editing.paid_at ? "بازگرداندن پرداخت" : "پرداخت شد"}
+                </button>
+              )}
+            <button disabled={busy}>{editing ? "ذخیره تغییرات" : "ثبت"}</button>
+            <button type="button" className="minor" onClick={reset}>
+              انصراف
+            </button>
+          </form>
+        </div>
+      )}
+      {loaded && (
+        <details
+          className="finance-details"
+          ref={ledgerRef}
+          open={ledgerOpen}
+          onToggle={(event) => setLedgerOpen(event.currentTarget.open)}
+        >
+          <summary>دفتر مالی، گزارش‌ها و فیلترها</summary>
           <h3>خلاصه مالی</h3>
           <p>
             درآمد: {formatAmount(summary.income, currency)} · هزینه:{" "}
@@ -635,7 +809,10 @@ export function Finance({
           {householdId && membersReady && (
             <>
               <h3>برآورد تسویه مشترک</h3>
-              <p>تقسیم برابر بین اعضای فعلی، نه ثبت پرداخت واقعی.</p>
+              <p>
+                تقسیم برابر هزینه‌های مشترک بین اعضای فعلی، بدون بدهی‌های
+                ثبت‌شده؛ نه ثبت پرداخت واقعی.
+              </p>
               <p>
                 مجموع هزینه‌های قابل تسویه:{" "}
                 {formatAmount(settlement.total, currency)}
@@ -662,7 +839,11 @@ export function Finance({
                 </ul>
               )}
               {excludedSettlementRecords(
-                money.filter((record) => record.household_id === householdId),
+                money.filter(
+                  (record) =>
+                    record.household_id === householdId &&
+                    record.record_type !== "DEBT",
+                ),
                 members,
               ) > 0 && (
                 <p>
@@ -685,6 +866,18 @@ export function Finance({
             </>
           )}
           <h3>دفتر مالی</h3>
+          {categoryFilter && (
+            <p>
+              دسته انتخاب‌شده: {categoryFilter}{" "}
+              <button
+                type="button"
+                className="minor"
+                onClick={() => updateFilters(filters, "")}
+              >
+                حذف فیلتر دسته
+              </button>
+            </p>
+          )}
           <label>
             جست‌وجو
             <input
@@ -783,7 +976,9 @@ export function Finance({
                   >
                     ویرایش
                   </button>
-                  {isBillRecord(record) &&
+                  {(isBillRecord(record) ||
+                    (record.record_type === "EXPENSE" &&
+                      Boolean(record.due_at))) &&
                     !(
                       record.paid_at &&
                       record.is_recurring &&
@@ -808,8 +1003,8 @@ export function Finance({
               </li>
             ))}
           </ul>
-        </>
+        </details>
       )}
-    </section>
+    </div>
   );
 }

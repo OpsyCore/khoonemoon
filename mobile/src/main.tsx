@@ -347,7 +347,8 @@ function App() {
             (page === "calendar" ||
               page === "shopping" ||
               page === "documents" ||
-              page === "house") &&
+              page === "house" ||
+              page === "finance") &&
             session &&
             !recovery
               ? "calendar-shell-header"
@@ -358,7 +359,8 @@ function App() {
             (page === "calendar" ||
               page === "shopping" ||
               page === "documents" ||
-              page === "house") &&
+              page === "house" ||
+              page === "finance") &&
             session &&
             !recovery
           ) && (
@@ -528,7 +530,8 @@ function App() {
           {page !== "calendar" &&
             page !== "shopping" &&
             page !== "documents" &&
-            page !== "house" && (
+            page !== "house" &&
+            page !== "finance" && (
               <QuickAdd
                 client={client}
                 householdId={household ?? null}
@@ -578,19 +581,22 @@ function App() {
               </p>
             </section>
           )}
-          {household === undefined && householdError && page !== "house" && (
-            <section>
-              <p role="alert">
-                وضعیت خانه دریافت نشد؛ اطلاعات مشترک ممکن است نمایش داده نشود.
-              </p>
-              <button
-                type="button"
-                onClick={() => setHouseholdAttempt((n) => n + 1)}
-              >
-                تلاش دوباره
-              </button>
-            </section>
-          )}
+          {household === undefined &&
+            householdError &&
+            page !== "house" &&
+            page !== "finance" && (
+              <section>
+                <p role="alert">
+                  وضعیت خانه دریافت نشد؛ اطلاعات مشترک ممکن است نمایش داده نشود.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setHouseholdAttempt((n) => n + 1)}
+                >
+                  تلاش دوباره
+                </button>
+              </section>
+            )}
           {page === "tasks" && (
             <Today
               key={`today:${session.user.id}`}
@@ -626,6 +632,8 @@ function App() {
               key={`${session.user.id}:${household ?? "none"}:${revision}`}
               client={client}
               householdId={household ?? null}
+              onBack={() => setPage("house")}
+              onSettings={() => setPage("profile")}
             />
           )}
           {page === "search" && (

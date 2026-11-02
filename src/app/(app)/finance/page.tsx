@@ -1,3 +1,4 @@
+import { FinanceReference } from "@/features/finance/components/finance-reference";
 import { PageHeader } from "@/shared/ui/page-header";
 import Link from "next/link";
 import { FinanceRecordActions } from "@/features/finance/components/finance-record-actions";
@@ -90,6 +91,34 @@ export default async function FinanceLedgerPage({
       <ErrorState
         title="دسترسی غیرمجاز"
         description="برای دیدن تراکنش‌ها باید وارد حساب شوید."
+      />
+    );
+  }
+
+  const legacy =
+    params.ledger === "1" ||
+    ["type", "paid", "days", "q"].some(
+      (key) => typeof params[key] === "string",
+    );
+  if (!legacy) {
+    const { data: membership, error: memberError } = await supabase
+      .from("household_members")
+      .select("household_id")
+      .eq("user_id", user.id)
+      .is("left_at", null)
+      .maybeSingle();
+    if (memberError)
+      return (
+        <ErrorState
+          title="خطا در دریافت عضویت"
+          description="اطلاعات خانه قابل دریافت نیست."
+        />
+      );
+    const initialUrl = `https://local.invalid/finance${urlParams.size ? `?${urlParams}` : ""}`;
+    return (
+      <FinanceReference
+        householdId={membership?.household_id ?? null}
+        initialUrl={initialUrl}
       />
     );
   }
