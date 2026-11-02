@@ -23,7 +23,6 @@ import {
   changeRecoveredPassword,
   requestRecovery,
 } from "./recovery";
-import { directHousehold } from "@/features/households/direct-client";
 import { CalendarEvents } from "./calendar";
 import { Tasks } from "./tasks";
 import { Finance } from "./finance";
@@ -31,7 +30,7 @@ import { Chores } from "./chores";
 import { Profile } from "./profile";
 import { MobileNavigation, type MobilePage } from "./navigation";
 import { PendingTransferPanel } from "@/features/households/pending-transfer-panel";
-import { HouseholdDetails } from "./household-details";
+import { HomeDashboard } from "./home-dashboard";
 import { ThemeSettings } from "./theme-settings";
 import { InstallGuide, useInstallPrompt } from "./install-guide";
 import {
@@ -156,9 +155,6 @@ function App() {
   );
   const [householdError, setHouseholdError] = useState(false);
   const [householdAttempt, setHouseholdAttempt] = useState(0);
-  const [houseName, setHouseName] = useState("");
-  const [joinCode, setJoinCode] = useState("");
-  const houses = useMemo(() => (client ? directHousehold(client) : null), []);
 
   useEffect(() => {
     if (!client) return;
@@ -243,7 +239,6 @@ function App() {
     // Clear the previous account’s data before loading the next account.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHousehold(undefined);
-    setJoinCode("");
     setHouseholdError(false);
     if (!userId || !client) return;
     let alive = true;
@@ -337,22 +332,6 @@ function App() {
       setMessage("رمز عبور تغییر کرد.");
     });
   }
-  function createHouse(event: FormEvent) {
-    event.preventDefault();
-    void action(async () => {
-      if (!houses) throw new Error();
-      setHousehold(await houses.create(houseName));
-      setHouseName("");
-    });
-  }
-  function joinHouse(event: FormEvent) {
-    event.preventDefault();
-    void action(async () => {
-      if (!houses) throw new Error();
-      setHousehold(await houses.join(joinCode));
-      setJoinCode("");
-    });
-  }
 
   return (
     <main
@@ -367,7 +346,8 @@ function App() {
           className={
             (page === "calendar" ||
               page === "shopping" ||
-              page === "documents") &&
+              page === "documents" ||
+              page === "house") &&
             session &&
             !recovery
               ? "calendar-shell-header"
@@ -377,7 +357,8 @@ function App() {
           {!(
             (page === "calendar" ||
               page === "shopping" ||
-              page === "documents") &&
+              page === "documents" ||
+              page === "house") &&
             session &&
             !recovery
           ) && (
@@ -546,75 +527,42 @@ function App() {
         <>
           {page !== "calendar" &&
             page !== "shopping" &&
-            page !== "documents" && (
+            page !== "documents" &&
+            page !== "house" && (
               <QuickAdd
                 client={client}
                 householdId={household ?? null}
                 onDone={() => setRevision((n) => n + 1)}
               />
             )}
-          {page === "house" && (
-            <section>
-              <h2>خانه و اعضا</h2>
-              {household === undefined ? (
-                householdError ? (
+          {page === "house" &&
+            (household === undefined ? (
+              <section>
+                {householdError ? (
                   <>
                     <p role="alert">
                       دریافت اطلاعات خانه ناموفق بود؛ اتصال را بررسی کنید.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => setHouseholdAttempt((n) => n + 1)}
-                    >
+                    <button onClick={() => setHouseholdAttempt((n) => n + 1)}>
                       تلاش دوباره
                     </button>
                   </>
                 ) : (
                   <p role="status">در حال دریافت اطلاعات خانه…</p>
-                )
-              ) : household ? (
-                <HouseholdDetails
-                  key={household}
-                  client={client}
-                  householdId={household}
-                  userId={session.user.id}
-                  onLeave={() => {
-                    setHousehold(null);
-                  }}
-                />
-              ) : (
-                <>
-                  <form onSubmit={createHouse}>
-                    <label>
-                      نام خانه
-                      <input
-                        value={houseName}
-                        onChange={(e) => setHouseName(e.target.value)}
-                        required
-                        minLength={2}
-                        maxLength={80}
-                      />
-                    </label>
-                    <button disabled={busy}>ایجاد خانه</button>
-                  </form>
-                  <form onSubmit={joinHouse}>
-                    <label>
-                      کد دعوت
-                      <input
-                        value={joinCode}
-                        onChange={(e) => setJoinCode(e.target.value)}
-                        minLength={12}
-                        maxLength={128}
-                        required
-                        dir="ltr"
-                      />
-                    </label>
-                    <button disabled={busy}>پیوستن به خانه</button>
-                  </form>
-                </>
-              )}
-            </section>
-          )}
+                )}
+              </section>
+            ) : (
+              <HomeDashboard
+                key={household ?? "no-house"}
+                client={client}
+                userId={session.user.id}
+                householdId={household}
+                onHouseholdChange={setHousehold}
+                onSettings={() => setPage("profile")}
+                onTasks={() => setPage("tasks")}
+                onCalendar={() => setPage("calendar")}
+              />
+            ))}
           {page === "shopping" && household && (
             <Shopping
               key={`${session.user.id}:${household}:${revision}`}
