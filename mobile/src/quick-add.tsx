@@ -31,10 +31,12 @@ export function QuickAdd({
   client,
   householdId,
   onDone,
+  floating = false,
 }: {
   client: SupabaseClient;
   householdId: string | null;
   onDone: () => void;
+  floating?: boolean;
 }) {
   const [open, setOpen] = useState(false),
     [kind, setKind] = useState<QuickAddKind>("task"),
@@ -163,12 +165,13 @@ export function QuickAdd({
     }
   }
   return (
-    <section>
+    <section className={floating ? "today-quick-add" : undefined}>
       <button
         ref={triggerRef}
         type="button"
-        className="minor"
+        className={floating ? "today-quick-trigger" : "minor"}
         disabled={busy}
+        aria-label={floating ? "افزودن سریع" : undefined}
         aria-controls="quick-add-form"
         onClick={() => {
           setOpen(!open);
@@ -176,7 +179,7 @@ export function QuickAdd({
         }}
         aria-expanded={open}
       >
-        افزودن سریع
+        {floating ? "+" : "افزودن سریع"}
       </button>
       {!open && message && <p role="status">{message}</p>}
       {open && (

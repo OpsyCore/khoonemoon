@@ -31,6 +31,9 @@ export type TodayReminder = {
   status: string;
   snoozed_until: string | null;
   delivered_at: string | null;
+  target_type?: "TASK" | "EVENT" | "CHORE" | "BILL";
+  target_id?: string;
+  title?: string;
 };
 export function deriveToday(input: {
   tasks: TodayTask[];
@@ -54,6 +57,8 @@ export function deriveToday(input: {
     s !== "CANCELED" &&
     s !== "SKIPPED";
   const bills = new Set(["BILL", "SUBSCRIPTION", "INSTALLMENT"]);
+  const horizon = new Date(input.now);
+  horizon.setDate(horizon.getDate() + 7);
   return {
     tasks: input.tasks
       .filter(
@@ -72,6 +77,22 @@ export function deriveToday(input: {
     events: input.events
       .filter((e) => eventOverlaps(e.start_at, e.end_at, start, end))
       .sort((a, b) => date(a.start_at) - date(b.start_at)),
+    upcomingEvents: input.events
+      .filter(
+        (e) =>
+          date(e.end_at) > input.now.getTime() &&
+          date(e.start_at) < horizon.getTime(),
+      )
+      .sort((a, b) => date(a.start_at) - date(b.start_at)),
+    upcomingBills: input.bills
+      .filter(
+        (b) =>
+          bills.has(b.record_type) &&
+          !b.paid_at &&
+          b.due_at &&
+          date(b.due_at) < horizon.getTime(),
+      )
+      .sort((a, b) => date(a.due_at) - date(b.due_at)),
     chores: input.chores
       .filter(
         (c) => c.is_active && (today(c.next_due_at) || overdue(c.next_due_at)),

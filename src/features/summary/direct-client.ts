@@ -26,6 +26,7 @@ async function completions(
 export type MobileWeeklySummary = {
   counts: WeeklySummary;
   currencies: { currency: string; summary: WeeklySummary }[];
+  sharedCurrencies: { currency: string; summary: WeeklySummary }[];
 };
 export async function getMobileWeeklySummary(
   client: SupabaseClient,
@@ -48,6 +49,26 @@ export async function getMobileWeeklySummary(
       finance: [],
       now,
     }),
+    sharedCurrencies: groups.map((currency) => ({
+      currency,
+      summary: buildWeeklySummary({
+        tasks: [],
+        chores: [],
+        finance: finance.filter(
+          (r) =>
+            r.currency === currency &&
+            r.visibility === "HOUSEHOLD_SHARED" &&
+            r.record_type !== "INCOME" &&
+            r.record_type !== "DEBT" &&
+            (!(
+              r.due_at ||
+              ["BILL", "SUBSCRIPTION", "INSTALLMENT"].includes(r.record_type)
+            ) ||
+              !!r.paid_at),
+        ),
+        now,
+      }),
+    })),
     currencies: groups.map((currency) => ({
       currency,
       summary: buildWeeklySummary({

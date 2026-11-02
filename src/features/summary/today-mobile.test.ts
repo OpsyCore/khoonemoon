@@ -66,6 +66,8 @@ describe("today dashboard", () => {
     });
     expect(output.tasks.map((x) => x.id)).toEqual(["a"]);
     expect(output.events.map((x) => x.id)).toEqual(["e"]);
+    expect(output.upcomingEvents.map((x) => x.id)).toEqual(["e", "f"]);
+    expect(output.upcomingBills.map((x) => x.id)).toEqual(["b"]);
     expect(output.chores.map((x) => x.id)).toEqual(["c"]);
     expect(output.bills.map((x) => x.id)).toEqual(["b"]);
     expect(output.reminders.map((x) => x.id)).toEqual(["t"]);

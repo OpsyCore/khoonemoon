@@ -1,3 +1,4 @@
+import { TodayReference } from "@/features/summary/components/today-reference";
 import { PageHeader } from "@/shared/ui/page-header";
 import { formatPersianDate } from "@/shared/utils/locale";
 import { loadHouseholdMembers } from "@/features/households/members";
@@ -20,7 +21,12 @@ import { ErrorState } from "@/shared/ui/error-state";
 
 export const dynamic = "force-dynamic";
 
-export default async function TodayPage() {
+export default async function TodayPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ manage?: string }>;
+}) {
+  const params = await searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -34,6 +40,8 @@ export default async function TodayPage() {
       />
     );
   }
+
+  if (params.manage !== "1") return <TodayReference />;
 
   // One clock for the whole request: the weekly window and the queries below
   // must agree, otherwise a record at the edge counts in neither week.
@@ -193,10 +201,12 @@ export default async function TodayPage() {
 
       <WeeklySummaryCard summary={weeklySummary} />
       <TodayDashboard tasks={tasks} events={events} />
-      <DueChores
-        chores={(choresResult.data ?? []) as ChoreRecord[]}
-        members={effectiveMembers}
-      />
+      <div id="chore-list">
+        <DueChores
+          chores={(choresResult.data ?? []) as ChoreRecord[]}
+          members={effectiveMembers}
+        />
+      </div>
       <UpcomingBills
         records={(financeResult.data ?? []) as FinancialRecord[]}
       />
@@ -209,12 +219,14 @@ export default async function TodayPage() {
         همهٔ یادآورها — شامل تحویل‌شده‌ها و لغو‌شده‌ها
       </Link>
 
-      <TaskManager
-        tasks={tasks}
-        members={effectiveMembers}
-        householdId={householdId}
-        userId={user.id}
-      />
+      <div id="task-list">
+        <TaskManager
+          tasks={tasks}
+          members={effectiveMembers}
+          householdId={householdId}
+          userId={user.id}
+        />
+      </div>
     </div>
   );
 }

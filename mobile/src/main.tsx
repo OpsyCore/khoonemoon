@@ -13,7 +13,6 @@ import { Reminders } from "./reminders";
 import { Shopping } from "./shopping";
 import { Search } from "./search";
 import { ExportData } from "./export";
-import { WeeklySummary } from "./weekly-summary";
 import { Today } from "./today";
 import { QuickAdd } from "./quick-add";
 import { loginSchema, signupSchema } from "@/features/auth/schemas";
@@ -348,7 +347,8 @@ function App() {
               page === "shopping" ||
               page === "documents" ||
               page === "house" ||
-              page === "finance") &&
+              page === "finance" ||
+              page === "tasks") &&
             session &&
             !recovery
               ? "calendar-shell-header"
@@ -360,7 +360,8 @@ function App() {
               page === "shopping" ||
               page === "documents" ||
               page === "house" ||
-              page === "finance") &&
+              page === "finance" ||
+              page === "tasks") &&
             session &&
             !recovery
           ) && (
@@ -535,6 +536,7 @@ function App() {
               <QuickAdd
                 client={client}
                 householdId={household ?? null}
+                floating={page === "tasks"}
                 onDone={() => setRevision((n) => n + 1)}
               />
             )}
@@ -603,29 +605,39 @@ function App() {
               client={client}
               onTaskChanged={() => setRevision((n) => n + 1)}
               onNavigate={(target, section) => {
+                if (section === "chore-list" && !household) {
+                  setPage("house");
+                  return;
+                }
                 setPage(target);
                 if (section)
                   window.requestAnimationFrame(() =>
-                    document
-                      .getElementById(section)
-                      ?.scrollIntoView({ block: "start" }),
+                    (() => {
+                      const target = document.getElementById(section);
+                      const container = target?.closest("details");
+                      if (container) container.open = true;
+                      target?.scrollIntoView({ block: "start" });
+                    })(),
                   );
                 else window.scrollTo(0, 0);
               }}
             />
           )}
           {page === "tasks" && (
-            <WeeklySummary key={`weekly:${session.user.id}`} client={client} />
-          )}
-          {page === "tasks" && (
-            <Tasks
-              key={`${session.user.id}:${household ?? "none"}:${revision}`}
-              client={client}
-              householdId={household ?? null}
-            />
+            <details className="today-ref-management">
+              <summary>مدیریت همه کارها</summary>
+              <Tasks
+                key={`${session.user.id}:${household ?? "none"}:${revision}`}
+                client={client}
+                householdId={household ?? null}
+              />
+            </details>
           )}
           {page === "tasks" && household && (
-            <Chores key={household} client={client} householdId={household} />
+            <details className="today-ref-management">
+              <summary>مدیریت کارهای خانه</summary>
+              <Chores key={household} client={client} householdId={household} />
+            </details>
           )}
           {page === "finance" && (
             <Finance
