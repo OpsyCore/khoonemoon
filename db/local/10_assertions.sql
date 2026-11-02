@@ -493,6 +493,26 @@ begin
 end $$;
 rollback;
 
+-- Shared reminder owners retain their own offset only while still members.
+begin;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+do $$
+declare original uuid; successor uuid; next_successor uuid;
+begin
+  original := public.mobile_create_task('{"title":"تکرار مشترک","visibility":"HOUSEHOLD_SHARED","dueAt":"2026-01-01T00:00:00Z","assigneeIds":[],"nextOccurrenceAt":"2026-01-02T00:00:00Z","recurrence":{"frequency":"DAILY"}}'::jsonb);
+  insert into public.reminders(target_type,target_id,user_id,household_id,remind_at,status,snoozed_until) values
+   ('TASK',original,'00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-0000000000f1','2025-12-31T23:45:00Z','PENDING',null),
+   ('TASK',original,'00000000-0000-4000-8000-00000000000b','00000000-0000-4000-8000-0000000000f1','2025-12-31T23:30:00Z','SNOOZED','2026-01-01T01:00:00Z'),
+   ('TASK',original,'00000000-0000-4000-8000-00000000000c','00000000-0000-4000-8000-0000000000f1','2025-12-31T23:00:00Z','PENDING',null);
+  successor := public.mobile_complete_task(original);
+  if successor <> public.mobile_complete_task(original) or (select count(*) from public.reminders where target_id=successor) <> 2 then raise exception 'shared reminder copy or retry failed'; end if;
+  if not exists(select 1 from public.reminders where target_id=successor and user_id='00000000-0000-4000-8000-00000000000b' and remind_at='2026-01-01T23:30:00Z' and status='PENDING' and snoozed_until is null and snooze_count=0) then raise exception 'snooze leaked into next occurrence'; end if;
+  update public.household_members set left_at=now() where user_id='00000000-0000-4000-8000-00000000000b' and household_id='00000000-0000-4000-8000-0000000000f1';
+  next_successor := public.mobile_complete_task(successor);
+  if (select count(*) from public.reminders where target_id=next_successor) <> 1 or exists(select 1 from public.reminders where target_id=next_successor and user_id<>'00000000-0000-4000-8000-00000000000a') then raise exception 'former member received next reminder'; end if;
+end $$;
+rollback;
+
 begin;
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-4000-8000-00000000000c', 'role', 'authenticated')::text, true);
 set local role authenticated;

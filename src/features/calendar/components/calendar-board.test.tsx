@@ -6,9 +6,13 @@ import { CalendarBoard } from "./calendar-board";
 import type { EventRecord } from "@/features/calendar/types";
 import type { FinancialRecord } from "@/features/finance/types";
 
-const mocks = vi.hoisted(() => ({ refresh: vi.fn(), create: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  refresh: vi.fn(),
+  create: vi.fn(),
+  push: vi.fn(),
+}));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: mocks.refresh }),
+  useRouter: () => ({ refresh: mocks.refresh, push: mocks.push }),
 }));
 vi.mock("next/link", () => ({
   default: ({
@@ -121,6 +125,8 @@ it("shows real bill and overlapping event, navigates views and opens the event e
       .querySelector<HTMLButtonElement>('[aria-label="افزودن رویداد"]')!
       .click(),
   );
-  expect(node.querySelector("dialog")!.open).toBe(true);
+  expect(mocks.push).toHaveBeenCalledWith(
+    expect.stringMatching(/^\/events\/new\?date=\d{4}-\d{2}-\d{2}$/),
+  );
   await act(async () => root.unmount());
 });

@@ -33,12 +33,14 @@ export function QuickAdd({
   onDone,
   floating = false,
   onNewTask,
+  onNewEvent,
 }: {
   client: SupabaseClient;
   householdId: string | null;
   onDone: () => void;
   floating?: boolean;
   onNewTask?: () => void;
+  onNewEvent?: () => void;
 }) {
   const [open, setOpen] = useState(false),
     [kind, setKind] = useState<QuickAddKind>("task"),
@@ -102,6 +104,11 @@ export function QuickAdd({
     if (kind === "task" && onNewTask) {
       closeDialog();
       onNewTask();
+      return;
+    }
+    if (kind === "event" && onNewEvent) {
+      closeDialog();
+      onNewEvent();
       return;
     }
     setBusy(true);
@@ -230,7 +237,22 @@ export function QuickAdd({
                 تسک جدید
               </button>
             )}
-            {!(kind === "task" && onNewTask) && (
+            {kind === "event" && onNewEvent && (
+              <button
+                type="button"
+                className="minor"
+                onClick={() => {
+                  closeDialog();
+                  onNewEvent();
+                }}
+              >
+                رویداد جدید
+              </button>
+            )}
+            {!(
+              (kind === "task" && onNewTask) ||
+              (kind === "event" && onNewEvent)
+            ) && (
               <>
                 <label>
                   عنوان

@@ -134,15 +134,18 @@ export async function pendingCreate<T>({
   input,
   submit,
   find,
+  onConfirmed,
 }: {
   user: string;
   kind: string;
   input: unknown;
   submit: (id: string) => PromiseLike<Result<T>>;
   find: (id: string) => PromiseLike<Result<T>>;
+  onConfirmed?: (data: T) => void;
 }): Promise<T> {
   const { id, clear } = await acquire(user, kind, input);
   const done = (data: T) => {
+    onConfirmed?.(data);
     clear();
     return data;
   };

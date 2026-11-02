@@ -46,10 +46,12 @@ export function CalendarEvents({
   client,
   householdId,
   onHouse,
+  onNewEvent,
 }: {
   client: SupabaseClient;
   householdId: string | null;
   onHouse: () => void;
+  onNewEvent?: (date: Date) => void;
 }) {
   const api = useMemo(() => directCalendar(client), [client]);
   const [events, setEvents] = useState<EventRecord[]>([]);
@@ -220,6 +222,10 @@ export function CalendarEvents({
       .toISOString()
       .slice(0, 16);
   function openNew() {
+    if (onNewEvent) {
+      onNewEvent(selected);
+      return;
+    }
     const base = new Date(selected);
     base.setHours(9, 0, 0, 0);
     const finish = new Date(base.getTime() + 60 * 60 * 1000);

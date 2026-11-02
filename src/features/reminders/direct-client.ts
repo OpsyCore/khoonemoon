@@ -25,6 +25,65 @@ async function currentUser(client: SupabaseClient) {
   if (error || !data.user) throw new Error("ابتدا وارد حساب خود شوید.");
   return data.user.id;
 }
+async function createInitialReminder(
+  client: SupabaseClient,
+  type: "TASK" | "EVENT",
+  input: { targetId: string; baseDateTime: string; minutesBefore: number },
+) {
+  const parsed = mobileCreateSchema.parse({
+    targetType: type,
+    targetId: input.targetId,
+    baseDateTime: input.baseDateTime,
+    offsets: [{ minutesBefore: input.minutesBefore }],
+  });
+  const user = await currentUser(client);
+  const { data: target, error: targetError } = await client
+    .from(targetTables[type])
+    .select("id,household_id")
+    .eq("id", parsed.targetId)
+    .maybeSingle();
+  if (targetError || !target)
+    throw new Error("دسترسی به هدف یادآور ممکن نیست.");
+  const id = await pendingChildId(
+    parsed.targetId,
+    type === "TASK" ? 314159 : 314160,
+  );
+  const remindAt = buildReminderTimes({
+    baseDateTime: parsed.baseDateTime,
+    offsetsMinutes: [input.minutesBefore],
+  })[0];
+  try {
+    const result = await client.from("reminders").insert({
+      id,
+      target_type: type,
+      target_id: parsed.targetId,
+      user_id: user,
+      household_id: target.household_id,
+      remind_at: remindAt,
+      status: "PENDING",
+    });
+    if (!result.error) return;
+  } catch {
+    /* The insert may have committed. The same deterministic id is reused. */
+  }
+  const existing = await client
+    .from("reminders")
+    .select("id,target_type,target_id,user_id,remind_at")
+    .eq("id", id)
+    .eq("user_id", user)
+    .maybeSingle();
+  if (
+    !existing.error &&
+    existing.data?.target_type === type &&
+    existing.data.target_id === parsed.targetId &&
+    existing.data.user_id === user &&
+    new Date(existing.data.remind_at).getTime() === new Date(remindAt).getTime()
+  )
+    return;
+  throw new Error(
+    "ثبت یادآوری تأیید نشد؛ فقط یادآوری را با همین اطلاعات دوباره امتحان کنید.",
+  );
+}
 /** User JWT and RLS enforce both ownership and target access. */
 export function directReminders(client: SupabaseClient) {
   return {
@@ -164,65 +223,20 @@ export function directReminders(client: SupabaseClient) {
         valid: (value): value is true => value === true,
       });
     },
-    /** One deterministic reminder per newly-created task: safe even after a reload or lost response. */
+    /** Stable IDs keep retries of the follow-up safe after reload or lost response. */
     async createTaskReminderOnce(input: {
       targetId: string;
       baseDateTime: string;
       minutesBefore: number;
     }): Promise<void> {
-      const parsed = mobileCreateSchema.parse({
-        targetType: "TASK",
-        targetId: input.targetId,
-        baseDateTime: input.baseDateTime,
-        offsets: [{ minutesBefore: input.minutesBefore }],
-      });
-      const user = await currentUser(client);
-      const { data: target, error: targetError } = await client
-        .from("tasks")
-        .select("id,household_id")
-        .eq("id", parsed.targetId)
-        .maybeSingle();
-      if (targetError || !target)
-        throw new Error("دسترسی به تسک یادآور ممکن نیست.");
-      const id = await pendingChildId(parsed.targetId, 314159);
-      const remindAt = buildReminderTimes({
-        baseDateTime: parsed.baseDateTime,
-        offsetsMinutes: [input.minutesBefore],
-      })[0];
-      try {
-        const result = await client
-          .from("reminders")
-          .insert({
-            id,
-            target_type: "TASK",
-            target_id: parsed.targetId,
-            user_id: user,
-            household_id: target.household_id,
-            remind_at: remindAt,
-            status: "PENDING",
-          });
-        if (!result.error) return;
-      } catch {
-        /* The insert may have committed. The same deterministic id is reused. */
-      }
-      const existing = await client
-        .from("reminders")
-        .select("id,target_type,target_id,user_id,remind_at")
-        .eq("id", id)
-        .eq("user_id", user)
-        .maybeSingle();
-      if (
-        !existing.error &&
-        existing.data?.target_type === "TASK" &&
-        existing.data.target_id === parsed.targetId &&
-        existing.data.user_id === user &&
-        new Date(existing.data.remind_at).getTime() ===
-          new Date(remindAt).getTime()
-      )
-        return;
-      throw new Error(
-        "ثبت یادآوری تأیید نشد؛ فقط یادآوری را با همین اطلاعات دوباره امتحان کنید.",
-      );
+      return createInitialReminder(client, "TASK", input);
+    },
+    async createEventReminderOnce(input: {
+      targetId: string;
+      baseDateTime: string;
+      minutesBefore: number;
+    }): Promise<void> {
+      return createInitialReminder(client, "EVENT", input);
     },
     async snooze(id: string, minutes: number): Promise<void> {
       snoozeReminderSchema.parse({ reminderId: id, minutes });

@@ -25,6 +25,7 @@ import {
 import { CalendarEvents } from "./calendar";
 import { Tasks } from "./tasks";
 import { NewTask } from "./new-task";
+import { NewEvent } from "./new-event";
 import { Finance } from "./finance";
 import { Chores } from "./chores";
 import { Profile } from "./profile";
@@ -54,6 +55,7 @@ const client =
 
 function App() {
   const [revision, setRevision] = useState(0);
+  const [newEventDate, setNewEventDate] = useState<Date | undefined>();
   const installState = useInstallPrompt();
   const [theme, setTheme] = useState<ThemeMode>(() => {
     try {
@@ -353,7 +355,8 @@ function App() {
               page === "tasks" ||
               page === "search" ||
               page === "settings" ||
-              page === "task-new") &&
+              page === "task-new" ||
+              page === "event-new") &&
             session &&
             !recovery
               ? "calendar-shell-header"
@@ -369,7 +372,8 @@ function App() {
               page === "tasks" ||
               page === "search" ||
               page === "settings" ||
-              page === "task-new") &&
+              page === "task-new" ||
+              page === "event-new") &&
             session &&
             !recovery
           ) && (
@@ -543,13 +547,19 @@ function App() {
             page !== "finance" &&
             page !== "search" &&
             page !== "settings" &&
-            page !== "task-new" && (
+            page !== "task-new" &&
+            page !== "event-new" && (
               <QuickAdd
                 client={client}
                 householdId={household ?? null}
                 floating={page === "tasks"}
                 onNewTask={() => {
                   setPage("task-new");
+                  window.scrollTo(0, 0);
+                }}
+                onNewEvent={() => {
+                  setNewEventDate(undefined);
+                  setPage("event-new");
                   window.scrollTo(0, 0);
                 }}
                 onDone={() => setRevision((n) => n + 1)}
@@ -675,6 +685,24 @@ function App() {
               }}
             />
           )}
+          {page === "event-new" && (
+            <NewEvent
+              key={session.user.id}
+              client={client}
+              userId={session.user.id}
+              initialDate={newEventDate}
+              householdId={household ?? null}
+              onDone={() => {
+                setRevision((n) => n + 1);
+                setPage("calendar");
+                window.scrollTo(0, 0);
+              }}
+              onCancel={() => {
+                setPage("calendar");
+                window.scrollTo(0, 0);
+              }}
+            />
+          )}
           {page === "finance" && (
             <Finance
               key={`${session.user.id}:${household ?? "none"}:${revision}`}
@@ -768,6 +796,11 @@ function App() {
               client={client}
               householdId={household ?? null}
               onHouse={() => setPage("house")}
+              onNewEvent={(date) => {
+                setNewEventDate(date);
+                setPage("event-new");
+                window.scrollTo(0, 0);
+              }}
             />
           )}
           {page === "profile" && (

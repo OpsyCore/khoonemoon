@@ -294,9 +294,11 @@ export function QuickAddSheet({
                     type="button"
                     disabled={disabled}
                     onClick={() => {
-                      if (action.key === "task") {
+                      if (action.key === "task" || action.key === "event") {
                         onClose();
-                        router.push("/tasks/new");
+                        router.push(
+                          action.key === "task" ? "/tasks/new" : "/events/new",
+                        );
                         return;
                       }
                       setKind(action.key);

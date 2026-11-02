@@ -49,6 +49,27 @@ describe("pending create journal", () => {
     }
     expect(new Set(seen).size).toBe(3);
   });
+  it("keeps the same ID if durable follow-up persistence fails after confirmation", async () => {
+    const ids: string[] = [];
+    let durable = false;
+    const request = {
+      user: "followup-user",
+      kind: "followup",
+      input: { title: "same" },
+      submit: async (id: string) => {
+        ids.push(id);
+        return { data: { id }, error: null };
+      },
+      find: async (id: string) => ({ data: { id }, error: null }),
+      onConfirmed: () => {
+        if (!durable) throw new Error("storage unavailable");
+      },
+    };
+    await expect(pendingCreate(request)).rejects.toThrow();
+    durable = true;
+    expect(await pendingCreate(request)).toEqual({ id: ids[0] });
+    expect(ids[1]).toBe(ids[0]);
+  });
   it("shares a pending UUID for concurrent identical submissions", async () => {
     const ids: string[] = [];
     const submit = async (id: string) => {

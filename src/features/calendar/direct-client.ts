@@ -26,7 +26,10 @@ export function directCalendar(client: SupabaseClient) {
       }
       return rows;
     },
-    async create(input: unknown): Promise<EventRecord> {
+    async create(
+      input: unknown,
+      onConfirmed?: (event: EventRecord) => void,
+    ): Promise<EventRecord> {
       const event = createEventSchema.parse(input);
       const { data: auth, error: authError } = await client.auth.getUser();
       if (authError || !auth.user) throw new Error("ابتدا وارد حساب خود شوید.");
@@ -46,6 +49,7 @@ export function directCalendar(client: SupabaseClient) {
         user: auth.user.id,
         kind: "calendar",
         input: { event, householdId },
+        onConfirmed,
         submit: (id) =>
           client
             .from("events")

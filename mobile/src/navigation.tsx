@@ -19,6 +19,7 @@ export type MobilePage =
   | "house"
   | "tasks"
   | "task-new"
+  | "event-new"
   | "calendar"
   | "shopping"
   | "finance"

@@ -417,21 +417,10 @@ export function CalendarBoard({
     ) : null;
 
   const showForm = () => {
-    const start = new Date(selectedDate);
-    start.setHours(9, 0, 0, 0);
-    const end = new Date(start.getTime() + 3600000);
-    setEditingEvent(null);
-    setErrorMessage(null);
-    reset({
-      title: "",
-      description: "",
-      visibility: householdId ? "HOUSEHOLD_SHARED" : "PRIVATE",
-      startAt: start.toISOString(),
-      endAt: end.toISOString(),
-      allDay: false,
-      location: "",
-    });
-    setFormOpen(true);
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(selectedDate.getDate()).padStart(2, "0");
+    router.push(`/events/new?date=${year}-${month}-${day}`);
   };
   const move = (direction: -1 | 1) => {
     const next =
