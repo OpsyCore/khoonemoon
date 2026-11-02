@@ -9,7 +9,7 @@ import { openSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getPersianAuthErrorMessage } from "@/features/auth/error-messages";
 import { safeRedirectPath } from "@/features/auth/safe-redirect";
 import { loginSchema, type LoginInput } from "@/features/auth/schemas";
-import { ChevronLeft, Eye, EyeOff, Mail } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { LoginIntro, LoginDivider, LoginBottomArt } from "./login-art";
 
 export function LoginForm() {
@@ -73,7 +73,7 @@ export function LoginForm() {
           <input
             type="email"
             autoComplete="email"
-            placeholder="ایمیل"
+            placeholder="ایمیل شما"
             aria-invalid={!!errors.email}
             aria-describedby={errors.email ? "login-email-error" : undefined}
             {...register("email")}
@@ -86,10 +86,11 @@ export function LoginForm() {
         )}
         <label className="login-field login-password-field">
           <span className="login-sr-only">رمز عبور</span>
+          <LockKeyhole size={22} aria-hidden="true" />
           <input
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
-            placeholder="رمز عبور"
+            placeholder="رمز عبور شما"
             aria-invalid={!!errors.password}
             aria-describedby={
               errors.password ? "login-password-error" : undefined
@@ -121,19 +122,19 @@ export function LoginForm() {
             {serverError}
           </p>
         )}
-        <Link href="/auth/forgot-password" className="login-forgot">
-          رمز عبورت رو فراموش کردی؟
-        </Link>
         <button type="submit" className="login-submit" disabled={isSubmitting}>
-          <span className="login-submit-leaf" aria-hidden="true" />
-          {isSubmitting ? "در حال ورود…" : "ورود به خونه‌مون"}
+          {isSubmitting ? "در حال ورود…" : "ورود به خونه‌مون"}{" "}
+          <ArrowLeft size={20} aria-hidden="true" />
         </button>
+        <Link href="/auth/forgot-password" className="login-forgot">
+          رمز عبورم رو فراموش کردم؟
+        </Link>
       </form>
       <LoginDivider />
       <div className="login-signup">
         <p>هنوز عضو خونه‌مون نیستی؟</p>
         <Link href="/auth/signup">
-          ثبت‌نام کن و به ما بپیوند <ChevronLeft size={18} aria-hidden="true" />
+          ثبت‌نام در خونه‌مون <ArrowLeft size={18} aria-hidden="true" />
         </Link>
       </div>
       <LoginBottomArt />

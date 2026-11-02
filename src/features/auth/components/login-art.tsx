@@ -5,7 +5,32 @@ export function LoginIntro() {
   return (
     <>
       <div className="login-floral login-floral-top" aria-hidden="true" />
-      <div className="login-brand" aria-label="خونه‌مون">
+      <div className="login-side-quote" aria-hidden="true">
+        لحظه‌های
+        <br />
+        کوچک
+        <br />
+        آغاز
+        <br />
+        زندگی بزرگ‌ترند...
+        <br />
+        <span>♡</span>
+      </div>
+      <div className="login-top-note" aria-hidden="true">
+        <span className="login-top-tape" />
+        <p>
+          خونه
+          <br />
+          جاییه که
+          <br />
+          با هم
+          <br />
+          قشنگ‌تره ...
+          <br />
+          <span>♡</span>
+        </p>
+      </div>
+      <div className="login-brand" aria-label="خونه‌مون، زندگی بهتر با هم">
         <svg
           className="login-brand-icon"
           viewBox="0 0 140 140"
@@ -13,46 +38,40 @@ export function LoginIntro() {
           aria-hidden="true"
         >
           <path
-            d="M17 65 70 12l53 53M28 59v62h58M101 43V29h12v27"
+            d="M14 47 70 8l56 39"
             stroke="currentColor"
-            strokeWidth="3"
+            strokeWidth="7"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
           <path
-            d="M60 50h9v9h-9zm14 0h9v9h-9zM60 64h9v9h-9zm14 0h9v9h-9z"
+            d="M44 116c1-31 13-52 36-67"
             stroke="currentColor"
-            strokeWidth="2.6"
+            strokeWidth="3"
+            strokeLinecap="round"
           />
           <path
-            d="M103 120c15-9 24-24 27-44M114 110c-10 0-16-4-18-10 9-1 15 2 18 10Zm7-13c-9-2-12-7-12-13 8 1 12 6 12 13Zm5-13c-5-5-4-12 0-18 5 7 5 12 0 18ZM108 116c4-8 11-11 19-10-4 8-10 11-19 10Z"
+            d="M49 90C30 82 24 67 26 54c17 4 26 16 23 36ZM57 72C49 56 54 39 65 30c7 17 4 31-8 42ZM70 59c1-14 10-24 23-25-1 13-9 22-23 25ZM43 111c-14-1-24-9-27-20 14-1 24 6 27 20ZM59 89c3-14 14-23 27-22-3 13-13 21-27 22Z"
             fill="currentColor"
-            stroke="currentColor"
-            strokeWidth="1.3"
-            strokeLinejoin="round"
           />
           <path
-            d="M119 20c-9-8-1-14 3-8 4-6 12-1 3 8l-3 3-3-3Z"
-            fill="#bd7454"
+            d="M91 84c-16-13-3-23 5-13 7-10 20 0 4 13l-4 4-5-4Z"
+            fill="#bc7657"
           />
         </svg>
-        <span>خونه‌مون</span>
+        <span className="login-brand-name">خونه‌مون</span>
+        <span className="login-brand-tagline">
+          <i />
+          زندگی بهتر، با هم
+          <i />
+        </span>
       </div>
       <div className="login-welcome">
-        <h1>
-          <span className="login-heart" aria-hidden="true">
-            ♡
-          </span>{" "}
-          خوش اومدی به خونه‌مون
-        </h1>
+        <h1>خوش اومدی به خونه‌مون</h1>
         <div className="login-heart-rule" aria-hidden="true">
-          <i />♥<i />
+          <i />♡<i />
         </div>
-        <p>
-          اینجا شروع یک زندگی مشترک و پر از عشق است
-          <br />
-          بیایید با هم بسازیمش.
-        </p>
+        <p>با هم، زندگی شیرین‌تری می‌سازیم</p>
       </div>
     </>
   );
@@ -71,19 +90,21 @@ export function LoginDivider() {
 export function LoginBottomArt() {
   return (
     <div className="login-bottom-art" aria-hidden="true">
-      <div className="login-note">
-        <span className="login-note-tape" />
-        <p>
-          خونه
-          <br />
-          جاییه که
-          <br />
-          با تو ♡<br />
-          خونه میشه...
-        </p>
-        <Leaf size={32} />
+      <div className="login-still-life" />
+      <div className="login-book-labels">
+        <span>خانه</span>
+        <span>آدم‌ها</span>
+        <span>روزهای بهتر</span>
       </div>
-      <div className="login-floral login-floral-bottom" />
+      <div className="login-bottom-quote">
+        زندگی
+        <br />
+        همین لحظه‌های
+        <br />
+        با هم بودن است
+        <br />
+        ...
+      </div>
     </div>
   );
 }

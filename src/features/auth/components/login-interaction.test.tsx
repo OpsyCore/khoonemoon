@@ -5,8 +5,18 @@ import { afterEach, expect, it, vi } from "vitest";
 import { MobileLogin } from "../../../../mobile/src/login";
 import { LoginForm } from "./login-form";
 
+const auth = vi.hoisted(() => ({
+  signIn: vi.fn(),
+  replace: vi.fn(),
+  refresh: vi.fn(),
+}));
+vi.mock("@/lib/supabase/client", () => ({
+  openSupabaseBrowserClient: () => ({
+    client: { auth: { signInWithPassword: auth.signIn } },
+  }),
+}));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ replace: auth.replace, refresh: auth.refresh }),
   useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("next/link", () => ({
@@ -108,5 +118,39 @@ it("web login preserves POST, accessible controls and links", async () => {
       .querySelector('input[autocomplete="current-password"]')!
       .getAttribute("type"),
   ).toBe("text");
+  await act(async () => root.unmount());
+});
+
+it("web submits credentials through the authenticated client and navigates after success", async () => {
+  auth.signIn.mockResolvedValue({ error: null });
+  const node = document.createElement("div");
+  document.body.append(node);
+  const root = createRoot(node);
+  await act(async () => root.render(<LoginForm />));
+  const setValue = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value",
+  )!.set!;
+  await act(async () => {
+    const email = node.querySelector<HTMLInputElement>('input[type="email"]')!;
+    const password = node.querySelector<HTMLInputElement>(
+      'input[type="password"]',
+    )!;
+    setValue.call(email, "member@example.com");
+    email.dispatchEvent(new Event("input", { bubbles: true }));
+    setValue.call(password, "password123");
+    password.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await act(async () =>
+    node
+      .querySelector("form")!
+      .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
+  );
+  expect(auth.signIn).toHaveBeenCalledWith({
+    email: "member@example.com",
+    password: "password123",
+  });
+  expect(auth.replace).toHaveBeenCalled();
+  expect(auth.refresh).toHaveBeenCalled();
   await act(async () => root.unmount());
 });

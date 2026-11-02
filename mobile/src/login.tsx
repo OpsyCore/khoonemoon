@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { ChevronLeft, Eye, EyeOff, Mail } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import {
   LoginIntro,
   LoginDivider,
@@ -45,18 +45,19 @@ export function MobileLogin({
             type="email"
             autoComplete="email"
             required
-            placeholder="ایمیل"
+            placeholder="ایمیل شما"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </label>
         <label className="login-field login-password-field">
           <span className="login-sr-only">رمز عبور</span>
+          <LockKeyhole size={22} aria-hidden="true" />
           <input
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             required
-            placeholder="رمز عبور"
+            placeholder="رمز عبور شما"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -70,19 +71,16 @@ export function MobileLogin({
             {showPassword ? <Eye size={22} /> : <EyeOff size={22} />}
           </button>
         </label>
+        <button type="submit" className="login-submit" disabled={busy}>
+          ورود به خونه‌مون <ArrowLeft size={20} aria-hidden="true" />
+        </button>
         <button
           type="button"
           className="login-forgot"
           disabled={busy}
-          onClick={() => {
-            onForgot();
-          }}
+          onClick={onForgot}
         >
-          رمز عبورت رو فراموش کردی؟
-        </button>
-        <button type="submit" className="login-submit" disabled={busy}>
-          <span className="login-submit-leaf" aria-hidden="true" />
-          ورود به خونه‌مون
+          رمز عبورم رو فراموش کردم؟
         </button>
       </form>
       <LoginDivider />
@@ -95,7 +93,7 @@ export function MobileLogin({
             onSignup();
           }}
         >
-          ثبت‌نام کن و به ما بپیوند <ChevronLeft size={18} aria-hidden="true" />
+          ثبت‌نام در خونه‌مون <ArrowLeft size={18} aria-hidden="true" />
         </button>
       </div>
       <LoginBottomArt />
