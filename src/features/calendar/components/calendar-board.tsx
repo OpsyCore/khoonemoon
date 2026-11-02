@@ -16,9 +16,12 @@ import {
   CircleDollarSign,
   House,
   Leaf,
+  Map,
   MapPin,
   Pencil,
   Plus,
+  ShoppingCart,
+  Soup,
   Trash2,
   UsersRound,
   X,
@@ -640,7 +643,15 @@ export function CalendarBoard({
           )}
           <ul className="web-calendar-items">
             {shownItems.map((item) => {
-              const Icon = iconFor[item.type];
+              const Icon = /صبحانه|ناهار|شام|غذا|breakfast|lunch|dinner/i.test(
+                item.title,
+              )
+                ? Soup
+                : /سفر|مسافرت|trip|travel/i.test(item.title)
+                  ? Map
+                  : /خرید|shopping/i.test(item.title)
+                    ? ShoppingCart
+                    : iconFor[item.type];
               const event =
                 item.type === "EVENT"
                   ? events.find((e) => e.id === item.id)
@@ -660,7 +671,15 @@ export function CalendarBoard({
                     </div>
                   </div>
                   <div className="web-calendar-item-meta">
-                    <time>
+                    <time
+                      dir={
+                        !item.allDay &&
+                        item.type === "EVENT" &&
+                        isSameDay(item.startAt, item.endAt)
+                          ? "ltr"
+                          : undefined
+                      }
+                    >
                       {item.allDay
                         ? "تمام روز"
                         : item.type === "EVENT"

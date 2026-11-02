@@ -244,3 +244,9 @@ dialog.web-calendar-form-wrap { position:fixed; margin:auto; inset:0; width:min(
 @media (max-width: 340px) { .web-calendar-day-heading > span { display:none; }.web-calendar-legend { border-radius:.8rem; }.web-calendar-icon { width:2.1rem; height:2.1rem; } }
 .web-calendar-actions { flex-wrap:wrap; justify-content:flex-end; }
 .web-calendar-heading-nav button:disabled { opacity:.3; cursor:not-allowed; }
+/* Match the mobile calendar: transparent foliage stays inside its bounds. */
+.web-calendar-hero::before { left:.25rem; top:.1rem; width:4.4rem; height:5.8rem; transform:none; mix-blend-mode:normal; }
+.web-calendar-day-heading::after { left:.25rem; bottom:.15rem; width:3.65rem; height:4.4rem; mix-blend-mode:normal; }
+.dark .web-calendar-hero::before,.dark .web-calendar-day-heading::after { mix-blend-mode:normal; opacity:.8; border-radius:0; }
+.web-calendar-add { left:auto; right:max(1.1rem,calc((100vw - 44rem) / 2 + 1.1rem)); }
+.web-calendar-item-meta time[dir="ltr"] { unicode-bidi:isolate; }
