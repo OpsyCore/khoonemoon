@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import "@fontsource-variable/vazirmatn";
 import { MobileLogin } from "./login";
+import { RecoveryReference } from "@/features/auth/components/recovery-reference";
 import { createClient, type Session } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
@@ -339,12 +340,20 @@ function App() {
   return (
     <main
       className={
-        !session && ready && client && authMode === "login"
+        !session && ready && client && !recovery && authMode === "login"
           ? "login-mobile-main"
-          : undefined
+          : !session && ready && client && !recovery && authMode === "forgot"
+            ? "recovery-mobile-main"
+            : undefined
       }
     >
-      {!(ready && client && !session && authMode === "login") && (
+      {!(
+        ready &&
+        client &&
+        !session &&
+        !recovery &&
+        (authMode === "login" || authMode === "forgot")
+      ) && (
         <header
           className={
             (page === "calendar" ||
@@ -398,11 +407,18 @@ function App() {
           نیاز دارند.
         </p>
       )}
-      {message && (
-        <p role="alert" className="error">
-          {message}
-        </p>
-      )}
+      {message &&
+        !(
+          ready &&
+          client &&
+          !session &&
+          !recovery &&
+          authMode === "forgot"
+        ) && (
+          <p role="alert" className="error">
+            {message}
+          </p>
+        )}
       {!client ? (
         <section>
           <p>اتصال Supabase برای این ساخت تنظیم نشده است.</p>
@@ -476,6 +492,19 @@ function App() {
           theme={theme}
           setTheme={chooseTheme}
           themePersisted={themePersisted}
+        />
+      ) : !session && authMode === "forgot" ? (
+        <RecoveryReference
+          email={email}
+          setEmail={setEmail}
+          busy={busy}
+          onSubmit={forgot}
+          message={message}
+          onBack={() => {
+            setAuthMode("login");
+            setMessage("");
+            setPassword("");
+          }}
         />
       ) : !session ? (
         <>
