@@ -23,6 +23,7 @@ declare global {
       sync: (account: string, rows: string) => boolean;
       clear: () => void;
       enabled: () => boolean;
+      versionName?: () => string;
       request: () => void;
     };
   }

@@ -243,6 +243,10 @@ public class MainActivity extends Activity {
             });
             return true;
         }
+        @JavascriptInterface public String versionName() {
+            try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+            catch (Exception ignored) { return ""; }
+        }
         @JavascriptInterface public boolean enabled() {
             android.app.NotificationManager manager = (android.app.NotificationManager)getSystemService(NOTIFICATION_SERVICE);
             boolean permission = Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;

@@ -72,6 +72,46 @@ export function directReminders(client: SupabaseClient) {
       );
       if (error) throw new Error("ذخیره تنظیمات یادآور ناموفق بود.");
     },
+    async updateInApp(enabled: boolean): Promise<void> {
+      const value = z.boolean().parse(enabled);
+      const user = await currentUser(client);
+      const { error } = await client
+        .from("notification_preferences")
+        .upsert(
+          { user_id: user, in_app_enabled: value },
+          { onConflict: "user_id" },
+        );
+      if (error) throw new Error("ذخیره تنظیمات یادآور ناموفق بود.");
+    },
+    async updateQuietHours(
+      enabled: boolean,
+      start: string | null,
+      end: string | null,
+    ): Promise<void> {
+      const value = reminderPreferencesSchema.parse({
+        inAppEnabled: true,
+        webPushEnabled: false,
+        quietHoursEnabled: enabled,
+        quietHoursStart: enabled ? start : null,
+        quietHoursEnd: enabled ? end : null,
+      });
+      if (
+        value.quietHoursEnabled &&
+        value.quietHoursStart === value.quietHoursEnd
+      )
+        throw new Error("شروع و پایان ساعات سکوت باید متفاوت باشند.");
+      const user = await currentUser(client);
+      const { error } = await client.from("notification_preferences").upsert(
+        {
+          user_id: user,
+          quiet_hours_enabled: value.quietHoursEnabled,
+          quiet_hours_start: value.quietHoursStart,
+          quiet_hours_end: value.quietHoursEnd,
+        },
+        { onConflict: "user_id" },
+      );
+      if (error) throw new Error("ذخیره ساعات سکوت ناموفق بود.");
+    },
     async create(input: unknown): Promise<void> {
       const parsed = mobileCreateSchema.parse(input);
       const user = await currentUser(client);

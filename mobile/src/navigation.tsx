@@ -7,6 +7,7 @@ import {
   ListTodo,
   Menu,
   Search,
+  Settings,
   ShoppingBasket,
   UserRound,
   Wallet,
@@ -21,6 +22,7 @@ export type MobilePage =
   | "shopping"
   | "finance"
   | "profile"
+  | "settings"
   | "reminders"
   | "documents"
   | "search";
@@ -35,7 +37,8 @@ const secondary = [
   { id: "search", label: "جستجو", icon: Search },
   { id: "documents", label: "مدارک", icon: FileText },
   { id: "reminders", label: "یادآورها", icon: Bell },
-  { id: "profile", label: "حساب و تنظیمات", icon: UserRound },
+  { id: "profile", label: "حساب کاربری", icon: UserRound },
+  { id: "settings", label: "تنظیمات", icon: Settings },
 ] as const;
 
 export function MobileNavigation({

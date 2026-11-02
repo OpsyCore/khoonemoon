@@ -118,6 +118,25 @@ describe("direct reminders", () => {
       status: "CANCELED",
     });
   });
+  it("updates only the requested notification settings", async () => {
+    const { api, fetcher } = setup();
+    await api.updateInApp(false);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      user_id: "me",
+      in_app_enabled: false,
+    });
+    await api.updateQuietHours(true, "22:00", "08:00");
+    expect(JSON.parse(String(fetcher.mock.calls[1][1]?.body))).toEqual({
+      user_id: "me",
+      quiet_hours_enabled: true,
+      quiet_hours_start: "22:00",
+      quiet_hours_end: "08:00",
+    });
+    await expect(
+      api.updateQuietHours(true, "22:00", "22:00"),
+    ).rejects.toThrow();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
   it("saves notification preferences for the authenticated account", async () => {
     const { api, fetcher } = setup();
     await api.savePreferences({

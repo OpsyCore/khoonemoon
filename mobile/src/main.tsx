@@ -31,6 +31,7 @@ import { MobileNavigation, type MobilePage } from "./navigation";
 import { PendingTransferPanel } from "@/features/households/pending-transfer-panel";
 import { HomeDashboard } from "./home-dashboard";
 import { ThemeSettings } from "./theme-settings";
+import { SettingsDashboard } from "./settings";
 import { InstallGuide, useInstallPrompt } from "./install-guide";
 import {
   readTheme,
@@ -349,7 +350,8 @@ function App() {
               page === "house" ||
               page === "finance" ||
               page === "tasks" ||
-              page === "search") &&
+              page === "search" ||
+              page === "settings") &&
             session &&
             !recovery
               ? "calendar-shell-header"
@@ -363,7 +365,8 @@ function App() {
               page === "house" ||
               page === "finance" ||
               page === "tasks" ||
-              page === "search") &&
+              page === "search" ||
+              page === "settings") &&
             session &&
             !recovery
           ) && (
@@ -535,7 +538,8 @@ function App() {
             page !== "documents" &&
             page !== "house" &&
             page !== "finance" &&
-            page !== "search" && (
+            page !== "search" &&
+            page !== "settings" && (
               <QuickAdd
                 client={client}
                 householdId={household ?? null}
@@ -566,7 +570,7 @@ function App() {
                 userId={session.user.id}
                 householdId={household}
                 onHouseholdChange={setHousehold}
-                onSettings={() => setPage("profile")}
+                onSettings={() => setPage("settings")}
                 onTasks={() => setPage("tasks")}
                 onCalendar={() => setPage("calendar")}
               />
@@ -648,7 +652,7 @@ function App() {
               client={client}
               householdId={household ?? null}
               onBack={() => setPage("house")}
-              onSettings={() => setPage("profile")}
+              onSettings={() => setPage("settings")}
             />
           )}
           {page === "search" && (
@@ -698,6 +702,19 @@ function App() {
               client={client}
               notificationStatus={notificationStatus}
               householdId={household ?? null}
+            />
+          )}
+          {page === "settings" && (
+            <SettingsDashboard
+              client={client}
+              theme={theme}
+              setTheme={chooseTheme}
+              themePersisted={themePersisted}
+              install={installState}
+              notificationStatus={notificationStatus}
+              backupInAccount
+              onHouse={() => setPage("house")}
+              onAccount={() => setPage("profile")}
             />
           )}
           {page === "profile" && (
