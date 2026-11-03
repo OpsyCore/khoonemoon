@@ -18,6 +18,7 @@ import { describeBadge, formatBadgeCount } from "@/shared/utils/badge-count";
 export type MobilePage =
   | "house"
   | "tasks"
+  | "chores"
   | "task-new"
   | "event-new"
   | "calendar"
@@ -36,6 +37,7 @@ const primary = [
   { id: "house", label: "خانه", icon: House },
 ] as const;
 const secondary = [
+  { id: "chores", label: "تقسیم وظایف", icon: House },
   { id: "search", label: "جستجو", icon: Search },
   { id: "documents", label: "مدارک", icon: FileText },
   { id: "reminders", label: "یادآورها", icon: Bell },

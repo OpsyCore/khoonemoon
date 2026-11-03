@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   Bell,
   FileText,
+  House,
   Menu,
   Search,
   Settings,
@@ -13,6 +14,7 @@ import {
 import { describeBadge, formatBadgeCount } from "@/shared/utils/badge-count";
 
 const items = [
+  { href: "/chores", label: "تقسیم وظایف", icon: House },
   { href: "/search", label: "جستجو", icon: Search },
   { href: "/documents", label: "مدارک", icon: FileText },
   { href: "/reminders", label: "یادآورها", icon: Bell },

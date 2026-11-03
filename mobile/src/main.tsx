@@ -32,6 +32,7 @@ import { NewTask } from "./new-task";
 import { NewEvent } from "./new-event";
 import { Finance } from "./finance";
 import { Chores } from "./chores";
+import { ChoresDashboard } from "./chores-dashboard";
 import { Profile } from "./profile";
 import { MobileNavigation, type MobilePage } from "./navigation";
 import { PendingTransferPanel } from "@/features/households/pending-transfer-panel";
@@ -387,6 +388,7 @@ function App() {
               page === "house" ||
               page === "finance" ||
               page === "tasks" ||
+              page === "chores" ||
               page === "search" ||
               page === "settings" ||
               page === "task-new" ||
@@ -404,6 +406,7 @@ function App() {
               page === "house" ||
               page === "finance" ||
               page === "tasks" ||
+              page === "chores" ||
               page === "search" ||
               page === "settings" ||
               page === "task-new" ||
@@ -647,7 +650,8 @@ function App() {
             page !== "search" &&
             page !== "settings" &&
             page !== "task-new" &&
-            page !== "event-new" && (
+            page !== "event-new" &&
+            page !== "chores" && (
               <QuickAdd
                 client={client}
                 householdId={household ?? null}
@@ -733,6 +737,11 @@ function App() {
                   setPage("house");
                   return;
                 }
+                if (section === "chore-list") {
+                  setPage("chores");
+                  window.scrollTo(0, 0);
+                  return;
+                }
                 setPage(target);
                 if (section)
                   window.requestAnimationFrame(() =>
@@ -766,6 +775,15 @@ function App() {
               <summary>مدیریت کارهای خانه</summary>
               <Chores key={household} client={client} householdId={household} />
             </details>
+          )}
+          {page === "chores" && household !== undefined && (
+            <ChoresDashboard
+              key={household ?? "none"}
+              client={client}
+              householdId={household}
+              onSettings={() => setPage("settings")}
+              onHouse={() => setPage("house")}
+            />
           )}
           {page === "task-new" && (
             <NewTask

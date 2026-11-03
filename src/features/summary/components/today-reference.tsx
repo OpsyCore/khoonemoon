@@ -12,7 +12,8 @@ export function TodayReference() {
       client={client}
       onTaskChanged={() => router.refresh()}
       onNavigate={(page, section) => {
-        if (page === "tasks")
+        if (section === "chore-list") router.push("/chores");
+        else if (page === "tasks")
           router.push(`/today?manage=1#${section ?? "task-list"}`);
         else router.push(`/${page}`);
       }}
