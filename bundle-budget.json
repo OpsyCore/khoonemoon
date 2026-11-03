@@ -3,6 +3,6 @@
   "defaultMaxGzipBytes": 240000,
   "sharedMaxGzipBytes": 145000,
   "routes": {},
-  "mobileBudgetNote": "سقف موبایل برای فرم تسک جدید با تقویم شمسی، تکرار و ثبت ایمن یادآوری افزایش یافت؛ مجموع gzip فایل‌های JS مستقل همچنان کنترل می‌شود.",
-  "mobileMaxGzipBytes": 279000
+  "mobileBudgetNote": "سقف موبایل شامل صفحه قطع ارتباط و بررسی اتصال، فرم تسک و یادآوری است؛ مجموع gzip فایل‌های JS مستقل همچنان کنترل می‌شود.",
+  "mobileMaxGzipBytes": 281000
 }

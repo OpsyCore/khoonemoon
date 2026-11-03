@@ -32,6 +32,8 @@ describe("standalone foundation", () => {
     const app = readFileSync("mobile/src/main.tsx", "utf8");
     expect(app).toContain('window.addEventListener("offline", update)');
     expect(app).toContain('window.addEventListener("online", update)');
-    expect(app).toContain('className="network-status" role="status"');
+    expect(app).toContain('className="offline-overlay"');
+    expect(app).toContain("دریافت و ذخیره داده‌ها به اینترنت نیاز دارد");
+    expect(app).toContain('className="network-status"');
   });
 });

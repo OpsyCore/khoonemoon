@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { AppMenu } from "@/shared/layout/app-menu";
 import { BottomNav } from "@/shared/layout/bottom-nav";
 import { QuickAddFab } from "@/shared/layout/quick-add-fab";
-import { ConnectionStatus } from "@/shared/layout/connection-status";
 
 export function AppShell({
   children,
@@ -15,9 +14,6 @@ export function AppShell({
 }) {
   return (
     <div className="min-h-dvh text-ink">
-      <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center">
-        <ConnectionStatus offlineOnly />
-      </div>
       <AppMenu dueReminderCount={dueReminderCount} />
       <main className="mx-auto w-full max-w-md px-5 pb-36 pt-20">
         {children}

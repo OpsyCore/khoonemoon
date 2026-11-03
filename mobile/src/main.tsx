@@ -1,6 +1,9 @@
 /// <reference types="vite/client" />
 import "@fontsource-variable/vazirmatn";
 import { MobileLogin } from "./login";
+import { OfflineScreen } from "@/shared/ui/offline-screen";
+import { probeConnection } from "@/shared/utils/connection-probe";
+import "../../public/offline-screen.css";
 import { RecoveryReference } from "@/features/auth/components/recovery-reference";
 import { createClient, type Session } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -67,8 +70,15 @@ function App() {
   });
   const [themePersisted, setThemePersisted] = useState(true);
   const [online, setOnline] = useState(() => navigator.onLine);
+  const [offlineDismissed, setOfflineDismissed] = useState(false);
+  const [offlineBusy, setOfflineBusy] = useState(false);
+  const [offlineMessage, setOfflineMessage] = useState("");
   useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
+    const update = () => {
+      setOnline(navigator.onLine);
+      if (!navigator.onLine) setOfflineDismissed(false);
+      else setOfflineMessage("");
+    };
     window.addEventListener("online", update);
     window.addEventListener("offline", update);
     return () => {
@@ -321,6 +331,21 @@ function App() {
       );
     });
   }
+  async function retryOffline() {
+    if (offlineBusy || !url || !anonKey) return;
+    setOfflineBusy(true);
+    setOfflineMessage("");
+    const connected = await probeConnection(
+      `${url.replace(/\/$/, "")}/auth/v1/health`,
+      { apikey: anonKey },
+    );
+    setOfflineBusy(false);
+    if (connected) {
+      setOnline(true);
+      setOfflineDismissed(false);
+      window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
+    } else setOfflineMessage("اتصال به سرور برقرار نشد؛ دوباره امتحان کنید.");
+  }
   function updatePassword(event: FormEvent) {
     event.preventDefault();
     void action(async () => {
@@ -401,11 +426,56 @@ function App() {
         </header>
       )}
 
-      {!online && (
-        <p className="network-status" role="status">
-          اتصال اینترنت برقرار نیست. داده‌های خانه و ذخیره تغییرات به اینترنت
-          نیاز دارند.
-        </p>
+      {!online && !offlineDismissed && (
+        <div
+          className="offline-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="offline-title"
+        >
+          <OfflineScreen
+            message={offlineMessage}
+            actions={
+              <>
+                <button
+                  className="offline-retry"
+                  type="button"
+                  disabled={offlineBusy}
+                  onClick={() => void retryOffline()}
+                >
+                  {offlineBusy ? "در حال بررسی…" : "تلاش مجدد"}
+                </button>
+                <button
+                  className="offline-back"
+                  type="button"
+                  onClick={() => {
+                    if (
+                      (page === "task-new" || page === "event-new") &&
+                      !window.confirm(
+                        "برای بازگشت به امروز ممکن است تغییرات ذخیره‌نشده از دست بروند. ادامه می‌دهید؟",
+                      )
+                    )
+                      return;
+                    if (session) setPage("tasks");
+                    setOfflineDismissed(true);
+                  }}
+                >
+                  بازگشت به امروز
+                </button>
+              </>
+            }
+          />
+        </div>
+      )}
+      {!online && offlineDismissed && (
+        <button
+          type="button"
+          className="network-status"
+          onClick={() => setOfflineDismissed(false)}
+        >
+          آفلاین هستید؛ دریافت و ذخیره داده‌ها به اینترنت نیاز دارد. برای بررسی
+          اتصال بزنید.
+        </button>
       )}
       {message &&
         !(

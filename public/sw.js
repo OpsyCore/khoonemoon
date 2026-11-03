@@ -1,5 +1,5 @@
 /* Khoonemoon service worker — shell caching only. */
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const CACHE_NAME = `khunemun-shell-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline";
 
@@ -12,6 +12,9 @@ const OFFLINE_URL = "/offline";
  */
 const PRECACHE_URLS = [
   OFFLINE_URL,
+  "/offline-screen.css",
+  "/offline-art/house.webp",
+  "/offline-art/branch.webp",
   "/manifest.webmanifest",
   "/icons/icon-192.svg",
   "/icons/icon-512.svg",
@@ -44,6 +47,8 @@ self.addEventListener("activate", (event) => {
 function isStaticAsset(url) {
   return (
     url.pathname.startsWith("/_next/static/") ||
+    url.pathname.startsWith("/offline-art/") ||
+    url.pathname === "/offline-screen.css" ||
     url.pathname.startsWith("/icons/") ||
     url.pathname === "/manifest.webmanifest"
   );
