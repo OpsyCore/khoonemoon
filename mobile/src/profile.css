@@ -1,0 +1,111 @@
+.profile-ref {
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+.profile-ref-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+}
+.profile-ref-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+.profile-ref-header p {
+  margin: 0.2rem 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+:root .profile-ref .profile-ref-header button:not(.calendar-day) {
+  display: grid;
+  place-items: center;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-field, 0.875rem);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: none;
+}
+.profile-ref-identity {
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  padding: 1rem;
+}
+.profile-ref-avatar {
+  display: grid;
+  place-items: center;
+  width: 5rem;
+  height: 5rem;
+  border: 2px solid var(--card);
+  border-radius: 50%;
+  background: var(--clay-soft);
+  color: var(--clay-ink);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.profile-ref-identity small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.profile-ref h3 {
+  color: var(--ink);
+  font-size: 0.95rem;
+  margin: 1rem 0 0.5rem;
+}
+.profile-ref-links,
+.profile-ref-form {
+  border: 1px solid var(--line);
+  border-radius: 1.125rem;
+  background: var(--card);
+  overflow: hidden;
+}
+:root .profile-ref .profile-ref-links button:not(.calendar-day) {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: right;
+  font: inherit;
+  box-shadow: none;
+}
+:root .profile-ref .profile-ref-links button:last-child {
+  border-bottom: 0;
+}
+.profile-ref-links button > span {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  background: var(--olive-soft);
+  color: var(--olive-ink);
+}
+.profile-ref-links button > b {
+  margin-inline-start: auto;
+  color: var(--muted);
+}
+.profile-ref-form {
+  padding: 1rem;
+}
+:root .profile-ref .profile-ref-form button:not(.calendar-day) {
+  min-height: 48px;
+  background: var(--olive-deep);
+  color: var(--cream);
+}
+.profile-ref-form small {
+  color: var(--muted);
+}

@@ -901,7 +901,12 @@ function App() {
                 persisted={themePersisted}
               />
               <InstallGuide state={installState} />
-              <Profile key={session.user.id} client={client} />
+              <Profile
+                key={session.user.id}
+                client={client}
+                email={session.user.email}
+                onNavigate={setPage}
+              />
               <PendingTransferPanel
                 userId={session.user.id}
                 householdId={household ?? null}
