@@ -188,3 +188,12 @@ SQL خام ساخته می‌شوند، Supabase هیچ grant پیش‌فرضی 
 - The `pg_trgm` extension is installed in the non-exposed `extensions` schema by
   `drizzle/0053_move_pg_trgm_to_extensions_schema.sql`; existing trigram indexes remain
   attached to their operator class by object identity.
+
+
+## 14) SECURITY DEFINER search path hardening
+
+- All 45 public SECURITY DEFINER functions now pin `pg_catalog` first and
+  explicitly place `pg_temp` last, preserving each function's required trusted
+  schemas (such as `storage` and `backup_private`).
+- This prevents temporary objects from shadowing trusted relations during a
+  SECURITY DEFINER call. The matching migration is `drizzle/0054_secure_definer_temp_search_path.sql`.
