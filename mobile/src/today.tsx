@@ -251,191 +251,186 @@ export function Today({
       {!value && !error && <p role="status">در حال دریافت اطلاعات امروز…</p>}
       {value && (
         <div className="today-ref-grid">
-          <div className="today-ref-column">
-            <div className="today-ref-card today-ref-tasks">
-              <h3>
-                <ListTodo size={20} /> کارهای امروز و معوق
-              </h3>
-              {value.tasks.length ? (
-                value.tasks.slice(0, 5).map((t) => (
-                  <div className="today-ref-row" key={t.id}>
-                    <span className="today-ref-text">
-                      <strong>{t.title}</strong>
-                      <small>{dateTime(t.due_at)}</small>
-                    </span>
-                    {t.priority &&
-                      ["HIGH", "CRITICAL"].includes(t.priority) && (
-                        <span
-                          className="today-ref-priority"
-                          aria-label="اولویت بالا"
-                        >
-                          !
-                        </span>
-                      )}
-                    <button
-                      className="today-ref-check"
-                      aria-label={`انجام ${t.title}`}
-                      disabled={busy}
-                      onClick={() => void completeTask(t.id)}
+          <div className="today-ref-card today-ref-tasks">
+            <h3>
+              <ListTodo size={20} /> کارهای امروز و معوق
+            </h3>
+            {value.tasks.length ? (
+              value.tasks.slice(0, 5).map((t) => (
+                <div className="today-ref-row" key={t.id}>
+                  <span className="today-ref-text">
+                    <strong>{t.title}</strong>
+                    <small>{dateTime(t.due_at)}</small>
+                  </span>
+                  {t.priority && ["HIGH", "CRITICAL"].includes(t.priority) && (
+                    <span
+                      className="today-ref-priority"
+                      aria-label="اولویت بالا"
                     >
-                      <Check size={15} />
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p>کاری برای امروز یا معوق نیست.</p>
-              )}
-              <button
-                className="today-ref-more"
-                onClick={() => onNavigate("tasks", "task-list")}
-              >
-                دیدن همه ←
-              </button>
-            </div>
-            <div className="today-ref-card">
-              <h3>
-                <House size={20} /> کارهای خانه
-              </h3>
-              {value.chores.length ? (
-                value.chores.slice(0, 4).map((c) => (
-                  <div className="today-ref-row" key={c.id}>
-                    <span className="today-ref-text">
-                      <strong>{c.title}</strong>
-                      <small>{dateTime(c.next_due_at)}</small>
+                      !
                     </span>
-                    <button
-                      className="today-ref-check"
-                      aria-label={`انجام ${c.title}`}
-                      disabled={busy || !c.next_due_at}
-                      onClick={() => {
-                        if (
-                          c.next_due_at &&
-                          window.confirm("انجام این کار خانه ثبت شود؟")
-                        )
-                          void doTodayAction(() =>
-                            completeTodayChore(client, c.id, c.next_due_at!),
-                          );
-                      }}
-                    >
-                      <Check size={15} />
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p>کار خانه‌ای برای امروز یا معوق نیست.</p>
-              )}
-              <button
-                className="today-ref-more"
-                onClick={() => onNavigate("tasks", "chore-list")}
-              >
-                دیدن همه ←
-              </button>
-            </div>
+                  )}
+                  <button
+                    className="today-ref-check"
+                    aria-label={`انجام ${t.title}`}
+                    disabled={busy}
+                    onClick={() => void completeTask(t.id)}
+                  >
+                    <Check size={15} />
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p>کاری برای امروز یا معوق نیست.</p>
+            )}
+            <button
+              className="today-ref-more"
+              onClick={() => onNavigate("tasks", "task-list")}
+            >
+              دیدن همه ←
+            </button>
           </div>
-          <div className="today-ref-column">
-            <div className="today-ref-card">
-              <h3>
-                <CalendarDays size={20} /> رویدادهای پیش رو
-              </h3>
-              {value.upcomingEvents.length ? (
-                value.upcomingEvents.slice(0, 3).map((e) => (
+          <div className="today-ref-card today-ref-events">
+            <h3>
+              <CalendarDays size={20} /> رویدادهای پیش رو
+            </h3>
+            {value.upcomingEvents.length ? (
+              value.upcomingEvents.slice(0, 3).map((e) => (
+                <button
+                  className="today-ref-item"
+                  key={e.id}
+                  onClick={() => onNavigate("calendar")}
+                >
+                  <span className="today-ref-icon">
+                    <CalendarDays size={18} />
+                  </span>
+                  <span>
+                    <strong>{e.title}</strong>
+                    <small>{dateTime(e.start_at)}</small>
+                  </span>
+                </button>
+              ))
+            ) : (
+              <p>در هفت روز آینده رویدادی نیست.</p>
+            )}
+            <button
+              className="today-ref-more"
+              onClick={() => onNavigate("calendar")}
+            >
+              دیدن تقویم ←
+            </button>
+          </div>
+          <div className="today-ref-card today-ref-chores">
+            <h3>
+              <House size={20} /> کارهای خانه
+            </h3>
+            {value.chores.length ? (
+              value.chores.slice(0, 4).map((c) => (
+                <div className="today-ref-row" key={c.id}>
+                  <span className="today-ref-text">
+                    <strong>{c.title}</strong>
+                    <small>{dateTime(c.next_due_at)}</small>
+                  </span>
                   <button
-                    className="today-ref-item"
-                    key={e.id}
-                    onClick={() => onNavigate("calendar")}
+                    className="today-ref-check"
+                    aria-label={`انجام ${c.title}`}
+                    disabled={busy || !c.next_due_at}
+                    onClick={() => {
+                      if (
+                        c.next_due_at &&
+                        window.confirm("انجام این کار خانه ثبت شود؟")
+                      )
+                        void doTodayAction(() =>
+                          completeTodayChore(client, c.id, c.next_due_at!),
+                        );
+                    }}
                   >
-                    <span className="today-ref-icon">
-                      <CalendarDays size={18} />
-                    </span>
-                    <span>
-                      <strong>{e.title}</strong>
-                      <small>{dateTime(e.start_at)}</small>
-                    </span>
+                    <Check size={15} />
                   </button>
-                ))
-              ) : (
-                <p>در هفت روز آینده رویدادی نیست.</p>
-              )}
-              <button
-                className="today-ref-more"
-                onClick={() => onNavigate("calendar")}
-              >
-                دیدن تقویم ←
-              </button>
-            </div>
-            <div className="today-ref-card">
-              <h3>
-                <CreditCard size={20} /> قبض‌ها و پرداخت‌ها
-              </h3>
-              {value.upcomingBills.length ? (
-                value.upcomingBills.slice(0, 3).map((b) => (
-                  <div className="today-ref-item today-ref-bill" key={b.id}>
-                    <span className="today-ref-icon">
-                      <AlertCircle size={18} />
-                    </span>
-                    <span className="today-ref-text">
-                      <strong>{b.title}</strong>
-                      <small>{dateTime(b.due_at)}</small>
-                    </span>
-                    <span className="today-ref-days">{daysLeft(b.due_at)}</span>
-                    <button
-                      className="today-ref-pay"
-                      disabled={busy}
-                      onClick={() => {
-                        if (window.confirm("این قبض پرداخت شده است؟"))
-                          void doTodayAction(() => payTodayBill(client, b.id));
-                      }}
-                    >
-                      پرداخت شد
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p>قبضی معوق یا در هفت روز آینده نیست.</p>
-              )}
-              <button
-                className="today-ref-more"
-                onClick={() => onNavigate("finance")}
-              >
-                دیدن مالی ←
-              </button>
-            </div>
-            <div className="today-ref-card">
-              <h3>
-                <Bell size={20} /> یادآورهای امروز و معوق
-              </h3>
-              {value.reminders.length ? (
-                value.reminders.slice(0, 4).map((r) => (
+                </div>
+              ))
+            ) : (
+              <p>کار خانه‌ای برای امروز یا معوق نیست.</p>
+            )}
+            <button
+              className="today-ref-more"
+              onClick={() => onNavigate("tasks", "chore-list")}
+            >
+              دیدن همه ←
+            </button>
+          </div>
+          <div className="today-ref-card today-ref-bills">
+            <h3>
+              <CreditCard size={20} /> قبض‌ها و پرداخت‌ها
+            </h3>
+            {value.upcomingBills.length ? (
+              value.upcomingBills.slice(0, 3).map((b) => (
+                <div className="today-ref-item today-ref-bill" key={b.id}>
+                  <span className="today-ref-icon">
+                    <AlertCircle size={18} />
+                  </span>
+                  <span className="today-ref-text">
+                    <strong>{b.title}</strong>
+                    <small>{dateTime(b.due_at)}</small>
+                  </span>
+                  <span className="today-ref-days">{daysLeft(b.due_at)}</span>
                   <button
-                    className="today-ref-item"
-                    key={r.id}
-                    onClick={() => onNavigate("reminders")}
+                    className="today-ref-pay"
+                    disabled={busy}
+                    onClick={() => {
+                      if (window.confirm("این قبض پرداخت شده است؟"))
+                        void doTodayAction(() => payTodayBill(client, b.id));
+                    }}
                   >
-                    <span className="today-ref-icon">
-                      <Bell size={18} />
-                    </span>
-                    <span>
-                      <strong>{r.title ?? "یادآور"}</strong>
-                      <small>
-                        {dateTime(
-                          r.status === "SNOOZED" && r.snoozed_until
-                            ? r.snoozed_until
-                            : r.remind_at,
-                        )}
-                      </small>
-                    </span>
+                    پرداخت شد
                   </button>
-                ))
-              ) : (
-                <p>یادآور فعالی برای امروز یا معوق نیست.</p>
-              )}
-              <button
-                className="today-ref-more"
-                onClick={() => onNavigate("reminders")}
-              >
-                دیدن همه ←
-              </button>
-            </div>
+                </div>
+              ))
+            ) : (
+              <p>قبضی معوق یا در هفت روز آینده نیست.</p>
+            )}
+            <button
+              className="today-ref-more"
+              onClick={() => onNavigate("finance")}
+            >
+              دیدن مالی ←
+            </button>
+          </div>
+          <div className="today-ref-card today-ref-reminders">
+            <h3>
+              <Bell size={20} /> یادآورهای امروز و معوق
+            </h3>
+            {value.reminders.length ? (
+              value.reminders.slice(0, 4).map((r) => (
+                <button
+                  className="today-ref-item"
+                  key={r.id}
+                  onClick={() => onNavigate("reminders")}
+                >
+                  <span className="today-ref-icon">
+                    <Bell size={18} />
+                  </span>
+                  <span>
+                    <strong>{r.title ?? "یادآور"}</strong>
+                    <small>
+                      {dateTime(
+                        r.status === "SNOOZED" && r.snoozed_until
+                          ? r.snoozed_until
+                          : r.remind_at,
+                      )}
+                    </small>
+                  </span>
+                </button>
+              ))
+            ) : (
+              <p>یادآور فعالی برای امروز یا معوق نیست.</p>
+            )}
+            <button
+              className="today-ref-more"
+              onClick={() => onNavigate("reminders")}
+            >
+              دیدن همه ←
+            </button>
           </div>
         </div>
       )}

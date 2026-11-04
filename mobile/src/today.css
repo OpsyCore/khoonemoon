@@ -185,17 +185,37 @@
 .today-ref-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "tasks events"
+    "chores bills"
+    "reminders reminders";
   gap: 0.65rem;
-  align-items: start;
+  align-items: stretch;
 }
-.today-ref-column {
-  display: grid;
-  gap: 0.65rem;
-  min-width: 0;
+.today-ref-tasks {
+  grid-area: tasks;
+}
+.today-ref-chores {
+  grid-area: chores;
+}
+.today-ref-events {
+  grid-area: events;
+}
+.today-ref-bills {
+  grid-area: bills;
+}
+.today-ref-reminders {
+  grid-area: reminders;
 }
 .today-ref-card {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   padding: 0.8rem;
+}
+.today-ref-card > .today-ref-more {
+  align-self: flex-start;
+  margin-top: auto;
 }
 .today-ref-card h3 {
   margin-bottom: 0.65rem;
@@ -421,7 +441,13 @@
 }
 @media (max-width: 350px) {
   .today-ref-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "tasks"
+      "events"
+      "chores"
+      "bills"
+      "reminders";
   }
   .today-ref-greeting small {
     display: none;
