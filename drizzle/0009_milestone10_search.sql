@@ -4,8 +4,8 @@ create schema if not exists extensions;
 create extension if not exists pg_trgm with schema extensions;
 
 -- Normalize installations where pg_trgm was previously installed in public.
-do $
-declare
+DO $pgtrgm$
+DECLARE
   extension_schema text;
 begin
   select n.nspname into extension_schema
@@ -17,7 +17,7 @@ begin
     alter extension pg_trgm set schema extensions;
   end if;
 end
-$;
+$pgtrgm$;
 
 create index if not exists tasks_title_trgm_idx
   on public.tasks using gin (title extensions.gin_trgm_ops);
