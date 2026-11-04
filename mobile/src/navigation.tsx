@@ -1,18 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { Menu, X } from "lucide-react";
 import {
-  Bell,
-  CalendarDays,
-  FileText,
-  House,
-  ListTodo,
-  Menu,
-  Search,
-  Settings,
-  ShoppingBasket,
-  UserRound,
-  Wallet,
-  X,
-} from "lucide-react";
+  primaryNavigation,
+  secondaryNavigation,
+} from "@/shared/layout/navigation-items";
 import { describeBadge, formatBadgeCount } from "@/shared/utils/badge-count";
 
 export type MobilePage =
@@ -29,22 +20,6 @@ export type MobilePage =
   | "reminders"
   | "documents"
   | "search";
-const primary = [
-  { id: "tasks", label: "امروز", icon: ListTodo },
-  { id: "calendar", label: "تقویم", icon: CalendarDays },
-  { id: "shopping", label: "خرید", icon: ShoppingBasket },
-  { id: "finance", label: "مالی", icon: Wallet },
-  { id: "house", label: "خانه", icon: House },
-] as const;
-const secondary = [
-  { id: "chores", label: "تقسیم وظایف", icon: House },
-  { id: "search", label: "جستجو", icon: Search },
-  { id: "documents", label: "مدارک", icon: FileText },
-  { id: "reminders", label: "یادآورها", icon: Bell },
-  { id: "profile", label: "حساب کاربری", icon: UserRound },
-  { id: "settings", label: "تنظیمات", icon: Settings },
-] as const;
-
 export function MobileNavigation({
   page,
   onNavigate,
@@ -117,7 +92,7 @@ export function MobileNavigation({
         </div>
         <p className="app-menu-description">همه چیز برای زندگی کوچک ما</p>
         <nav aria-label="بخش‌های دیگر برنامه" className="app-menu-links">
-          {secondary.map(({ id, label, icon: Icon }) => (
+          {secondaryNavigation.map(({ id, label, icon: Icon }) => (
             <button
               type="button"
               key={id}
@@ -141,7 +116,7 @@ export function MobileNavigation({
         </nav>
       </dialog>
       <nav className="bottom-nav" aria-label="بخش‌های اصلی برنامه">
-        {primary.map(({ id, label, icon: Icon }) => (
+        {primaryNavigation.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"

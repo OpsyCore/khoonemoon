@@ -1,26 +1,10 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  Bell,
-  FileText,
-  House,
-  Menu,
-  Search,
-  Settings,
-  UserRound,
-  X,
-} from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { secondaryNavigation } from "@/shared/layout/navigation-items";
 import { describeBadge, formatBadgeCount } from "@/shared/utils/badge-count";
 
-const items = [
-  { href: "/chores", label: "تقسیم وظایف", icon: House },
-  { href: "/search", label: "جستجو", icon: Search },
-  { href: "/documents", label: "مدارک", icon: FileText },
-  { href: "/reminders", label: "یادآورها", icon: Bell },
-  { href: "/profile", label: "حساب کاربری", icon: UserRound },
-  { href: "/settings", label: "تنظیمات", icon: Settings },
-] as const;
 export function AppMenu({
   dueReminderCount = 0,
 }: {
@@ -85,7 +69,7 @@ export function AppMenu({
         </div>
         <p>همه چیز برای زندگی کوچک ما</p>
         <nav aria-label="بخش‌های دیگر برنامه">
-          {items.map(({ href, label, icon: Icon }) => (
+          {secondaryNavigation.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} onClick={() => setOpen(false)}>
               <span className="app-shell-drawer-icon">
                 <Icon size={20} strokeWidth={1.7} aria-hidden="true" />

@@ -1,18 +1,10 @@
 "use client";
 
-import { CalendarDays, House, ListTodo, SunMedium, Wallet } from "lucide-react";
+import { primaryNavigation } from "@/shared/layout/navigation-items";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { describeBadge, formatBadgeCount } from "@/shared/utils/badge-count";
 import { cn } from "@/shared/utils/cn";
-
-const navItems = [
-  { href: "/home", label: "خانه", icon: House },
-  { href: "/today", label: "امروز", icon: SunMedium },
-  { href: "/calendar", label: "تقویم", icon: CalendarDays },
-  { href: "/lists", label: "لیست‌ها", icon: ListTodo },
-  { href: "/finance", label: "مالی", icon: Wallet },
-] as const;
 
 export function BottomNav({
   dueReminderCount = 0,
@@ -25,7 +17,7 @@ export function BottomNav({
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur">
       <ul className="mx-auto grid w-full max-w-md grid-cols-5 gap-1">
-        {navItems.map((item) => {
+        {primaryNavigation.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;

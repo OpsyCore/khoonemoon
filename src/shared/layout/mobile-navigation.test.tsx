@@ -38,6 +38,14 @@ describe("mobile navigation", () => {
     );
     const bottom = div.querySelector('nav[aria-label="بخش‌های اصلی برنامه"]')!;
     expect(bottom.querySelectorAll("button")).toHaveLength(5);
+    expect(
+      [...bottom.querySelectorAll("button")].map(
+        (button) => button.textContent,
+      ),
+    ).toEqual(["خانه", "امروز", "تقویم", "لیست‌ها", "مالی"]);
+    expect(
+      bottom.querySelector('button[aria-current="page"]')?.textContent,
+    ).toBe("امروز");
     expect(bottom.textContent).toContain("امروز");
     expect(bottom.textContent).not.toContain("مدارک");
     const trigger = div.querySelector(
