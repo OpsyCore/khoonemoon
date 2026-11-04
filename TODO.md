@@ -3,7 +3,7 @@
 ## Current Phase
 
 - Phase 1 (MVP)
-- Current milestone: **Milestone 11 (Hardening & Release Readiness)** 🚧
+- Current milestone: **Milestone 30 (Stability, Security & Design Consistency)** 🚧
 
 ## Planning Deliverables
 
@@ -290,3 +290,19 @@
 - [x] typecheck
 - [x] tests
 - [x] build
+
+
+## Milestone 30 - Stability, Security & Design Consistency 🚧
+
+- [x] بررسی مجدد مجوز RPCهای `SECURITY DEFINER` در پروژه واقعی
+- [x] محدودکردن اجرای ناشناس برای RPCهای مخصوص کاربران واردشده
+- [x] حذف مجوز اجرای مستقیم تابع trigger-only ساخت پروفایل
+- [x] حفظ endpoint یادآور دستگاه که به credential اختصاصی نیاز دارد
+- [x] تنظیم `search_path` برای سه تابع گزارش‌شده
+- [x] افزودن migration متناظر در `drizzle/0050_security_hardening.sql`
+- [x] افزودن توکن‌های پایهٔ رنگ کاغذی/زیتونی/آجری و focus state
+- [ ] تبدیل تدریجی کلاس‌های رنگ قدیمی صفحات به توکن‌های جدید (بدون تغییر رفتار)
+- [ ] فعال‌سازی leaked-password protection در تنظیمات Auth و تست ثبت‌نام/ورود
+- [ ] بررسی کامل RLS و Realtime دوکاربره
+- [ ] اجرای کامل CI روی همین branch و رفع هر شکست
+- [ ] مرور نهایی Storage و سیاست‌های فایل
