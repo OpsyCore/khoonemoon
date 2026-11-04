@@ -159,3 +159,51 @@ SQL خام ساخته می‌شوند، Supabase هیچ grant پیش‌فرضی 
   - `src/features/tasks/recurrence.test.ts`
 - Milestone 6 reminder/timezone/snooze tests in:
   - `src/features/reminders/calculations.test.ts`
+
+
+## 12) RPC privilege hardening (M30)
+
+- Authenticated household/task/chore helper RPCs must not be callable by `anon`.
+- Trigger-only `handle_new_user_profile()` has no client EXECUTE grant.
+- `read_reminder_device(uuid,text)` is the deliberate exception: it accepts an opaque,
+  high-entropy device secret and must remain available to the reminder-device client.
+- SECURITY DEFINER functions must pin a safe `search_path`; new functions should use
+  `pg_catalog, public, pg_temp` (or a narrower schema list) explicitly.
+- Migrations `0050`–`0053` contain the RPC, index, RLS-initplan and extension-schema
+  hardening; verify effective privileges for both `anon` and `authenticated` after changes.
+
+
+## 13) Database performance hardening (M30)
+
+- Active application-table foreign keys are covered by indexes in
+  `drizzle/0051_index_active_foreign_keys.sql`; remaining unindexed-FK advisor
+  findings belong to the archived `legacy_backup` schema.
+- Public RLS policies wrap direct `auth.uid()` calls in scalar subqueries so the
+  identity value is initialized once per statement rather than once per row.
+  The matching migration is `drizzle/0052_optimize_public_rls_auth_initplans.sql`.
+- Do not add client policies to internal queue/device tables just to silence the
+  advisor. `reminder_devices` and `standalone_push_jobs` intentionally have no
+  client-facing SELECT policy.
+
+- The `pg_trgm` extension is installed in the non-exposed `extensions` schema by
+  `drizzle/0053_move_pg_trgm_to_extensions_schema.sql`; existing trigram indexes remain
+  attached to their operator class by object identity.
+
+
+## 14) SECURITY DEFINER search path hardening
+
+- All 45 public SECURITY DEFINER functions now pin `pg_catalog` first and
+  explicitly place `pg_temp` last, preserving each function's required trusted
+  schemas (such as `storage` and `backup_private`).
+- This prevents temporary objects from shadowing trusted relations during a
+  SECURITY DEFINER call. The matching migration is `drizzle/0054_secure_definer_temp_search_path.sql`.
+
+
+## 15) Supabase Auth password protection
+
+- The project advisor currently reports leaked-password protection as disabled.
+- This setting is managed in Supabase Dashboard under Authentication settings and
+  is not exposed by the connected Supabase project tools used for this maintenance.
+- Enable it in Dashboard only if the project's plan supports it (Supabase documents
+  availability on Pro and above). Do not claim it is enabled until the dashboard
+  setting is verified.

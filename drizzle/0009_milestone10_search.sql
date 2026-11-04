@@ -1,21 +1,38 @@
 -- Milestone 10: Cross-domain search (RLS-aware)
 
-create extension if not exists pg_trgm;
+create schema if not exists extensions;
+create extension if not exists pg_trgm with schema extensions;
+
+-- Normalize installations where pg_trgm was previously installed in public.
+DO $pgtrgm$
+DECLARE
+  extension_schema text;
+begin
+  select n.nspname into extension_schema
+  from pg_extension e
+  join pg_namespace n on n.oid = e.extnamespace
+  where e.extname = 'pg_trgm';
+
+  if extension_schema is not null and extension_schema <> 'extensions' then
+    alter extension pg_trgm set schema extensions;
+  end if;
+end
+$pgtrgm$;
 
 create index if not exists tasks_title_trgm_idx
-  on public.tasks using gin (title gin_trgm_ops);
+  on public.tasks using gin (title extensions.gin_trgm_ops);
 
 create index if not exists events_title_trgm_idx
-  on public.events using gin (title gin_trgm_ops);
+  on public.events using gin (title extensions.gin_trgm_ops);
 
 create index if not exists shopping_items_name_trgm_idx
-  on public.shopping_items using gin (name gin_trgm_ops);
+  on public.shopping_items using gin (name extensions.gin_trgm_ops);
 
 create index if not exists financial_records_title_trgm_idx
-  on public.financial_records using gin (title gin_trgm_ops);
+  on public.financial_records using gin (title extensions.gin_trgm_ops);
 
 create index if not exists chores_title_trgm_idx
-  on public.chores using gin (title gin_trgm_ops);
+  on public.chores using gin (title extensions.gin_trgm_ops);
 
 /**
  * Searches every domain the caller is allowed to see.

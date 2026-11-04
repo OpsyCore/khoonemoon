@@ -51,7 +51,7 @@ function FilterLink({
         "rounded-full border px-2.5 py-1 text-xs font-medium transition",
         isActive
           ? "border-sky-500 bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200"
-          : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
+          : "border-[var(--app-border)] bg-[var(--app-surface-raised)] text-[var(--app-muted)] dark:border-zinc-700 dark:bg-[var(--app-surface)] dark:text-[var(--app-muted)]",
       )}
     >
       {children}
@@ -125,7 +125,7 @@ export default async function FinanceLedgerPage({
     <div className="space-y-4">
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">دفتر تراکنش‌ها</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <p className="text-sm text-[var(--app-muted)] dark:text-[var(--app-muted)]">
           همهٔ درآمدها، هزینه‌ها و قبض‌ها با فیلتر نوع، وضعیت پرداخت و بازهٔ
           زمانی. هر فیلتر یک نشانی قابل اشتراک دارد.
         </p>
@@ -133,7 +133,7 @@ export default async function FinanceLedgerPage({
 
       <Card className="space-y-3">
         <div className="space-y-1.5">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">نوع</p>
+          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">نوع</p>
           <div className="flex flex-wrap gap-1.5">
             {LEDGER_TYPES.map((type) => (
               <FilterLink
@@ -148,7 +148,7 @@ export default async function FinanceLedgerPage({
         </div>
 
         <div className="space-y-1.5">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">پرداخت</p>
+          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">پرداخت</p>
           <div className="flex flex-wrap gap-1.5">
             {PAID_OPTIONS.map((paid) => (
               <FilterLink
@@ -163,7 +163,7 @@ export default async function FinanceLedgerPage({
         </div>
 
         <div className="space-y-1.5">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">بازه</p>
+          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">بازه</p>
           <div className="flex flex-wrap gap-1.5">
             {DAYS_OPTIONS.map((days) => (
               <FilterLink
@@ -178,11 +178,11 @@ export default async function FinanceLedgerPage({
         </div>
 
         {filters.query ? (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">
             جست‌وجو برای «{filters.query}» —{" "}
             <Link
               href={buildHref({ q: "" })}
-              className="text-sky-700 underline dark:text-sky-300"
+              className="text-[var(--app-ink)] underline dark:text-sky-300"
             >
               پاک‌کردن
             </Link>
@@ -192,7 +192,7 @@ export default async function FinanceLedgerPage({
         {isFiltered ? (
           <Link
             href="/finance"
-            className="inline-block text-xs text-sky-700 underline dark:text-sky-300"
+            className="inline-block text-xs text-[var(--app-ink)] underline dark:text-sky-300"
           >
             پاک‌کردن همهٔ فیلترها
           </Link>
@@ -201,19 +201,19 @@ export default async function FinanceLedgerPage({
 
       <div className="grid grid-cols-3 gap-2">
         <Card className="space-y-1 p-3">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">درآمد</p>
+          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">درآمد</p>
           <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
             {formatAmount(summary.income, summary.currency)}
           </p>
         </Card>
         <Card className="space-y-1 p-3">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">هزینه</p>
+          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">هزینه</p>
           <p className="text-sm font-semibold">
             {formatAmount(summary.expense, summary.currency)}
           </p>
         </Card>
         <Card className="space-y-1 p-3">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">
             قبض پرداخت‌نشده
           </p>
           <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
@@ -222,7 +222,7 @@ export default async function FinanceLedgerPage({
         </Card>
       </div>
 
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">
         {toPersianNumber(summary.count)} تراکنش
         {isFiltered ? ` از ${toPersianNumber(all.length)}` : ""}
       </p>

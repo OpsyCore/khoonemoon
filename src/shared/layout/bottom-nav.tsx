@@ -29,7 +29,7 @@ export function BottomNav({
   const badge = formatBadgeCount(dueReminderCount);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--app-border)] bg-[var(--app-surface-raised)]/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur dark:border-[var(--app-border)] dark:bg-[var(--app-surface-raised)]/95 md:hidden">
       <ul className="mx-auto grid w-full max-w-md grid-cols-5 gap-1">
         {navItems.map((item) => {
           const isActive =
@@ -43,8 +43,8 @@ export function BottomNav({
                 className={cn(
                   "flex flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[11px] font-medium transition",
                   isActive
-                    ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
-                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+                    ? "bg-[var(--app-primary)]/15 text-[var(--app-ink)] dark:bg-[var(--app-primary)]/20 dark:text-[var(--app-ink)]"
+                    : "text-[var(--app-muted)] hover:bg-[var(--app-surface)] dark:text-[var(--app-muted)] dark:hover:bg-[var(--app-surface)]",
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
