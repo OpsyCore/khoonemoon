@@ -510,3 +510,61 @@
 .dark .chore-ref-share small {
   color: #c8c8b9;
 }
+
+/* Keep the dashboard palette above the app-wide native button colors in both
+   themes, regardless of stylesheet import order. */
+:root .chore-ref .chore-ref-header button:not(.calendar-day),
+:root .chore-ref .chore-ref-tabs button:not(.calendar-day),
+:root .chore-ref .chore-ref-row > button:not(.calendar-day),
+:root .chore-ref .chore-ref-heading button:not(.calendar-day) {
+  background: transparent;
+  box-shadow: none;
+}
+:root .chore-ref .chore-ref-tabs button[aria-pressed="true"]:not(.calendar-day),
+:root .chore-ref button.chore-ref-add:not(.calendar-day) {
+  background: #66734e;
+  color: #fff;
+}
+:root .chore-ref .chore-ref-row > button:not(.calendar-day) {
+  color: #934f36;
+  border-color: #a36349;
+}
+
+/* Secondary copy and outlined actions need extra contrast on dark cards. */
+:root[data-theme="dark"] .chore-ref .chore-ref-header button,
+.dark .chore-ref .chore-ref-header button,
+:root[data-theme="dark"] .chore-ref-manage summary,
+.dark .chore-ref-manage summary {
+  color: #dbe5d0;
+}
+:root[data-theme="dark"] .chore-ref-intro p,
+:root[data-theme="dark"] .chore-ref-hero p,
+:root[data-theme="dark"] .chore-ref-summary p,
+:root[data-theme="dark"] .chore-ref-history time,
+:root[data-theme="dark"] .chore-ref-brand small,
+.dark .chore-ref-intro p,
+.dark .chore-ref-hero p,
+.dark .chore-ref-summary p,
+.dark .chore-ref-history time,
+.dark .chore-ref-brand small {
+  color: #d4d5c5;
+}
+:root[data-theme="dark"] .chore-ref-error,
+:root[data-theme="dark"] .chore-ref-notice,
+.dark .chore-ref-error,
+.dark .chore-ref-notice {
+  background: #393a31;
+  color: #e6d0c4;
+}
+:root[data-theme="dark"] .chore-ref .chore-ref-row > button:not(.calendar-day),
+:root.dark .chore-ref .chore-ref-row > button:not(.calendar-day) {
+  color: #f0b89e;
+  border-color: #d49379;
+}
+:root[data-theme="dark"]
+  .chore-ref
+  .chore-ref-heading
+  button:not(.calendar-day),
+:root.dark .chore-ref .chore-ref-heading button:not(.calendar-day) {
+  color: #c5d4b5;
+}
