@@ -10,7 +10,7 @@ export default function SettingsPage() {
     <div className="space-y-4">
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">تنظیمات</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <p className="text-sm text-[var(--app-muted)] dark:text-[var(--app-muted)]">
           تم، ترجیحات یادآور، اعلان‌ها و دسترسی‌های خانه در این بخش مدیریت
           می‌شوند.
         </p>
@@ -32,7 +32,7 @@ export default function SettingsPage() {
 
       <Link
         href="/reminders"
-        className="block rounded-3xl border border-zinc-200 bg-white p-4 text-sm font-medium text-sky-700 shadow-sm transition hover:bg-sky-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-sky-300 dark:hover:bg-sky-950/30"
+        className="block rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-raised)] p-4 text-sm font-medium text-[var(--app-ink)] shadow-sm transition hover:bg-[var(--app-primary)]/10 dark:border-[var(--app-border)] dark:bg-[var(--app-surface)] dark:text-sky-300 dark:hover:bg-sky-950/30"
       >
         صندوق یادآورها — همهٔ یادآورها، از جمله تحویل‌شده و لغو‌شده
       </Link>
@@ -61,14 +61,14 @@ export default function SettingsPage() {
           <a
             href="/api/export"
             download
-            className="rounded-2xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            className="rounded-2xl border border-[var(--app-border)] px-4 py-2 text-sm font-medium text-[var(--app-ink)] transition hover:bg-[var(--app-bg)] dark:border-zinc-700 dark:text-[var(--app-ink)] dark:hover:bg-zinc-800"
           >
             دریافت همهٔ داده‌ها (JSON)
           </a>
           <a
             href="/api/export?format=csv"
             download
-            className="rounded-2xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            className="rounded-2xl border border-[var(--app-border)] px-4 py-2 text-sm font-medium text-[var(--app-ink)] transition hover:bg-[var(--app-bg)] dark:border-zinc-700 dark:text-[var(--app-ink)] dark:hover:bg-zinc-800"
           >
             تراکنش‌های مالی (CSV)
           </a>
