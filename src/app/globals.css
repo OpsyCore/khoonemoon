@@ -6,14 +6,38 @@
     "Segoe UI", sans-serif;
   --font-display:
     "Vazirmatn Variable", "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
+  --color-paper: #f5ebdd;
+  --color-paper-card: #e9ddc8;
+  --color-olive: #85875d;
+  --color-terracotta: #c98268;
+  --color-ink: #49382b;
+  --color-muted-ink: #8f806d;
 }
 
 :root {
   color-scheme: light;
+  --app-bg: #f5ebdd;
+  --app-surface: #fbf7ef;
+  --app-surface-raised: #fffdf8;
+  --app-border: #e5d8c4;
+  --app-ink: #49382b;
+  --app-muted: #8f806d;
+  --app-primary: #85875d;
+  --app-accent: #c98268;
+  --app-focus: rgb(133 135 93 / 0.32);
 }
 
 .dark {
   color-scheme: dark;
+  --app-bg: #211f1a;
+  --app-surface: #2b2922;
+  --app-surface-raised: #343128;
+  --app-border: #4a4538;
+  --app-ink: #f5ebdd;
+  --app-muted: #c1b39d;
+  --app-primary: #b0b38a;
+  --app-accent: #d9977e;
+  --app-focus: rgb(176 179 138 / 0.28);
 }
 
 * {
@@ -22,17 +46,26 @@
 
 html {
   font-family: var(--font-sans);
+  background: var(--app-bg);
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
   font-family: var(--font-sans);
+  color: var(--app-ink);
+  background: var(--app-bg);
   -webkit-font-smoothing: antialiased;
 }
 
+:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 2px;
+}
+
 ::selection {
-  background: rgb(14 165 233 / 0.3);
+  background: rgb(201 130 104 / 0.28);
+  color: var(--app-ink);
 }
 
 @keyframes fade-in {
