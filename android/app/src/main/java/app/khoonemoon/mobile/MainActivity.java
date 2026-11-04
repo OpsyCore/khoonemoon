@@ -294,8 +294,21 @@ public class MainActivity extends Activity {
         super.onSaveInstanceState(outState);
     }
     @Override public void onBackPressed() {
-        if (webView.canGoBack()) webView.goBack();
-        else super.onBackPressed();
+        // Give the React shell first chance to close dialogs or navigate within
+        // the bundled single-page app. Never evaluate code from a remote page.
+        if (webView.getUrl() == null || !isLocal(Uri.parse(webView.getUrl()))) {
+            if (webView.canGoBack()) webView.goBack();
+            else super.onBackPressed();
+            return;
+        }
+        webView.evaluateJavascript(
+            "window.dispatchEvent(new Event('khoonemoon:native-back',{cancelable:true}))",
+            result -> {
+                if ("false".equals(result)) return;
+                if (webView.canGoBack()) webView.goBack();
+                else MainActivity.super.onBackPressed();
+            }
+        );
     }
     @Override protected void onDestroy() {
         if (fileCallback != null) fileCallback.onReceiveValue(null);

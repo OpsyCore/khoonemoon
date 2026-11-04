@@ -35,6 +35,7 @@ import { Chores } from "./chores";
 import { ChoresDashboard } from "./chores-dashboard";
 import { Profile } from "./profile";
 import { MobileNavigation, type MobilePage } from "./navigation";
+import { useNativeBack } from "./native-back";
 import { PendingTransferPanel } from "@/features/households/pending-transfer-panel";
 import { HomeDashboard } from "./home-dashboard";
 import { ThemeSettings } from "./theme-settings";
@@ -163,6 +164,7 @@ function App() {
       return false;
     }
   });
+  useNativeBack(page, !!session && !recovery, setPage);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [household, setHousehold] = useState<string | null | undefined>(
