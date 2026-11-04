@@ -192,7 +192,7 @@ export default async function TodayPage() {
     <div className="space-y-4">
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">امروز چه کارهایی داریم؟</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <p className="text-sm text-[var(--app-muted)] dark:text-[var(--app-muted)]">
           مرور سریع کارهای معوق، برنامه امروز و رویدادهای پیش‌رو با امکان اقدام
           فوری.
         </p>
@@ -211,7 +211,7 @@ export default async function TodayPage() {
 
       <Link
         href="/reminders"
-        className="block rounded-3xl border border-zinc-200 bg-white p-4 text-center text-sm font-medium text-sky-700 shadow-sm transition hover:bg-sky-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-sky-300 dark:hover:bg-sky-950/30"
+        className="block rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-raised)] p-4 text-center text-sm font-medium text-[var(--app-ink)] shadow-sm transition hover:bg-[var(--app-primary)]/10 dark:border-[var(--app-border)] dark:bg-[var(--app-surface)] dark:text-sky-300 dark:hover:bg-sky-950/30"
       >
         همهٔ یادآورها — شامل تحویل‌شده‌ها و لغو‌شده‌ها
       </Link>
