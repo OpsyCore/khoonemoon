@@ -1,6 +1,6 @@
 # FEATURES.md
 
-وضعیت فعلی: **MVP فاز ۱ پیاده‌سازی شده (M1–M10)؛ M11 در حال تکمیل**
+وضعیت فعلی: **MVP فاز ۱ پیاده‌سازی شده (M1–M29)؛ M30 در حال سخت‌سازی و یکپارچگی طراحی**
 
 ## Phase 1 (MVP) Feature Matrix
 
@@ -44,8 +44,8 @@
 | Data Export               | JSON archive + ledger CSV, RLS-authorised             | ✅ Completed (M29) |
 | Settings                  | theme/reminders/PWA help/household navigation         | ✅ Completed (M10) |
 | Offline Improvements      | shell cache + offline page (private pages excluded)   | ✅ Completed (M10) |
-| Test Hardening            | unit tests + CI + DB-level RLS verification           | 🚧 M11             |
-| Security Review           | RLS verification + grants + auth audit                | 🚧 M11             |
+| Test Hardening            | unit tests + CI + DB-level RLS verification           | ✅ Completed (M26–M29) |
+| Security Review           | RLS verification + grants + auth audit                | 🚧 M30             |
 
 ## مسیرهای کاربری (Routes)
 
