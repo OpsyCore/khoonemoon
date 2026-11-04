@@ -122,6 +122,41 @@ export function CalendarEvents({
       window.removeEventListener("khoonemoon:schedule-changed", refresh);
   }, []);
 
+  // Match the web calendar: invalidate the visible snapshot when any source
+  // changes. RLS still determines what the subsequent queries can read.
+  useEffect(() => {
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refresh = () => {
+      if (!active || timer) return;
+      timer = setTimeout(() => {
+        timer = undefined;
+        if (active) setLoadVersion((n) => n + 1);
+      }, 200);
+    };
+    const channel = client.channel(
+      `mobile-calendar-${householdId ?? "private"}`,
+    );
+    for (const table of ["events", "tasks", "chores", "financial_records"]) {
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table },
+        refresh,
+      );
+    }
+    channel.subscribe();
+    const foreground = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", foreground);
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", foreground);
+      void client.removeChannel(channel);
+    };
+  }, [client, householdId]);
+
   const calendarItems = useMemo(() => {
     const first =
       view === "month"

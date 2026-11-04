@@ -74,7 +74,19 @@ it("shows real calendar records and supports views, event creation and deletion"
   await act(async () => {
     root.render(
       <CalendarEvents
-        client={{} as SupabaseClient}
+        client={
+          {
+            channel: () => ({
+              on() {
+                return this;
+              },
+              subscribe() {
+                return this;
+              },
+            }),
+            removeChannel: vi.fn(),
+          } as unknown as SupabaseClient
+        }
         householdId={null}
         onHouse={vi.fn()}
       />,
@@ -128,4 +140,50 @@ it("shows real calendar records and supports views, event creation and deletion"
   expect(node.textContent).not.toContain("دیدار واقعی");
   await act(async () => root.unmount());
   vi.restoreAllMocks();
+});
+
+it("subscribes to the same calendar sources as web and cleans up", async () => {
+  mocks.calendarList.mockResolvedValue([]);
+  mocks.taskList.mockResolvedValue([]);
+  mocks.financeList.mockResolvedValue([]);
+  const handlers: Record<string, () => void> = {};
+  const channel = {
+    on: vi.fn(
+      (_event: string, filter: { table: string }, callback: () => void) => {
+        handlers[filter.table] = callback;
+        return channel;
+      },
+    ),
+    subscribe: vi.fn(() => channel),
+  };
+  const removeChannel = vi.fn();
+  const client = {
+    channel: vi.fn(() => channel),
+    removeChannel,
+  } as unknown as SupabaseClient;
+  const node = document.createElement("div");
+  document.body.append(node);
+  const root = createRoot(node);
+  await act(async () =>
+    root.render(
+      <CalendarEvents client={client} householdId={null} onHouse={vi.fn()} />,
+    ),
+  );
+  expect(Object.keys(handlers).sort()).toEqual([
+    "chores",
+    "events",
+    "financial_records",
+    "tasks",
+  ]);
+  const before = mocks.calendarList.mock.calls.length;
+  vi.useFakeTimers();
+  await act(async () => {
+    handlers.events();
+    handlers.tasks();
+    await vi.advanceTimersByTimeAsync(200);
+  });
+  expect(mocks.calendarList.mock.calls.length).toBe(before + 1);
+  await act(async () => root.unmount());
+  expect(removeChannel).toHaveBeenCalledWith(channel);
+  vi.useRealTimers();
 });
