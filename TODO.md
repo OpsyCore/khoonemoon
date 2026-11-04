@@ -3,7 +3,7 @@
 ## Current Phase
 
 - Phase 1 (MVP)
-- Current milestone: **Milestone 11 (Hardening & Release Readiness)** 🚧
+- Current milestone: **Milestone 30 (Stability, Security & Design Consistency)** 🚧
 
 ## Planning Deliverables
 
@@ -290,3 +290,28 @@
 - [x] typecheck
 - [x] tests
 - [x] build
+
+
+## Milestone 30 - Stability, Security & Design Consistency 🚧
+
+- [x] بررسی مجدد مجوز RPCهای `SECURITY DEFINER` در پروژه واقعی
+- [x] محدودکردن اجرای ناشناس برای RPCهای مخصوص کاربران واردشده
+- [x] حذف مجوز اجرای مستقیم تابع trigger-only ساخت پروفایل
+- [x] حفظ endpoint یادآور دستگاه که به credential اختصاصی نیاز دارد
+- [x] تنظیم `search_path` برای سه تابع گزارش‌شده
+- [x] افزودن migration متناظر در `drizzle/0050_security_hardening.sql`
+- [x] افزودن ایندکس برای کلیدهای خارجی جدول‌های عملیاتی (`0051`)
+- [x] بهینه‌سازی فراخوانی `auth.uid()` در سیاست‌های RLS عمومی (`0052`)
+- [x] انتقال افزونه `pg_trgm` از `public` به schema غیرعمومی `extensions` (`0053`)
+- [x] امن‌سازی `search_path` همهٔ ۴۵ تابع `SECURITY DEFINER` و قراردادن `pg_temp` در انتهای مسیر (`0054`)
+- [x] یکپارچه‌سازی پوسته، نوار بالا/پایین و اجزای پایه با رنگ کاغذی/زیتونی/آجری
+- [x] رفع race condition تغییر سریع لیست‌ها و ایجاد لیست جدید در همگام‌سازی خرید
+- [x] افزودن توکن‌های پایهٔ رنگ کاغذی/زیتونی/آجری و focus state
+- [ ] تبدیل تدریجی کلاس‌های رنگ قدیمی صفحات به توکن‌های جدید (بدون تغییر رفتار)
+- [ ] فعال‌سازی leaked-password protection در تنظیمات Auth و تست ثبت‌نام/ورود
+- [ ] بررسی کامل RLS و Realtime دوکاربره
+- [x] اجرای کامل CI روی commit فعلی: migrations/RLS، typecheck، lint، تست‌ها، build، HTTP E2E و bundle budget همگی سبز
+- [ ] مرور نهایی Storage و سیاست‌های فایل
+
+
+- آخرین بازبینی: CI نهایی باید روی آخرین commit پس از تغییرات صفحات اجرا شود؛ تست دوحسابی و تنظیم Auth Dashboard به‌صورت دستی باقی می‌مانند.

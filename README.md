@@ -20,7 +20,7 @@
 | M8        | Shopping + Realtime            | ✅          |
 | M9        | Finance Lite (bills)           | ✅          |
 | M10       | Search + Settings              | ✅          |
-| M11       | Hardening (test/CI/docs)       | 🚧 در جریان |
+| M30       | Security, stability & design consistency | 🚧 در جریان |
 
 جزئیات در [`FEATURES.md`](./FEATURES.md) و [`TODO.md`](./TODO.md).
 
@@ -68,7 +68,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 ```bash
 # از داشبورد Supabase → SQL Editor، هر فایل را به ترتیب اجرا کنید
 # یا با psql:
-for f in drizzle/000*.sql; do psql "$DATABASE_URL" -f "$f"; done
+for f in drizzle/*.sql; do psql "$DATABASE_URL" -f "$f"; done
 ```
 
 مهاجرت‌ها idempotent هستند (اجرای دوباره خطا نمی‌دهد).

@@ -143,16 +143,19 @@ export function ShoppingBoard({
     const name = newItemName.trim();
     if (!name || !activeListId) return;
 
+    const targetListId = activeListId;
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
       const item = await directShopping(createSupabaseBrowserClient()).addItem({
-        listId: activeListId,
+        listId: targetListId,
         name,
       });
-      setNewItemName("");
-      setItems((current) => mergeShoppingItems(current, item));
+      if (activeListIdRef.current === targetListId) {
+        setNewItemName("");
+        setItems((current) => mergeShoppingItems(current, item));
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "افزودن آیتم تأیید نشد.",
