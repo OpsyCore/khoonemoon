@@ -1,6 +1,6 @@
 .home-ref {
   --home-ink: #33382a;
-  --home-muted: #8a8679;
+  --home-muted: #68685e;
   --home-paper: #faf8f1;
   --home-line: #e4ded1;
   --home-olive: #647251;
@@ -474,4 +474,28 @@
   .home-ref-stats small {
     font-size: 0.54rem;
   }
+}
+
+/* The app-wide button palette must not paint the dashboard's icon, text and
+   summary controls olive. These selectors also cover native dark mode. */
+:root .home-ref .home-ref-heading button:not(.calendar-day),
+:root .home-ref button.home-ref-refresh:not(.calendar-day),
+:root .home-ref .home-ref-stats > button:not(.calendar-day),
+:root .home-ref .home-ref-code button:not(.calendar-day),
+:root .home-ref .home-ref-manage button:not(.calendar-day),
+:root .home-ref .home-ref-entry-form button:not(.calendar-day) {
+  background: transparent;
+  color: var(--home-ink);
+  box-shadow: none;
+}
+:root .home-ref button.home-ref-refresh:not(.calendar-day) {
+  color: var(--home-muted);
+}
+:root .home-ref .home-ref-entry button:not(.calendar-day) {
+  background: var(--home-paper);
+  color: var(--home-ink);
+}
+:root .home-ref button.home-ref-primary:not(.calendar-day) {
+  background: #60714e;
+  color: #fff;
 }
