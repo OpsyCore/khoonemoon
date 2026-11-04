@@ -171,3 +171,16 @@ SQL خام ساخته می‌شوند، Supabase هیچ grant پیش‌فرضی 
   `pg_catalog, public, pg_temp` (or a narrower schema list) explicitly.
 - Apply `drizzle/0050_security_hardening.sql` before release and verify effective
   privileges for both `anon` and `authenticated`.
+
+
+## 13) Database performance hardening (M30)
+
+- Active application-table foreign keys are covered by indexes in
+  `drizzle/0051_index_active_foreign_keys.sql`; remaining unindexed-FK advisor
+  findings belong to the archived `legacy_backup` schema.
+- Public RLS policies wrap direct `auth.uid()` calls in scalar subqueries so the
+  identity value is initialized once per statement rather than once per row.
+  The matching migration is `drizzle/0052_optimize_public_rls_auth_initplans.sql`.
+- Do not add client policies to internal queue/device tables just to silence the
+  advisor. `reminder_devices` and `standalone_push_jobs` intentionally have no
+  client-facing SELECT policy.
