@@ -98,7 +98,7 @@ function App() {
       document.documentElement.style.colorScheme = resolved;
       document
         .querySelector('meta[name="theme-color"]')
-        ?.setAttribute("content", resolved === "dark" ? "#26251e" : "#f4eddd");
+        ?.setAttribute("content", resolved === "dark" ? "#262119" : "#f5ebdd");
     };
     apply();
     media?.addEventListener("change", apply);

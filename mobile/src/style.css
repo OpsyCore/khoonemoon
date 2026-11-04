@@ -1,3 +1,5 @@
+@import "../../src/shared/ui/design-tokens.css";
+
 :root {
   font-family: "Vazirmatn Variable", sans-serif;
   color: #3f342b;
@@ -138,11 +140,9 @@ fieldset label {
 }
 /* Warm archival-paper surfaces shared by every mobile section. */
 :root {
-  --paper: #f6f1e7;
   --paper-card: #fcf8ee;
   --paper-line: #e2d8c4;
   --paper-ink: #3f342b;
-  --olive: #7c8253;
 }
 body {
   background: var(--paper);
@@ -216,11 +216,9 @@ main {
 
 /* Warm paper journal: inspired by the supplied archive illustration. */
 :root {
-  --paper: #f4eddd;
   --paper-card: #faf5e9;
   --paper-line: #d5c8ae;
   --paper-ink: #36281e;
-  --olive: #7e8657;
 }
 body {
   background-color: var(--paper);
@@ -573,11 +571,9 @@ button:not(:disabled):active {
 
 /* Dark mode keeps the same journal/olive identity with readable contrast. */
 :root[data-theme="dark"] {
-  --paper: #26251e;
-  --paper-card: #343127;
-  --paper-line: #675d48;
-  --paper-ink: #f2e9d7;
-  --olive: #abb680;
+  --paper-card: var(--card);
+  --paper-line: var(--line);
+  --paper-ink: var(--ink);
 }
 :root[data-theme="dark"] body {
   color: var(--paper-ink);
@@ -836,12 +832,10 @@ dialog::backdrop {
 
 /* Khoonemoon visual foundation — palette supplied by the user. */
 :root:not([data-theme="dark"]) {
-  --paper: #f5ebdd;
-  --paper-card: #fbf7f0;
-  --paper-line: #e9ddc8;
-  --paper-ink: #49382b;
-  --olive: #85875d;
-  --terracotta: #c98268;
+  --paper-card: var(--card);
+  --paper-line: var(--line);
+  --paper-ink: var(--ink);
+  --terracotta: var(--clay);
   color: var(--paper-ink);
   background-color: var(--paper);
 }

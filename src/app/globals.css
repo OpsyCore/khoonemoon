@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../shared/ui/design-tokens.css";
 
 /* next-themes sets class="dark" on <html>; Tailwind v4 must use class strategy */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -8,79 +9,6 @@
    Light: a shared couple journal made of warm paper.
    Dark: the same notebook at night — warm charcoal/brown, never OLED.
 ------------------------------------------------------------------- */
-
-:root {
-  color-scheme: light;
-
-  /* surfaces */
-  --paper: #f5ebdd; /* app background */
-  --card: #e9ddc8; /* raised paper card */
-  --sunken: #f1e6d6; /* inset / wash areas */
-  --kraft: #d9cbb3; /* kraft accents, skeletons */
-  --line: #ded1bf; /* hairline borders */
-  --line-strong: #cbbc9f;
-
-  /* ink */
-  --ink: #49382b;
-  --ink-soft: #63564a;
-  --muted: #8b7c6b;
-  --faint: #ab9d8b;
-  --cream: #fbf7ec; /* text on olive/clay solids */
-
-  /* olive — primary */
-  --olive: #85875d;
-  --olive-deep: #73774e; /* hover / pressed solids */
-  --olive-ink: #6e744a; /* olive as text on paper */
-  --olive-soft: #e9ead8; /* olive tint surface */
-
-  /* clay / terracotta — secondary accent */
-  --clay: #c98268;
-  --clay-ink: #b65138;
-  --clay-soft: #f8e4db;
-
-  /* feedback */
-  --warn-ink: #9a7233;
-  --warn-soft: #f1e5c9;
-  --danger: #b0563c;
-  --danger-ink: #a44e33;
-  --danger-soft: #f4dfd4;
-
-  --shadow-tint: 63, 52, 43;
-}
-
-.dark {
-  color-scheme: dark;
-
-  --paper: #262119;
-  --card: #2e2920;
-  --sunken: #201c15;
-  --kraft: #4c4232;
-  --line: #3c352a;
-  --line-strong: #55492f;
-
-  --ink: #ede4d1;
-  --ink-soft: #cdc1ab;
-  --muted: #9c8f7a;
-  --faint: #786d5c;
-  --cream: #f6f1e7;
-
-  --olive: #8f955f;
-  --olive-deep: #a0a771;
-  --olive-ink: #c2c793;
-  --olive-soft: #363927;
-
-  --clay: #c76f53;
-  --clay-ink: #e7a48d;
-  --clay-soft: #452f26;
-
-  --warn-ink: #d3b074;
-  --warn-soft: #423826;
-  --danger: #a85942;
-  --danger-ink: #e4a48c;
-  --danger-soft: #46302a;
-
-  --shadow-tint: 0, 0, 0;
-}
 
 @theme inline {
   /* colors */
