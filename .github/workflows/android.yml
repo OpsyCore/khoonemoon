@@ -45,6 +45,7 @@ jobs:
           unzip -l "$APK" | grep -E 'assets/index.html$'
           unzip -l "$APK" | grep -E 'assets/assets/index-.*\.js$'
           unzip -p "$APK" assets/index.html | grep -F 'Content-Security-Policy'
+          node scripts/verify-android-assets.mjs "$APK"
       - uses: actions/upload-artifact@v4
         with:
           name: khoonemoon-test-apk
