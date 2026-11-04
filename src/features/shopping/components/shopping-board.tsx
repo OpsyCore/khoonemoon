@@ -75,6 +75,7 @@ export function ShoppingBoard({
   const selectList = async (listId: string) => {
     activeListIdRef.current = listId;
     setActiveListId(listId);
+    setItems([]);
     await loadItems(listId);
   };
 
