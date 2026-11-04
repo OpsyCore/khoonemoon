@@ -310,5 +310,5 @@
 - [ ] تبدیل تدریجی کلاس‌های رنگ قدیمی صفحات به توکن‌های جدید (بدون تغییر رفتار)
 - [ ] فعال‌سازی leaked-password protection در تنظیمات Auth و تست ثبت‌نام/ورود
 - [ ] بررسی کامل RLS و Realtime دوکاربره
-- [ ] اجرای کامل CI روی آخرین commit همین branch و رفع هر شکست
+- [x] اجرای کامل CI روی commit فعلی: migrations/RLS، typecheck، lint، تست‌ها، build، HTTP E2E و bundle budget همگی سبز
 - [ ] مرور نهایی Storage و سیاست‌های فایل
