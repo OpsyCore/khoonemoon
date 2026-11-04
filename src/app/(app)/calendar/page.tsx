@@ -56,7 +56,7 @@ export default async function CalendarPage() {
     <div className="space-y-4">
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">تقویم مشترک</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <p className="text-sm text-[var(--app-muted)] dark:text-[var(--app-muted)]">
           رویدادها و تسک‌ها را در نمای جلالی ماهانه، هفتگی و فهرستی مدیریت کنید.
         </p>
       </section>
