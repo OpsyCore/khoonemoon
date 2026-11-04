@@ -159,3 +159,15 @@ SQL خام ساخته می‌شوند، Supabase هیچ grant پیش‌فرضی 
   - `src/features/tasks/recurrence.test.ts`
 - Milestone 6 reminder/timezone/snooze tests in:
   - `src/features/reminders/calculations.test.ts`
+
+
+## 12) RPC privilege hardening (M30)
+
+- Authenticated household/task/chore helper RPCs must not be callable by `anon`.
+- Trigger-only `handle_new_user_profile()` has no client EXECUTE grant.
+- `read_reminder_device(uuid,text)` is the deliberate exception: it accepts an opaque,
+  high-entropy device secret and must remain available to the reminder-device client.
+- SECURITY DEFINER functions must pin a safe `search_path`; new functions should use
+  `pg_catalog, public, pg_temp` (or a narrower schema list) explicitly.
+- Apply `drizzle/0050_security_hardening.sql` before release and verify effective
+  privileges for both `anon` and `authenticated`.
