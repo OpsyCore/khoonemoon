@@ -9,10 +9,10 @@ export function EmptyState({
 }) {
   return (
     <Card className="flex flex-col items-start gap-2 p-5">
-      <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+      <p className="text-base font-semibold text-[var(--app-ink)]">
         {title}
       </p>
-      <p className="text-sm text-zinc-600 dark:text-zinc-300">{description}</p>
+      <p className="text-sm text-[var(--app-muted)]">{description}</p>
     </Card>
   );
 }
