@@ -169,8 +169,8 @@ SQL خام ساخته می‌شوند، Supabase هیچ grant پیش‌فرضی 
   high-entropy device secret and must remain available to the reminder-device client.
 - SECURITY DEFINER functions must pin a safe `search_path`; new functions should use
   `pg_catalog, public, pg_temp` (or a narrower schema list) explicitly.
-- Apply `drizzle/0050_security_hardening.sql` before release and verify effective
-  privileges for both `anon` and `authenticated`.
+- Migrations `0050`–`0053` contain the RPC, index, RLS-initplan and extension-schema
+  hardening; verify effective privileges for both `anon` and `authenticated` after changes.
 
 
 ## 13) Database performance hardening (M30)
@@ -184,3 +184,7 @@ SQL خام ساخته می‌شوند، Supabase هیچ grant پیش‌فرضی 
 - Do not add client policies to internal queue/device tables just to silence the
   advisor. `reminder_devices` and `standalone_push_jobs` intentionally have no
   client-facing SELECT policy.
+
+- The `pg_trgm` extension is installed in the non-exposed `extensions` schema by
+  `drizzle/0053_move_pg_trgm_to_extensions_schema.sql`; existing trigram indexes remain
+  attached to their operator class by object identity.
