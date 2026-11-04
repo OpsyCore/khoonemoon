@@ -38,5 +38,5 @@ REVOKE EXECUTE ON FUNCTION public.handle_new_user_profile() FROM PUBLIC, anon, a
 
 -- Pin search_path for the remaining linter findings.
 ALTER FUNCTION public.set_current_timestamp_updated_at() SET search_path = pg_catalog, public, pg_temp;
-ALTER FUNCTION public.calculate_next_chore_due() SET search_path = pg_catalog, public, pg_temp;
+ALTER FUNCTION public.calculate_next_chore_due(timestamptz, public.task_recurrence_frequency, integer, integer[]) SET search_path = pg_catalog, public, pg_temp;
 ALTER FUNCTION public.sync_financial_record_due_status() SET search_path = pg_catalog, public, pg_temp;
