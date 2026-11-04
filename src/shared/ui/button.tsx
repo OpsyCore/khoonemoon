@@ -12,7 +12,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-[var(--app-primary)] text-white hover:brightness-95 focus-visible:ring-[var(--app-primary)] disabled:opacity-55",
+    "bg-[var(--app-primary)] text-white dark:text-[#211f1a] hover:brightness-95 focus-visible:ring-[var(--app-primary)] disabled:opacity-55",
   secondary:
     "bg-[var(--app-surface)] text-[var(--app-ink)] border border-[var(--app-border)] hover:bg-[var(--app-border)] focus-visible:ring-[var(--app-primary)] disabled:opacity-55",
   ghost:
