@@ -7,16 +7,18 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { openSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getPersianAuthErrorMessage } from "@/features/auth/error-messages";
+import { safeRedirectPath } from "@/features/auth/safe-redirect";
 import { loginSchema, type LoginInput } from "@/features/auth/schemas";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import { LoginIntro, LoginDivider, LoginBottomArt } from "./login-art";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") ?? "/today";
+  const nextPath = safeRedirectPath(searchParams.get("next"));
   const callbackError = searchParams.get("error");
   const [serverError, setServerError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -57,62 +59,85 @@ export function LoginForm() {
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-          ورود به خونه‌مون
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          با حساب خود وارد شوید و کارهای امروزتان را ببینید.
-        </p>
-      </div>
-
-      <Input
-        label="ایمیل"
-        type="email"
-        autoComplete="email"
-        error={errors.email?.message}
-        {...register("email")}
-      />
-
-      <Input
-        label="رمز عبور"
-        type="password"
-        autoComplete="current-password"
-        error={errors.password?.message}
-        {...register("password")}
-      />
-
-      {callbackError ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
-          {getPersianAuthErrorMessage(callbackError)}
-        </p>
-      ) : null}
-
-      {serverError ? (
-        <p className="text-sm text-rose-600 dark:text-rose-400">
-          {serverError}
-        </p>
-      ) : null}
-
-      <Button type="submit" className="w-full" isLoading={isSubmitting}>
-        ورود
-      </Button>
-
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <Link
-          href="/auth/forgot-password"
-          className="text-sky-600 underline dark:text-sky-400"
-        >
-          رمز عبور را فراموش کرده‌اید؟
+    <div className="login-page" dir="rtl">
+      <LoginIntro />
+      <form
+        method="post"
+        className="login-form"
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+      >
+        <label className="login-field">
+          <span className="login-sr-only">ایمیل</span>
+          <Mail size={22} aria-hidden="true" />
+          <input
+            type="email"
+            autoComplete="email"
+            placeholder="ایمیل شما"
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "login-email-error" : undefined}
+            {...register("email")}
+          />
+        </label>
+        {errors.email && (
+          <p id="login-email-error" role="alert" className="login-error">
+            {errors.email.message}
+          </p>
+        )}
+        <label className="login-field login-password-field">
+          <span className="login-sr-only">رمز عبور</span>
+          <LockKeyhole size={22} aria-hidden="true" />
+          <input
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            placeholder="رمز عبور شما"
+            aria-invalid={!!errors.password}
+            aria-describedby={
+              errors.password ? "login-password-error" : undefined
+            }
+            {...register("password")}
+          />
+          <button
+            type="button"
+            className="login-eye"
+            aria-label={showPassword ? "پنهان کردن رمز عبور" : "نمایش رمز عبور"}
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((value) => !value)}
+          >
+            {showPassword ? <Eye size={22} /> : <EyeOff size={22} />}
+          </button>
+        </label>
+        {errors.password && (
+          <p id="login-password-error" role="alert" className="login-error">
+            {errors.password.message}
+          </p>
+        )}
+        {callbackError && (
+          <p role="alert" className="login-error">
+            {getPersianAuthErrorMessage(callbackError)}
+          </p>
+        )}
+        {serverError && (
+          <p role="alert" className="login-error">
+            {serverError}
+          </p>
+        )}
+        <button type="submit" className="login-submit" disabled={isSubmitting}>
+          {isSubmitting ? "در حال ورود…" : "ورود به خونه‌مون"}{" "}
+          <ArrowLeft size={20} aria-hidden="true" />
+        </button>
+        <Link href="/auth/forgot-password" className="login-forgot">
+          رمز عبورم رو فراموش کردم؟
         </Link>
-        <Link
-          href="/auth/signup"
-          className="text-sky-600 underline dark:text-sky-400"
-        >
-          ساخت حساب
+      </form>
+      <LoginDivider />
+      <div className="login-signup">
+        <p>هنوز عضو خونه‌مون نیستی؟</p>
+        <Link href="/auth/signup">
+          ثبت‌نام در خونه‌مون <ArrowLeft size={18} aria-hidden="true" />
         </Link>
       </div>
-    </form>
+      <LoginBottomArt />
+    </div>
   );
 }

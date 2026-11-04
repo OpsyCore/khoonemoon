@@ -1,0 +1,236 @@
+.new-event {
+  max-width: 700px;
+  padding-bottom: 35px;
+}
+.event-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #4d593d;
+}
+.new-event .event-header button {
+  background: #eae5d8;
+  color: #3e4a33;
+  border: 0;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  display: grid;
+  place-items: center;
+}
+.event-header h1 {
+  flex: 1;
+  text-align: center;
+  font-size: clamp(25px, 5vw, 34px);
+  margin: 0 0 0 45px;
+}
+.event-intro {
+  min-height: 165px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #696b58;
+  padding: 10px 12px;
+  background: url("./assets/settings-olive.webp") right center / 55px auto
+    no-repeat;
+}
+.event-intro p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 2;
+  flex: 1;
+  text-align: center;
+}
+.event-intro p span {
+  color: #879b72;
+}
+.event-art {
+  width: 31%;
+  max-width: 190px;
+  align-self: stretch;
+  background: url("./assets/event-calendar.webp") center / contain no-repeat;
+}
+.event-form {
+  background: rgba(250, 247, 241, 0.83);
+  border: 1px solid #dfd9cf;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 7px 24px #695b3a0d;
+}
+.event-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+}
+.event-fields label {
+  display: block;
+  min-width: 0;
+}
+.event-label {
+  display: block;
+  margin: 0 0 7px;
+  color: #30352c;
+  font-size: 15px;
+  font-weight: 700;
+}
+.event-label b {
+  color: #a74e3a;
+}
+.event-control,
+.new-event .event-date-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d2cec5;
+  border-radius: 13px;
+  background: #f5f1eb;
+  min-height: 52px;
+  padding: 0 12px;
+  width: 100%;
+  color: #363d31;
+}
+.event-control svg,
+.event-date-button svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+.new-event .event-control input,
+.new-event .event-control select,
+.new-event .event-control textarea {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline-offset: 2px;
+  background: transparent;
+  color: inherit;
+  padding: 12px 0;
+  box-shadow: none;
+  font-size: 14px;
+}
+.event-control textarea {
+  resize: vertical;
+}
+.event-textarea {
+  align-items: flex-start;
+}
+.event-textarea svg {
+  margin-top: 14px;
+}
+.event-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.event-date {
+  min-width: 0;
+  position: relative;
+}
+.new-event .event-date-button {
+  justify-content: flex-start;
+  font-size: 14px;
+}
+.event-date .new-task-calendar {
+  position: relative;
+  margin-top: 6px;
+  z-index: 2;
+}
+.event-all-day {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #ddd7ce;
+  border-radius: 13px;
+  background: #f5f1eb;
+}
+.event-all-day span {
+  flex: 1;
+  color: #838477;
+  font-size: 12px;
+}
+.event-all-day input {
+  width: 25px;
+  height: 25px;
+  accent-color: #667450;
+}
+.new-event .event-choice button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #d2cec5;
+  border-radius: 13px;
+  background: #f5f1eb;
+  min-height: 67px;
+  color: #33392e;
+  padding: 10px;
+  text-align: right;
+}
+.event-choice button[aria-pressed="true"] {
+  background: #dfe1d2;
+  border-color: #768265;
+}
+.event-choice small {
+  display: block;
+  font-size: 11px;
+  color: #85887a;
+}
+.new-event .event-submit {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 28px;
+  min-height: 56px;
+  background: #5c6948;
+  color: white;
+  border: 0;
+  border-radius: 16px;
+  font-weight: 700;
+}
+.event-submit svg {
+  width: 21px;
+}
+@media (max-width: 380px) {
+  .event-form {
+    padding: 14px;
+  }
+  .event-pair {
+    gap: 8px;
+  }
+  .event-intro p {
+    font-size: 11px;
+  }
+  .event-intro {
+    min-height: 130px;
+  }
+}
+.new-event .event-form {
+  position: relative;
+}
+.new-event .event-form::before,
+.new-event .event-form::after {
+  content: "";
+  position: absolute;
+  bottom: -38px;
+  width: 75px;
+  height: 95px;
+  background: url("./assets/settings-flower.webp") center / contain no-repeat;
+  pointer-events: none;
+  z-index: 1;
+}
+.new-event .event-form::before {
+  right: -20px;
+}
+.new-event .event-form::after {
+  left: -20px;
+  transform: scaleX(-1);
+}
+.new-event .event-submit {
+  position: relative;
+  z-index: 2;
+}

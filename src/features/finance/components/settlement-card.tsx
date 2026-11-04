@@ -30,7 +30,7 @@ export function SettlementCard({
           <Scale className="size-4 text-zinc-500" />
           <CardTitle>تسویه‌حساب خانه</CardTitle>
         </div>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <p className="text-sm text-ink-soft">
           هنوز خرج مشترکی که پرداخت‌شده باشد ثبت نشده است. وقتی هزینه‌ای را
           «مشترک خانه» ثبت کنید و پرداختش را علامت بزنید، سهم هر نفر همین‌جا
           محاسبه می‌شود.
@@ -72,7 +72,7 @@ export function SettlementCard({
           return (
             <li
               key={entry.memberId}
-              className="flex items-center justify-between gap-2 rounded-xl bg-zinc-50 px-3 py-2 text-sm dark:bg-zinc-950/40"
+              className="flex items-center justify-between gap-2 rounded-xl bg-sunken px-3 py-2 text-sm"
             >
               <span className="truncate">
                 {entry.name}
@@ -82,7 +82,7 @@ export function SettlementCard({
               </span>
               <span className="flex shrink-0 items-center gap-2">
                 <Badge tone={tone}>{label}</Badge>
-                <span className="tabular-nums text-zinc-700 dark:text-zinc-200">
+                <span className="tabular-nums text-ink-soft">
                   {formatAmount(Math.abs(entry.balance))}
                 </span>
               </span>
@@ -91,7 +91,7 @@ export function SettlementCard({
         })}
       </ul>
 
-      <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+      <div className="space-y-2 border-t border-line pt-3">
         <div className="flex items-center gap-2 text-sm font-medium">
           <HandCoins className="size-4 text-zinc-500" />
           {settlement.isSettled ? "همه‌چیز تسویه است" : "پیشنهاد تسویه"}
@@ -106,7 +106,7 @@ export function SettlementCard({
             {settlement.transfers.map((transfer) => (
               <li
                 key={`${transfer.fromId}-${transfer.toId}`}
-                className="rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:bg-sky-950/40 dark:text-sky-200"
+                className="rounded-xl bg-olive-soft px-3 py-2 text-sm text-olive-ink"
               >
                 <span className="font-medium">{transfer.fromName}</span> به{" "}
                 <span className="font-medium">{transfer.toName}</span> مبلغ{" "}

@@ -1,5 +1,8 @@
 import { Home } from "lucide-react";
-import { getChoreState, resolveCurrentAssignee } from "@/features/chores/rotation";
+import {
+  getChoreState,
+  resolveCurrentAssignee,
+} from "@/features/chores/rotation";
 import type { ChoreRecord } from "@/features/chores/types";
 import type { TaskMember } from "@/features/tasks/types";
 import { Badge } from "@/shared/ui/badge";
@@ -33,9 +36,7 @@ export function DueChores({
       }),
     }))
     .filter(
-      (
-        item,
-      ): item is { chore: ChoreRecord; state: "OVERDUE" | "DUE_TODAY" } =>
+      (item): item is { chore: ChoreRecord; state: "OVERDUE" | "DUE_TODAY" } =>
         item.state === "OVERDUE" || item.state === "DUE_TODAY",
     )
     .slice(0, 4);
@@ -45,7 +46,7 @@ export function DueChores({
   return (
     <Card className="space-y-3">
       <div className="flex items-center gap-2">
-        <Home className="size-4 text-sky-600 dark:text-sky-400" />
+        <Home className="size-4 text-olive-ink" />
         <CardTitle>کارهای خانه امروز</CardTitle>
       </div>
 
@@ -62,10 +63,10 @@ export function DueChores({
               key={chore.id}
               className="flex items-center justify-between gap-2 text-sm"
             >
-              <span className="text-zinc-800 dark:text-zinc-100">
+              <span className="text-ink">
                 {chore.title}
                 {assigneeId ? (
-                  <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                  <span className="block text-xs text-muted">
                     نوبت {memberNames.get(assigneeId) ?? "کاربر"}
                   </span>
                 ) : null}

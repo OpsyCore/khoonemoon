@@ -1,0 +1,467 @@
+.today-ref {
+  --today-ink: #33382b;
+  --today-muted: #68685e;
+  --today-paper: #faf8f1;
+  --today-line: #e7e1d6;
+  --today-olive: #657452;
+  --today-rust: #bd8064;
+  color: var(--today-ink);
+  padding-bottom: 5rem;
+}
+.today-ref * {
+  box-sizing: border-box;
+}
+.today-ref-greeting {
+  position: relative;
+  min-height: 5.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 3rem 0.6rem 0.3rem;
+  overflow: hidden;
+}
+.today-ref-greeting > div {
+  display: grid;
+  justify-items: start;
+  gap: 0.25rem;
+  z-index: 1;
+}
+.today-ref-greeting strong {
+  font-size: 1.05rem;
+}
+.today-ref-greeting small {
+  position: relative;
+  z-index: 1;
+  margin-left: 3.2rem;
+  color: var(--today-muted);
+  font-size: 0.64rem;
+}
+.today-ref-greeting-art {
+  position: absolute;
+  left: -1.25rem;
+  top: -1rem;
+  width: 5.4rem;
+  height: 6rem;
+  background: url("./assets/home-branch.webp") center/contain no-repeat;
+  transform: rotate(-35deg);
+  pointer-events: none;
+}
+:root .today-ref .today-ref-greeting button {
+  min-height: 0;
+  padding: 0.1rem 0;
+  border: 0;
+  color: var(--today-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 0.7rem;
+  box-shadow: none;
+}
+.today-ref-hero {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  min-height: 8.5rem;
+  padding: 0.55rem;
+  border: 1px solid var(--today-line);
+  border-radius: 0.9rem;
+  background: url("./assets/today-garden.webp") center/cover no-repeat;
+  overflow: hidden;
+}
+.today-ref-hero > div {
+  display: grid;
+  gap: 0.7rem;
+  min-width: 45%;
+  max-width: 65%;
+  min-height: 6.8rem;
+  padding: 0.8rem;
+  border-radius: 0.75rem;
+  background: #f9f6ecdf;
+  color: #4c4b3c;
+}
+.today-ref-hero strong {
+  font-size: 0.8rem;
+}
+.today-ref-hero span {
+  font-size: 0.78rem;
+  line-height: 1.7;
+}
+.today-ref-summary,
+.today-ref-card {
+  border: 1px solid var(--today-line);
+  border-radius: 0.9rem;
+  background: var(--today-paper);
+  box-shadow: 0 4px 14px #67583b12;
+}
+.today-ref-summary {
+  position: relative;
+  overflow: hidden;
+  margin: 0.7rem 0;
+  padding: 0.8rem;
+}
+.today-ref-summary h2,
+.today-ref-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--today-ink);
+  font-size: 0.92rem;
+}
+.today-ref-summary h2 svg,
+.today-ref-card h3 svg {
+  color: var(--today-olive);
+}
+.today-ref-summary > p,
+.today-ref-card p,
+.today-ref-week-details {
+  margin: 0.35rem 0;
+  color: var(--today-muted);
+  font-size: 0.66rem;
+  line-height: 1.6;
+}
+.today-ref-summary::after {
+  content: "";
+  position: absolute;
+  bottom: -1.3rem;
+  left: -1.5rem;
+  width: 4.5rem;
+  height: 6rem;
+  background: url("./assets/home-branch.webp") center/contain no-repeat;
+  transform: rotate(-35deg);
+  opacity: 0.7;
+  pointer-events: none;
+}
+.today-ref-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0.6rem 0 0.2rem;
+}
+.today-ref-stats > div {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.15rem 0.3rem;
+  border-inline-start: 1px solid var(--today-line);
+  text-align: center;
+}
+.today-ref-stats > div:last-child {
+  border-inline-start: 0;
+}
+.today-ref-stats > div > span {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  color: #5d6f50;
+  background: #e2e6d7;
+}
+.today-ref-stats > div:last-child > span {
+  background: #f1dfd8;
+  color: #a96b55;
+}
+.today-ref-stats strong {
+  display: grid;
+  gap: 0.1rem;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+}
+.today-ref-stats small {
+  color: var(--today-muted);
+  font-size: 0.61rem;
+}
+.today-ref-week-details {
+  position: relative;
+  z-index: 1;
+}
+.today-ref-week-details summary {
+  cursor: pointer;
+}
+.today-ref-week-details p {
+  margin: 0.3rem 0;
+}
+.today-ref-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "tasks events"
+    "chores bills"
+    "reminders reminders";
+  gap: 0.65rem;
+  align-items: stretch;
+}
+.today-ref-tasks {
+  grid-area: tasks;
+}
+.today-ref-chores {
+  grid-area: chores;
+}
+.today-ref-events {
+  grid-area: events;
+}
+.today-ref-bills {
+  grid-area: bills;
+}
+.today-ref-reminders {
+  grid-area: reminders;
+}
+.today-ref-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.8rem;
+}
+.today-ref-card > .today-ref-more {
+  align-self: flex-start;
+  margin-top: auto;
+}
+.today-ref-card h3 {
+  margin-bottom: 0.65rem;
+}
+.today-ref-row,
+.today-ref-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.55rem 0.3rem;
+  border-bottom: 1px solid var(--today-line);
+}
+.today-ref-text,
+.today-ref-item > span:nth-child(2) {
+  display: grid;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+.today-ref-text strong,
+.today-ref-item strong {
+  font-size: 0.73rem;
+  overflow-wrap: anywhere;
+}
+.today-ref-text small,
+.today-ref-item small {
+  color: var(--today-muted);
+  font-size: 0.62rem;
+  overflow-wrap: anywhere;
+}
+:root .today-ref button.today-ref-item {
+  width: 100%;
+  border: 0;
+  border-radius: 0.55rem;
+  background: #f0eee6;
+  color: var(--today-ink);
+  font: inherit;
+  text-align: right;
+  box-shadow: none;
+  margin: 0.3rem 0;
+}
+.today-ref-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #e4e8da;
+  color: #657653;
+}
+.today-ref-days {
+  flex: none;
+  padding: 0.2rem 0.35rem;
+  border-radius: 0.4rem;
+  background: #f5e3da;
+  color: #a76950;
+  font-size: 0.6rem;
+  white-space: nowrap;
+}
+.today-ref-bill {
+  flex-wrap: wrap;
+}
+.today-ref-bill .today-ref-pay {
+  margin-inline-start: auto;
+}
+:root .today-ref button.today-ref-check {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  min-height: 0;
+  padding: 0;
+  border: 1.5px solid #a29e8c;
+  border-radius: 0.3rem;
+  background: transparent;
+  color: transparent;
+  box-shadow: none;
+}
+:root .today-ref button.today-ref-check:focus-visible {
+  color: var(--today-olive);
+}
+.today-ref-priority {
+  flex: none;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  background: #f3dbd3;
+  color: #b0644d;
+  font-weight: bold;
+}
+:root .today-ref .today-ref-more,
+:root .today-ref .today-ref-refresh,
+:root .today-ref .today-ref-pay {
+  padding: 0.35rem;
+  border: 0;
+  background: transparent;
+  color: var(--today-olive);
+  box-shadow: none;
+  font: inherit;
+  font-size: 0.66rem;
+}
+:root .today-ref .today-ref-pay {
+  border: 1px solid #d5d9c9;
+  border-radius: 0.4rem;
+}
+.today-ref-footer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 6rem;
+  margin: 0.7rem 0 0;
+  padding: 0.7rem 5rem;
+  border-radius: 0.8rem;
+  background: #eee9dd;
+  color: #7e7b6b;
+  text-align: center;
+  overflow: hidden;
+}
+.today-ref-footer p {
+  font-size: 0.7rem;
+  line-height: 1.8;
+}
+.today-ref-books {
+  position: absolute;
+  left: -0.2rem;
+  bottom: -0.15rem;
+  width: 8rem;
+  height: 5.7rem;
+  background: url("./assets/today-books.webp") center/contain no-repeat;
+  pointer-events: none;
+}
+.today-ref-footer-leaf {
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.2rem;
+  width: 3.2rem;
+  height: 4rem;
+  background: url("./assets/home-branch.webp") center/contain no-repeat;
+  pointer-events: none;
+}
+.today-ref-refresh {
+  display: block;
+  margin: 0.2rem auto;
+}
+.today-ref-error {
+  color: #a34535;
+  font-size: 0.8rem;
+}
+.today-ref-management {
+  border: 1px solid var(--today-line, #e7e1d6);
+  border-radius: 0.8rem;
+  margin: 0.7rem 0;
+  padding: 0.7rem;
+  background: var(--today-paper, #faf8f1);
+}
+.today-ref-management > summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+:root .today-quick-add {
+  position: static;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+:root .today-quick-add .today-quick-trigger {
+  position: fixed;
+  z-index: 8;
+  right: max(1rem, calc((100vw - 34rem) / 2 + 1rem));
+  bottom: calc(5.4rem + env(safe-area-inset-bottom));
+  display: grid;
+  place-items: center;
+  width: 3.7rem;
+  height: 3.7rem;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #657451;
+  color: white;
+  box-shadow: 0 4px 14px #53624355;
+  font: inherit;
+  font-size: 2.2rem;
+  line-height: 1;
+}
+:root:not([data-theme="dark"]) .today-ref button.today-ref-item {
+  background: #f0eee6;
+  color: var(--today-ink);
+}
+:root:not([data-theme="dark"]) .today-ref button.today-ref-check,
+:root:not([data-theme="dark"]) .today-ref .today-ref-more,
+:root:not([data-theme="dark"]) .today-ref .today-ref-refresh,
+:root:not([data-theme="dark"]) .today-ref .today-ref-pay,
+:root:not([data-theme="dark"]) .today-ref .today-ref-greeting button {
+  background: transparent;
+}
+:root:not([data-theme="dark"]) .today-quick-add .today-quick-trigger {
+  background: #657451;
+  color: white;
+}
+:root[data-theme="dark"] .today-ref,
+.dark .today-ref {
+  --today-ink: #f0ebdc;
+  --today-muted: #c4bcaa;
+  --today-paper: #393b31;
+  --today-line: #595c4d;
+  --today-olive: #a4b595;
+  --today-rust: #dea88f;
+}
+:root.dark .today-ref button.today-ref-item,
+.dark .today-ref button.today-ref-item,
+:root[data-theme="dark"] .today-ref button.today-ref-item {
+  background: #45483c;
+  color: #f0ebdc;
+}
+.dark .today-ref-footer,
+:root[data-theme="dark"] .today-ref-footer {
+  background: #48483a;
+  color: #d4c9b2;
+}
+@media (max-width: 350px) {
+  .today-ref-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "tasks"
+      "events"
+      "chores"
+      "bills"
+      "reminders";
+  }
+  .today-ref-greeting small {
+    display: none;
+  }
+  .today-ref-footer {
+    padding-inline: 4.5rem;
+  }
+  .today-ref-bill {
+    flex-wrap: nowrap;
+  }
+}
+
+:root[data-theme="dark"] .today-ref-error,
+.dark .today-ref-error {
+  color: #f4b4a4;
+}

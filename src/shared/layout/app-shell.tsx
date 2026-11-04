@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
+import { AppMenu } from "@/shared/layout/app-menu";
 import { BottomNav } from "@/shared/layout/bottom-nav";
 import { QuickAddFab } from "@/shared/layout/quick-add-fab";
-import { TopBar } from "@/shared/layout/top-bar";
 
 export function AppShell({
   children,
@@ -13,9 +13,9 @@ export function AppShell({
   dueReminderCount?: number;
 }) {
   return (
-    <div className="min-h-dvh bg-[var(--app-bg)] text-[var(--app-ink)]">
-      <TopBar />
-      <main className="mx-auto w-full max-w-3xl px-4 pb-28 pt-4 md:pb-8">
+    <div className="min-h-dvh text-ink">
+      <AppMenu dueReminderCount={dueReminderCount} />
+      <main className="mx-auto w-full max-w-md px-5 pb-36 pt-20">
         {children}
       </main>
       <QuickAddFab hasHousehold={hasHousehold} />

@@ -157,7 +157,7 @@ describe("resolveTargetTitle", () => {
         tasks: TASKS,
         events: EVENTS,
       }),
-    ).toBe("تسک حذف‌شده");
+    ).toBe("کار حذف‌شده یا غیرقابل دسترس");
 
     expect(
       resolveTargetTitle({
@@ -165,7 +165,7 @@ describe("resolveTargetTitle", () => {
         tasks: TASKS,
         events: EVENTS,
       }),
-    ).toBe("رویداد حذف‌شده");
+    ).toBe("رویداد حذف‌شده یا غیرقابل دسترس");
   });
 });
 

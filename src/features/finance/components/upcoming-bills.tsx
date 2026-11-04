@@ -1,5 +1,9 @@
 import { Receipt } from "lucide-react";
-import { formatAmount, getBillStatus, isBillRecord } from "@/features/finance/bills";
+import {
+  formatAmount,
+  getBillStatus,
+  isBillRecord,
+} from "@/features/finance/bills";
 import type { FinancialRecord } from "@/features/finance/types";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
@@ -26,7 +30,9 @@ export function UpcomingBills({ records }: { records: FinancialRecord[] }) {
       }),
     }))
     .filter((item) => item.status !== "PAID")
-    .sort((a, b) => (a.record.due_at ?? "").localeCompare(b.record.due_at ?? ""))
+    .sort((a, b) =>
+      (a.record.due_at ?? "").localeCompare(b.record.due_at ?? ""),
+    )
     .slice(0, 4);
 
   if (bills.length === 0) return null;
@@ -44,9 +50,9 @@ export function UpcomingBills({ records }: { records: FinancialRecord[] }) {
             key={record.id}
             className="flex items-center justify-between gap-2 text-sm"
           >
-            <span className="text-zinc-800 dark:text-zinc-100">
+            <span className="text-ink">
               {record.title}
-              <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="block text-xs text-muted">
                 {formatAmount(record.amount, record.currency)}
                 {record.due_at ? ` · ${formatPersianDate(record.due_at)}` : ""}
               </span>

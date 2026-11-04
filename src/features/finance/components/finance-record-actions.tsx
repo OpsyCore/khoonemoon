@@ -116,7 +116,7 @@ export function FinanceRecordActions({ record }: { record: FinancialRecord }) {
       ) : null}
 
       {mode === "edit" ? (
-        <div className="space-y-2 rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700">
+        <div className="space-y-2 rounded-2xl border border-line p-3">
           <Input
             label="عنوان"
             value={form.title}
@@ -152,7 +152,7 @@ export function FinanceRecordActions({ record }: { record: FinancialRecord }) {
             }
           />
 
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs text-muted">
             {pendingChanges?.ok && pendingChanges.unchanged
               ? "چیزی تغییر نکرده است."
               : pendingChanges?.ok

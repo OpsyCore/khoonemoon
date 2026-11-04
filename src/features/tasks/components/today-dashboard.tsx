@@ -1,5 +1,8 @@
 "use client";
 
+import { directTasks } from "@/features/tasks/direct-client";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 import {
   AlarmClockCheck,
   CalendarClock,
@@ -77,16 +80,17 @@ export function TodayDashboard({
   const completeToggle = async (task: TaskRecord) => {
     setErrorMessage(null);
 
-    const response = await fetch(`/api/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: task.status === "COMPLETED" ? "undo" : "complete",
-      }),
-    });
-
-    if (!response.ok) {
-      setErrorMessage("بروزرسانی وضعیت تسک ناموفق بود.");
+    try {
+      await directTasks(createSupabaseBrowserClient()).completion(
+        task,
+        task.status === "COMPLETED" ? "undo" : "complete",
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "بروزرسانی وضعیت تأیید نشد؛ فهرست را تازه کنید.",
+      );
       return;
     }
 
@@ -132,19 +136,17 @@ export function TodayDashboard({
       <div className="grid grid-cols-3 gap-2">
         <Card className="p-3 text-center">
           <p className="text-lg font-semibold">{derived.todayTasks.length}</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">امروز</p>
+          <p className="text-xs text-muted">امروز</p>
         </Card>
         <Card className="p-3 text-center">
           <p className="text-lg font-semibold">{derived.overdueTasks.length}</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">معوق</p>
+          <p className="text-xs text-muted">معوق</p>
         </Card>
         <Card className="p-3 text-center">
           <p className="text-lg font-semibold">
             {derived.upcomingEvents.length}
           </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            رویداد آینده
-          </p>
+          <p className="text-xs text-muted">رویداد آینده</p>
         </Card>
       </div>
 
@@ -158,14 +160,11 @@ export function TodayDashboard({
         ) : (
           <ul className="space-y-2">
             {derived.overdueTasks.map((task) => (
-              <li
-                key={task.id}
-                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
-              >
+              <li key={task.id} className="rounded-2xl border border-line p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold">{task.title}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    <p className="text-xs text-muted">
                       موعد:{" "}
                       {task.due_at
                         ? formatJalaliLongDate(new Date(task.due_at))
@@ -212,14 +211,11 @@ export function TodayDashboard({
         ) : (
           <ul className="space-y-2">
             {derived.todayTasks.map((task) => (
-              <li
-                key={task.id}
-                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
-              >
+              <li key={task.id} className="rounded-2xl border border-line p-3">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-semibold">{task.title}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    <p className="text-xs text-muted">
                       {task.due_at
                         ? formatPersianTime(new Date(task.due_at))
                         : "بدون زمان"}
@@ -266,12 +262,9 @@ export function TodayDashboard({
         ) : (
           <ul className="space-y-2">
             {derived.upcomingEvents.map((event) => (
-              <li
-                key={event.id}
-                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
-              >
+              <li key={event.id} className="rounded-2xl border border-line p-3">
                 <p className="text-sm font-semibold">{event.title}</p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="text-xs text-muted">
                   {formatJalaliLongDate(new Date(event.start_at))} -{" "}
                   {formatPersianTime(new Date(event.start_at))}
                 </p>

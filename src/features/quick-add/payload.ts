@@ -121,6 +121,27 @@ export function buildQuickBillPayload({
   };
 }
 
+/** A real unpaid payable; unlike a quick expense, a due date is required. */
+export function buildQuickPayablePayload({
+  title,
+  amount,
+  visibility,
+  dueAt,
+}: {
+  title: string;
+  amount: number;
+  visibility: QuickVisibility;
+  dueAt: string;
+}) {
+  return {
+    title: title.trim(),
+    amount,
+    visibility,
+    recordType: "BILL" as const,
+    dueAt,
+  };
+}
+
 export function buildQuickChorePayload({
   title,
   frequency,

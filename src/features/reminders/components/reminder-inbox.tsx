@@ -22,18 +22,29 @@ export function ReminderInbox({
   reminders,
   tasks,
   events,
+  chores = [],
+  bills = [],
   now,
 }: {
   reminders: ReminderRecord[];
   tasks: ReminderTarget[];
   events: ReminderTarget[];
+  chores?: ReminderTarget[];
+  bills?: ReminderTarget[];
   now: Date;
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const inbox = buildReminderInbox({ reminders, tasks, events, now });
+  const inbox = buildReminderInbox({
+    reminders,
+    tasks,
+    events,
+    chores,
+    bills,
+    now,
+  });
 
   const handleAction = async (id: string, action: ReminderAction) => {
     setBusyId(id);

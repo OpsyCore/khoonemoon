@@ -66,7 +66,9 @@ export async function POST(request: Request) {
   let remindersQuery = client
     .from("reminders")
     .select(REMINDER_SELECT)
-    .in("status", ["PENDING", "SNOOZED"])
+    .or(
+      `and(status.eq.PENDING,remind_at.lte.${now.toISOString()}),and(status.eq.SNOOZED,snoozed_until.lte.${now.toISOString()}),and(status.eq.SNOOZED,snoozed_until.is.null,remind_at.lte.${now.toISOString()})`,
+    )
     .order("remind_at", { ascending: true })
     .limit(500);
 
@@ -141,40 +143,55 @@ export async function POST(request: Request) {
     });
   }
 
-  const { error: updateError } = await client
-    .from("reminders")
-    .update({ status: "SENT", delivered_at: now.toISOString() })
-    .in(
-      "id",
-      toSend.map((reminder) => reminder.id),
-    );
-
-  if (updateError) return serverError("به‌روزرسانی وضعیت یادآورها ناموفق بود.");
+  // Claim only the exact version we planned. A concurrent dismissal, snooze,
+  // or another dispatcher must never be overwritten or delivered twice.
+  const claimed: ReminderRecord[] = [];
+  let claimErrors = 0;
+  for (const reminder of toSend) {
+    const { data, error } = await client
+      .from("reminders")
+      .update({ status: "SENT", delivered_at: now.toISOString() })
+      .eq("id", reminder.id)
+      .eq("user_id", reminder.user_id)
+      .eq("status", reminder.status)
+      .eq("updated_at", reminder.updated_at)
+      .select("id")
+      .maybeSingle();
+    if (error) {
+      claimErrors += 1;
+      continue;
+    }
+    if (data) claimed.push(reminder);
+  }
 
   // Web Push delivery for users who enabled it on at least one device.
   const pushByUser = await deliverPushNotifications({
     client,
-    reminders: toSend,
+    reminders: claimed,
     preferencesByUser,
     now,
   });
 
-  return NextResponse.json({
-    dispatched: toSend.length,
-    deferred: deferredCount,
-    sentAt: now.toISOString(),
-    push: pushByUser.summary,
-    notifications: toSend.map((reminder) => ({
-      reminderId: reminder.id,
-      userId: reminder.user_id,
-      targetType: reminder.target_type,
-      targetId: reminder.target_id,
-      inAppEnabled:
-        preferencesByUser.get(reminder.user_id)?.in_app_enabled ?? true,
-      webPushEnabled:
-        preferencesByUser.get(reminder.user_id)?.web_push_enabled ?? false,
-    })),
-  });
+  return NextResponse.json(
+    {
+      claimErrors,
+      dispatched: claimed.length,
+      deferred: deferredCount,
+      sentAt: now.toISOString(),
+      push: pushByUser.summary,
+      notifications: claimed.map((reminder) => ({
+        reminderId: reminder.id,
+        userId: reminder.user_id,
+        targetType: reminder.target_type,
+        targetId: reminder.target_id,
+        inAppEnabled:
+          preferencesByUser.get(reminder.user_id)?.in_app_enabled ?? true,
+        webPushEnabled:
+          preferencesByUser.get(reminder.user_id)?.web_push_enabled ?? false,
+      })),
+    },
+    { status: claimErrors ? 500 : 200 },
+  );
 }
 
 type PushOutcome = {

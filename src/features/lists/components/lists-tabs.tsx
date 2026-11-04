@@ -2,14 +2,15 @@
 
 import { Home, Receipt, ShoppingBasket } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChoreBoard } from "@/features/chores/components/chore-board";
 import type { ChoreCompletion, ChoreRecord } from "@/features/chores/types";
 import { FinanceBoard } from "@/features/finance/components/finance-board";
 import { FinanceCharts } from "@/features/finance/components/finance-charts";
 import { SettlementCard } from "@/features/finance/components/settlement-card";
 import type { FinancialRecord } from "@/features/finance/types";
-import { ShoppingBoard } from "@/features/shopping/components/shopping-board";
+import { Shopping } from "../../../../mobile/src/shopping";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { ShoppingItem, ShoppingList } from "@/features/shopping/types";
 import type { TaskMember } from "@/features/tasks/types";
 import { cn } from "@/shared/utils/cn";
@@ -23,15 +24,13 @@ const TABS: { key: TabKey; label: string; icon: typeof ShoppingBasket }[] = [
 ];
 
 export function ListsTabs({
-  lists,
-  items,
   chores,
   completions,
   records,
   members,
-  activeListId,
   canShare,
   currentUserId,
+  householdId,
 }: {
   lists: ShoppingList[];
   items: ShoppingItem[];
@@ -42,7 +41,9 @@ export function ListsTabs({
   activeListId: string | null;
   canShare: boolean;
   currentUserId: string;
+  householdId: string | null;
 }) {
+  const client = useMemo(() => createSupabaseBrowserClient(), []);
   const [tab, setTab] = useState<TabKey>("shopping");
 
   return (
@@ -50,7 +51,7 @@ export function ListsTabs({
       <div
         role="tablist"
         aria-label="بخش‌های لیست‌ها"
-        className="grid grid-cols-3 gap-1 rounded-2xl bg-zinc-100 p-1 dark:bg-zinc-900"
+        className="grid grid-cols-3 gap-1 rounded-2xl bg-sunken p-1"
       >
         {TABS.map((item) => {
           const Icon = item.icon;
@@ -64,9 +65,7 @@ export function ListsTabs({
               onClick={() => setTab(item.key)}
               className={cn(
                 "flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium transition",
-                isActive
-                  ? "bg-white text-sky-700 shadow-sm dark:bg-zinc-800 dark:text-sky-300"
-                  : "text-zinc-600 dark:text-zinc-300",
+                isActive ? "bg-card text-olive-ink shadow-paper" : "text-muted",
               )}
             >
               <Icon className="size-4" />
@@ -77,11 +76,11 @@ export function ListsTabs({
       </div>
 
       {tab === "shopping" ? (
-        <ShoppingBoard
-          lists={lists}
-          initialItems={items}
-          initialListId={activeListId}
-        />
+        householdId ? (
+          <Shopping client={client} householdId={householdId} />
+        ) : (
+          <p>برای خرید مشترک ابتدا به یک خانه بپیوندید.</p>
+        )
       ) : null}
 
       {tab === "chores" ? (
@@ -105,7 +104,7 @@ export function ListsTabs({
           />
           <Link
             href="/finance"
-            className="block rounded-2xl border border-zinc-200 bg-white p-3 text-center text-sm font-medium text-sky-700 shadow-sm transition hover:bg-sky-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-sky-300 dark:hover:bg-sky-950/30"
+            className="block rounded-2xl border border-line bg-card p-3 text-center text-sm font-medium text-olive-ink shadow-paper transition hover:bg-sunken"
           >
             دفتر تراکنش‌ها — همهٔ رکوردها با فیلتر
           </Link>

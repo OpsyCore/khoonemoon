@@ -1,4 +1,4 @@
-export type ReminderTargetType = "TASK" | "EVENT";
+export type ReminderTargetType = "TASK" | "EVENT" | "CHORE" | "BILL";
 export type ReminderStatus = "PENDING" | "SNOOZED" | "SENT" | "CANCELED";
 
 export type ReminderRecord = {

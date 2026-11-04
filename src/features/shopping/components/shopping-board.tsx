@@ -1,6 +1,15 @@
 "use client";
 
-import { Check, Plus, ShoppingBasket, Trash2, Wifi, WifiOff } from "lucide-react";
+import { directShopping } from "@/features/shopping/direct-client";
+
+import {
+  Check,
+  Plus,
+  ShoppingBasket,
+  Trash2,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -37,38 +46,26 @@ export function ShoppingBoard({
   const [isSyncing, setIsSyncing] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const activeListIdRef = useRef(activeListId);
-  const loadSequenceRef = useRef(0);
+  const requestSequence = useRef(0);
+  const [showNewList, setShowNewList] = useState(false);
 
   const loadItems = useCallback(async (listId: string) => {
-    if (activeListIdRef.current !== listId) return;
-
-    const requestId = ++loadSequenceRef.current;
-
+    const sequence = ++requestSequence.current;
     try {
-      const response = await fetch(`/api/shopping/items?listId=${listId}`);
-      if (!response.ok) {
-        if (requestId === loadSequenceRef.current) {
-          setErrorMessage("بارگذاری آیتم‌های لیست ناموفق بود.");
-        }
-        return;
-      }
-
+      const response = await fetch(
+        `/api/shopping/items?listId=${encodeURIComponent(listId)}`,
+      );
+      if (!response.ok) throw new Error("load failed");
       const payload = (await response.json()) as { items: ShoppingItem[] };
       if (
-        requestId !== loadSequenceRef.current ||
-        activeListIdRef.current !== listId
-      ) {
-        return;
-      }
-
-      setItems(payload.items);
-    } catch {
-      if (
-        requestId === loadSequenceRef.current &&
+        sequence === requestSequence.current &&
         activeListIdRef.current === listId
       ) {
-        setErrorMessage("ارتباط با سرور برای بارگذاری لیست برقرار نشد.");
+        setItems(payload.items);
       }
+    } catch {
+      if (sequence === requestSequence.current)
+        setErrorMessage("دریافت آیتم‌های لیست ناموفق بود.");
     }
   }, []);
 
@@ -76,6 +73,7 @@ export function ShoppingBoard({
     activeListIdRef.current = listId;
     setActiveListId(listId);
     setItems([]);
+    setErrorMessage(null);
     await loadItems(listId);
   };
 
@@ -144,31 +142,26 @@ export function ShoppingBoard({
   const addItem = async () => {
     const name = newItemName.trim();
     if (!name || !activeListId) return;
-    const targetListId = activeListId;
 
+    const targetListId = activeListId;
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const response = await fetch("/api/shopping/items", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listId: targetListId, name }),
-    });
-
-    setIsSubmitting(false);
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        message?: string;
-      } | null;
-      setErrorMessage(payload?.message ?? "افزودن آیتم ناموفق بود.");
-      return;
-    }
-
-    const payload = (await response.json()) as { item: ShoppingItem };
-    if (activeListIdRef.current === targetListId) {
-      setNewItemName("");
-      setItems((current) => mergeShoppingItems(current, payload.item));
+    try {
+      const item = await directShopping(createSupabaseBrowserClient()).addItem({
+        listId: targetListId,
+        name,
+      });
+      if (activeListIdRef.current === targetListId) {
+        setNewItemName("");
+        setItems((current) => mergeShoppingItems(current, item));
+      }
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "افزودن آیتم تأیید نشد.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -201,35 +194,43 @@ export function ShoppingBoard({
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const response = await fetch("/api/shopping/lists", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-
-    setIsSubmitting(false);
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        message?: string;
-      } | null;
-      setErrorMessage(payload?.message ?? "ایجاد لیست خرید ناموفق بود.");
-      return;
+    try {
+      const client = createSupabaseBrowserClient();
+      const { data: auth, error: authError } = await client.auth.getUser();
+      if (authError || !auth.user) throw new Error("ابتدا وارد حساب خود شوید.");
+      const { data: membership, error: memberError } = await client
+        .from("household_members")
+        .select("household_id")
+        .eq("user_id", auth.user.id)
+        .is("left_at", null)
+        .maybeSingle();
+      if (memberError || !membership?.household_id)
+        throw new Error("برای ساخت لیست عضو خانه شوید.");
+      const list = await directShopping(client).createList(
+        membership.household_id,
+        { name },
+      );
+      setNewListName("");
+      requestSequence.current += 1;
+      activeListIdRef.current = list.id;
+      setActiveListId(list.id);
+      setItems([]);
+      setShowNewList(false);
+      router.refresh();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "ایجاد لیست تأیید نشد.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const payload = (await response.json()) as { list: ShoppingList };
-    setNewListName("");
-    activeListIdRef.current = payload.list.id;
-    setActiveListId(payload.list.id);
-    setItems([]);
-    router.refresh();
   };
 
   if (!activeListId) {
     return (
       <Card className="space-y-3">
         <div className="flex items-center gap-2">
-          <ShoppingBasket className="size-4 text-sky-600 dark:text-sky-400" />
+          <ShoppingBasket className="size-4 text-olive-ink" />
           <CardTitle>اولین لیست خرید</CardTitle>
         </div>
         <CardDescription>
@@ -261,7 +262,7 @@ export function ShoppingBoard({
       <Card className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <ShoppingBasket className="size-4 text-sky-600 dark:text-sky-400" />
+            <ShoppingBasket className="size-4 text-olive-ink" />
             <CardTitle>خرید مشترک</CardTitle>
           </div>
           <Badge tone={isSyncing ? "warning" : "success"}>
@@ -295,6 +296,35 @@ export function ShoppingBoard({
           </div>
         ) : null}
 
+        <div className="border-t border-line pt-3">
+          {showNewList ? (
+            <div className="flex gap-2">
+              <Input
+                aria-label="نام لیست جدید"
+                placeholder="نام لیست جدید"
+                value={newListName}
+                onChange={(event) => setNewListName(event.target.value)}
+              />
+              <Button
+                onClick={() => void createList()}
+                isLoading={isSubmitting}
+              >
+                ساخت
+              </Button>
+              <Button variant="ghost" onClick={() => setShowNewList(false)}>
+                انصراف
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowNewList(true)}
+            >
+              <Plus className="size-4" /> لیست جدید
+            </Button>
+          )}
+        </div>
         <div className="flex gap-2">
           <Input
             aria-label="نام آیتم جدید"
@@ -340,22 +370,20 @@ export function ShoppingBoard({
                   <span
                     className={`flex size-6 shrink-0 items-center justify-center rounded-full border ${
                       item.purchased
-                        ? "border-emerald-500 bg-emerald-500 text-white"
-                        : "border-zinc-300 dark:border-zinc-600"
+                        ? "border-olive bg-olive text-cream"
+                        : "border-line-strong"
                     }`}
                   >
                     {item.purchased ? <Check className="size-4" /> : null}
                   </span>
                   <span
                     className={`text-sm ${
-                      item.purchased
-                        ? "text-zinc-400 line-through dark:text-zinc-500"
-                        : "text-zinc-900 dark:text-zinc-100"
+                      item.purchased ? "text-faint line-through" : "text-ink"
                     }`}
                   >
                     {item.name}
                     {item.quantity ? (
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                      <span className="text-xs text-muted">
                         {" "}
                         — {Number(item.quantity)}
                         {item.unit ? ` ${item.unit}` : ""}

@@ -30,4 +30,16 @@ done
 echo "==> running RLS / grant / integrity assertions"
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f db/local/10_assertions.sql
 
+echo "==> checking concurrent cleanup races on the disposable database"
+bash scripts/db-cleanup-concurrency.sh
+
+echo "==> checking concurrent create retries"
+bash scripts/db-create-concurrency.sh
+
+echo "==> checking concurrent invitation retries and one-time use"
+bash scripts/db-invitation-concurrency.sh
+
+echo "==> checking two-device chore completion race"
+bash scripts/db-chore-concurrency.sh
+
 echo "==> database verification passed"

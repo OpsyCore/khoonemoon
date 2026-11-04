@@ -39,7 +39,9 @@ describe("getBillStatus", () => {
   });
 
   it("marks bills inside the three-day window as due", () => {
-    expect(getBillStatus({ dueAt: "2026-10-29T10:00:00.000Z", now })).toBe("DUE");
+    expect(getBillStatus({ dueAt: "2026-10-29T10:00:00.000Z", now })).toBe(
+      "DUE",
+    );
   });
 
   it("marks later bills as upcoming", () => {
@@ -91,5 +93,8 @@ describe("summarizeFinance", () => {
 describe("formatAmount", () => {
   it("formats rials as Persian toman", () => {
     expect(formatAmount(1_250_000)).toContain("تومان");
+  });
+  it("keeps fractional non-IRR amounts visible", () => {
+    expect(formatAmount(1.25, "USD")).toContain("۱٫۲۵");
   });
 });

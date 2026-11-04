@@ -72,19 +72,22 @@ export function UpcomingReminders({
             return (
               <li
                 key={reminder.id}
-                className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                className="rounded-2xl border border-line p-3"
               >
                 <p className="text-sm font-semibold">
-                  {reminder.target_type === "TASK"
-                    ? "یادآور تسک"
-                    : "یادآور رویداد"}
+                  {
+                    {
+                      TASK: "یادآور تسک",
+                      EVENT: "یادآور رویداد",
+                      CHORE: "یادآور کار خانه",
+                      BILL: "یادآور قبض",
+                    }[reminder.target_type]
+                  }
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="text-xs text-muted">
                   {formatJalaliLongDate(d)} - {formatPersianTime(d)}
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  وضعیت: {reminder.status}
-                </p>
+                <p className="text-xs text-muted">وضعیت: {reminder.status}</p>
                 <div className="mt-2 flex gap-2">
                   <Button
                     size="sm"

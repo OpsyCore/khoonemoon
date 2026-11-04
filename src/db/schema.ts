@@ -281,6 +281,7 @@ export const taskRecurrences = pgTable(
     intervalDays: integer("interval_days"),
     weekdays: integer("weekdays").array(),
     nextOccurrenceAt: timestamp("next_occurrence_at", { withTimezone: true }),
+    recurrenceTimezone: text("recurrence_timezone").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

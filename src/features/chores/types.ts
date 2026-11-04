@@ -18,10 +18,12 @@ export type ChoreRecord = {
   rotation_mode: ChoreRotationMode;
   current_rotation_index: number;
   frequency: TaskRecurrenceFrequency;
+  recurrence_timezone: string;
   interval_days: number | null;
   weekdays: number[] | null;
   next_due_at: string | null;
   is_active: boolean;
+  completion_revision?: number;
   archived_at: string | null;
   created_at: string;
   updated_at: string;

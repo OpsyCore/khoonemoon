@@ -1,0 +1,45 @@
+name: Backup connectivity check
+on:
+  push:
+    branches: ["arena/00d965b0-khoonemoon"]
+    paths: [".github/workflows/backup-network-check.yml"]
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  pooler:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test IPv4 access to the Supabase session pooler (no credentials)
+        run: |
+          python3 - <<'PY'
+          import socket
+          host = 'aws-0-ap-southeast-2.pooler.supabase.com'
+          addresses = socket.getaddrinfo(host, 5432, socket.AF_INET, socket.SOCK_STREAM)
+          if not addresses:
+              raise RuntimeError('No IPv4 endpoint')
+          with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as connection:
+              connection.settimeout(10)
+              connection.connect(addresses[0][4])
+          print('IPv4 TCP connection to session pooler succeeded')
+          PY
+
+      - name: Verify GitHub workload identity without exposing the token
+        run: |
+          node --input-type=module <<'JS'
+          import { verifyGithubWorkloadIdentity } from './supabase/functions/project-backup/oidc.mjs';
+          const url = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
+          url.searchParams.set('audience', 'khoonemoon-backup-isfzuxrkzeeeggvfcoah');
+          const tokenResponse = await fetch(url, {
+            headers: {authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}`},
+          });
+          if (!tokenResponse.ok) throw new Error('Identity endpoint unavailable');
+          const {value} = await tokenResponse.json();
+          const jwksResponse = await fetch('https://token.actions.githubusercontent.com/.well-known/jwks');
+          if (!jwksResponse.ok) throw new Error('Identity keys unavailable');
+          const {keys} = await jwksResponse.json();
+          await verifyGithubWorkloadIdentity(value, keys, process.env.GITHUB_SHA);
+          console.log('Signature and restricted workload claims verified');
+          JS

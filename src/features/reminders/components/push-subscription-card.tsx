@@ -144,7 +144,7 @@ export function PushSubscriptionCard() {
           {state === "on" ? (
             <BellRing className="size-4 text-emerald-600 dark:text-emerald-400" />
           ) : (
-            <BellOff className="size-4 text-zinc-500 dark:text-zinc-400" />
+            <BellOff className="size-4 text-muted" />
           )}
           <CardTitle>اعلان‌های یادآور روی این دستگاه</CardTitle>
         </div>
@@ -197,9 +197,7 @@ export function PushSubscriptionCard() {
         </>
       ) : null}
 
-      {message ? (
-        <p className="text-xs text-zinc-600 dark:text-zinc-300">{message}</p>
-      ) : null}
+      {message ? <p className="text-xs text-ink-soft">{message}</p> : null}
     </Card>
   );
 }

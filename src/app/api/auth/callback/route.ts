@@ -1,12 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { safeRedirectPath } from "@/features/auth/safe-redirect";
 import { getAuthCallbackErrorCode } from "@/features/auth/error-messages";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") ?? "/today";
+  const next = safeRedirectPath(requestUrl.searchParams.get("next"));
 
   if (!code) {
     return NextResponse.redirect(

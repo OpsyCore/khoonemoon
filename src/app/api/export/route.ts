@@ -58,11 +58,11 @@ export async function GET(request: Request) {
         .limit(TABLE_LIMIT),
       supabase
         .from("shopping_lists")
-        .select("id, title, created_at")
+        .select("id, name, created_at")
         .limit(TABLE_LIMIT),
       supabase
         .from("shopping_items")
-        .select("id, list_id, title, quantity, is_checked, created_at")
+        .select("id, list_id, name, quantity, purchased, created_at")
         .limit(TABLE_LIMIT),
       supabase
         .from("financial_records")

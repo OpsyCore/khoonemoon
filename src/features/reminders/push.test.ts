@@ -2,13 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   buildPushPayload,
   isExpiredSubscriptionError,
+  isSafePushEndpoint,
   pushSubscriptionSchema,
 } from "./push";
 
 const validSubscription = {
   endpoint: "https://fcm.googleapis.com/fcm/send/abc123",
   keys: {
-    p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
+    p256dh:
+      "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
     auth: "tBHItJI5svbpez7KI4CCXg",
   },
 };
@@ -46,6 +48,35 @@ describe("pushSubscriptionSchema", () => {
   });
 });
 
+describe("push endpoint safety", () => {
+  it("allows supported HTTPS browser push gateways only", () => {
+    expect(isSafePushEndpoint("https://fcm.googleapis.com/fcm/send/abc")).toBe(
+      true,
+    );
+    expect(
+      isSafePushEndpoint(
+        "https://updates.push.services.mozilla.com/wpush/v2/a",
+      ),
+    ).toBe(true);
+    expect(isSafePushEndpoint("https://web.push.apple.com/Q/a")).toBe(true);
+    for (const endpoint of [
+      "http://fcm.googleapis.com/a",
+      "https://fcm.googleapis.com.evil.test/a",
+      "https://fcm.googleapis.com@127.0.0.1/a",
+      "https://fcm.googleapis.com:8443/a",
+      "https://127.0.0.1/a",
+      "https://169.254.169.254/a",
+      "https://evil.test/a",
+    ]) {
+      expect(isSafePushEndpoint(endpoint)).toBe(false);
+      expect(
+        pushSubscriptionSchema.safeParse({ ...validSubscription, endpoint })
+          .success,
+      ).toBe(false);
+    }
+  });
+});
+
 describe("buildPushPayload", () => {
   const now = new Date("2026-10-28T12:00:00.000Z");
 
@@ -73,6 +104,14 @@ describe("buildPushPayload", () => {
     expect(payload.title).toContain("رویداد");
   });
 
+  it("routes chore and bill notifications correctly", () => {
+    expect(
+      buildPushPayload({ targetType: "CHORE", remindAt: now, now }).url,
+    ).toBe("/lists");
+    expect(
+      buildPushPayload({ targetType: "BILL", remindAt: now, now }).url,
+    ).toBe("/finance");
+  });
   it("survives an invalid date without throwing", () => {
     const payload = buildPushPayload({
       targetType: "TASK",

@@ -1,3 +1,7 @@
+import { TodayReference } from "@/features/summary/components/today-reference";
+import { PageHeader } from "@/shared/ui/page-header";
+import { formatPersianDate } from "@/shared/utils/locale";
+import { loadHouseholdMembers } from "@/features/households/members";
 import Link from "next/link";
 import type { EventRecord } from "@/features/calendar/types";
 import { DueChores } from "@/features/chores/components/due-chores";
@@ -17,7 +21,12 @@ import { ErrorState } from "@/shared/ui/error-state";
 
 export const dynamic = "force-dynamic";
 
-export default async function TodayPage() {
+export default async function TodayPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ manage?: string }>;
+}) {
+  const params = await searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -31,6 +40,8 @@ export default async function TodayPage() {
       />
     );
   }
+
+  if (params.manage !== "1") return <TodayReference />;
 
   // One clock for the whole request: the weekly window and the queries below
   // must agree, otherwise a record at the edge counts in neither week.
@@ -57,7 +68,7 @@ export default async function TodayPage() {
     supabase
       .from("tasks")
       .select(
-        "id, title, description, creator_id, owner_id, household_id, visibility, status, priority, due_at, completed_at, archived_at, created_at, updated_at, task_assignees(assignee_id), task_recurrences(frequency, interval_days, weekdays)",
+        "id, title, description, creator_id, owner_id, household_id, visibility, status, priority, due_at, completed_at, archived_at, created_at, updated_at, task_assignees(assignee_id), task_recurrences(frequency, interval_days, weekdays, recurrence_timezone)",
       )
       .is("archived_at", null)
       .order("created_at", { ascending: false }),
@@ -132,11 +143,7 @@ export default async function TodayPage() {
   const householdId = membershipResult.data?.household_id ?? null;
 
   const memberListResult = householdId
-    ? await supabase
-        .from("household_members")
-        .select("user_id, profiles(full_name)")
-        .eq("household_id", householdId)
-        .is("left_at", null)
+    ? await loadHouseholdMembers(supabase, householdId)
     : { data: [], error: null };
 
   if (memberListResult.error) {
@@ -190,20 +197,16 @@ export default async function TodayPage() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">امروز چه کارهایی داریم؟</h2>
-        <p className="text-sm text-[var(--app-muted)] dark:text-[var(--app-muted)]">
-          مرور سریع کارهای معوق، برنامه امروز و رویدادهای پیش‌رو با امکان اقدام
-          فوری.
-        </p>
-      </section>
+      <PageHeader title="امروز" subtitle={formatPersianDate(now)} decor />
 
       <WeeklySummaryCard summary={weeklySummary} />
       <TodayDashboard tasks={tasks} events={events} />
-      <DueChores
-        chores={(choresResult.data ?? []) as ChoreRecord[]}
-        members={effectiveMembers}
-      />
+      <div id="chore-list">
+        <DueChores
+          chores={(choresResult.data ?? []) as ChoreRecord[]}
+          members={effectiveMembers}
+        />
+      </div>
       <UpcomingBills
         records={(financeResult.data ?? []) as FinancialRecord[]}
       />
@@ -211,17 +214,19 @@ export default async function TodayPage() {
 
       <Link
         href="/reminders"
-        className="block rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-raised)] p-4 text-center text-sm font-medium text-[var(--app-ink)] shadow-sm transition hover:bg-[var(--app-primary)]/10 dark:border-[var(--app-border)] dark:bg-[var(--app-surface)] dark:text-sky-300 dark:hover:bg-sky-950/30"
+        className="block rounded-3xl border border-line bg-card p-4 text-center text-sm font-medium text-olive-ink shadow-paper transition hover:bg-sunken"
       >
         همهٔ یادآورها — شامل تحویل‌شده‌ها و لغو‌شده‌ها
       </Link>
 
-      <TaskManager
-        tasks={tasks}
-        members={effectiveMembers}
-        householdId={householdId}
-        userId={user.id}
-      />
+      <div id="task-list">
+        <TaskManager
+          tasks={tasks}
+          members={effectiveMembers}
+          householdId={householdId}
+          userId={user.id}
+        />
+      </div>
     </div>
   );
 }

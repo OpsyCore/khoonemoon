@@ -1,7 +1,37 @@
 import { z } from "zod";
+import type { ReminderTargetType } from "./types";
+
+/** Allow only known browser push gateways. Subscriptions are user-controlled;
+ * never let a background sender make arbitrary requests (SSRF). */
+export function isSafePushEndpoint(endpoint: string): boolean {
+  try {
+    const url = new URL(endpoint);
+    const host = url.hostname.toLowerCase();
+    const known =
+      host === "fcm.googleapis.com" ||
+      host === "updates.push.services.mozilla.com" ||
+      host === "push.services.mozilla.com" ||
+      host.endsWith(".push.apple.com") ||
+      host.endsWith(".notify.windows.com");
+    return (
+      url.protocol === "https:" &&
+      known &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      !url.hash
+    );
+  } catch {
+    return false;
+  }
+}
 
 export const pushSubscriptionSchema = z.object({
-  endpoint: z.string().url("آدرس push نامعتبر است.").max(2000),
+  endpoint: z
+    .string()
+    .url("آدرس push نامعتبر است.")
+    .max(2000)
+    .refine(isSafePushEndpoint, "سرویس push پشتیبانی نمی‌شود."),
   keys: z.object({
     p256dh: z.string().min(20).max(200),
     auth: z.string().min(8).max(100),
@@ -27,11 +57,15 @@ export type PushPayload = {
 const TARGET_LABEL: Record<string, string> = {
   TASK: "تسک",
   EVENT: "رویداد",
+  CHORE: "کار خانه",
+  BILL: "قبض",
 };
 
 const TARGET_PATH: Record<string, string> = {
   TASK: "/today",
   EVENT: "/calendar",
+  CHORE: "/lists",
+  BILL: "/finance",
 };
 
 /**
@@ -43,7 +77,7 @@ export function buildPushPayload({
   remindAt,
   now = new Date(),
 }: {
-  targetType: "TASK" | "EVENT";
+  targetType: ReminderTargetType;
   remindAt: string | Date;
   now?: Date;
 }): PushPayload {

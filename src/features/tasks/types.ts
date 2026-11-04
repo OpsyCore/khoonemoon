@@ -33,6 +33,7 @@ export type TaskRecord = {
         frequency: TaskRecurrenceFrequency;
         interval_days: number | null;
         weekdays: number[] | null;
+        recurrence_timezone?: string | null;
       }[]
     | null;
 };

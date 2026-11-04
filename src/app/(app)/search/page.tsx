@@ -1,17 +1,19 @@
-import { SearchPanel } from "@/features/search/components/search-panel";
-
-export default function SearchPage() {
-  return (
-    <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">جستجو</h2>
-        <p className="text-sm text-[var(--app-muted)] dark:text-[var(--app-muted)]">
-          بین تسک‌ها، رویدادها، لیست خرید، کارهای خانه و رکوردهای مالی جستجو
-          کنید. نتایج همیشه با مجوزهای خانه فیلتر می‌شوند.
-        </p>
-      </section>
-
-      <SearchPanel />
-    </div>
-  );
+import { SearchReference } from "@/features/search/components/search-reference";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { ErrorState } from "@/shared/ui/error-state";
+export const dynamic = "force-dynamic";
+export default async function SearchPage() {
+  const client = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error,
+  } = await client.auth.getUser();
+  if (error || !user)
+    return (
+      <ErrorState
+        title="دسترسی غیرمجاز"
+        description="برای جستجو وارد حساب خود شوید."
+      />
+    );
+  return <SearchReference userId={user.id} />;
 }

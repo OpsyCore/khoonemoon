@@ -1,3 +1,5 @@
+import { FinanceReference } from "@/features/finance/components/finance-reference";
+import { PageHeader } from "@/shared/ui/page-header";
 import Link from "next/link";
 import { FinanceRecordActions } from "@/features/finance/components/finance-record-actions";
 import {
@@ -50,8 +52,8 @@ function FilterLink({
       className={cn(
         "rounded-full border px-2.5 py-1 text-xs font-medium transition",
         isActive
-          ? "border-sky-500 bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200"
-          : "border-[var(--app-border)] bg-[var(--app-surface-raised)] text-[var(--app-muted)] dark:border-zinc-700 dark:bg-[var(--app-surface)] dark:text-[var(--app-muted)]",
+          ? "border-olive bg-olive-soft text-olive-ink"
+          : "border-line bg-card text-ink-soft",
       )}
     >
       {children}
@@ -93,6 +95,34 @@ export default async function FinanceLedgerPage({
     );
   }
 
+  const legacy =
+    params.ledger === "1" ||
+    ["type", "paid", "days", "q"].some(
+      (key) => typeof params[key] === "string",
+    );
+  if (!legacy) {
+    const { data: membership, error: memberError } = await supabase
+      .from("household_members")
+      .select("household_id")
+      .eq("user_id", user.id)
+      .is("left_at", null)
+      .maybeSingle();
+    if (memberError)
+      return (
+        <ErrorState
+          title="خطا در دریافت عضویت"
+          description="اطلاعات خانه قابل دریافت نیست."
+        />
+      );
+    const initialUrl = `https://local.invalid/finance${urlParams.size ? `?${urlParams}` : ""}`;
+    return (
+      <FinanceReference
+        householdId={membership?.household_id ?? null}
+        initialUrl={initialUrl}
+      />
+    );
+  }
+
   const { data, error } = await supabase
     .from("financial_records")
     .select(RECORD_SELECT)
@@ -123,17 +153,15 @@ export default async function FinanceLedgerPage({
 
   return (
     <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">دفتر تراکنش‌ها</h2>
-        <p className="text-sm text-[var(--app-muted)] dark:text-[var(--app-muted)]">
-          همهٔ درآمدها، هزینه‌ها و قبض‌ها با فیلتر نوع، وضعیت پرداخت و بازهٔ
-          زمانی. هر فیلتر یک نشانی قابل اشتراک دارد.
-        </p>
-      </section>
+      <PageHeader
+        title="دفتر تراکنش‌ها"
+        subtitle="همهٔ درآمدها، هزینه‌ها و قبض‌ها با فیلتر نوع، وضعیت پرداخت و بازهٔ زمانی. هر فیلتر یک نشانی قابل اشتراک دارد."
+        decor
+      />
 
       <Card className="space-y-3">
         <div className="space-y-1.5">
-          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">نوع</p>
+          <p className="text-xs text-muted">نوع</p>
           <div className="flex flex-wrap gap-1.5">
             {LEDGER_TYPES.map((type) => (
               <FilterLink
@@ -148,7 +176,7 @@ export default async function FinanceLedgerPage({
         </div>
 
         <div className="space-y-1.5">
-          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">پرداخت</p>
+          <p className="text-xs text-muted">پرداخت</p>
           <div className="flex flex-wrap gap-1.5">
             {PAID_OPTIONS.map((paid) => (
               <FilterLink
@@ -163,7 +191,7 @@ export default async function FinanceLedgerPage({
         </div>
 
         <div className="space-y-1.5">
-          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">بازه</p>
+          <p className="text-xs text-muted">بازه</p>
           <div className="flex flex-wrap gap-1.5">
             {DAYS_OPTIONS.map((days) => (
               <FilterLink
@@ -178,11 +206,11 @@ export default async function FinanceLedgerPage({
         </div>
 
         {filters.query ? (
-          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">
+          <p className="text-xs text-muted">
             جست‌وجو برای «{filters.query}» —{" "}
             <Link
               href={buildHref({ q: "" })}
-              className="text-[var(--app-ink)] underline dark:text-sky-300"
+              className="text-olive-ink underline"
             >
               پاک‌کردن
             </Link>
@@ -192,7 +220,7 @@ export default async function FinanceLedgerPage({
         {isFiltered ? (
           <Link
             href="/finance"
-            className="inline-block text-xs text-[var(--app-ink)] underline dark:text-sky-300"
+            className="inline-block text-xs text-olive-ink underline"
           >
             پاک‌کردن همهٔ فیلترها
           </Link>
@@ -201,28 +229,26 @@ export default async function FinanceLedgerPage({
 
       <div className="grid grid-cols-3 gap-2">
         <Card className="space-y-1 p-3">
-          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">درآمد</p>
+          <p className="text-xs text-muted">درآمد</p>
           <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
             {formatAmount(summary.income, summary.currency)}
           </p>
         </Card>
         <Card className="space-y-1 p-3">
-          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">هزینه</p>
+          <p className="text-xs text-muted">هزینه</p>
           <p className="text-sm font-semibold">
             {formatAmount(summary.expense, summary.currency)}
           </p>
         </Card>
         <Card className="space-y-1 p-3">
-          <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">
-            قبض پرداخت‌نشده
-          </p>
+          <p className="text-xs text-muted">قبض پرداخت‌نشده</p>
           <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
             {formatAmount(summary.outstanding, summary.currency)}
           </p>
         </Card>
       </div>
 
-      <p className="text-xs text-[var(--app-muted)] dark:text-[var(--app-muted)]">
+      <p className="text-xs text-muted">
         {toPersianNumber(summary.count)} تراکنش
         {isFiltered ? ` از ${toPersianNumber(all.length)}` : ""}
       </p>

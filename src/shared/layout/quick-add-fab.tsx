@@ -14,8 +14,7 @@ export function QuickAddFab({ hasHousehold }: { hasHousehold: boolean }) {
         type="button"
         onClick={() => setIsOpen(true)}
         className={cn(
-          "fixed bottom-24 left-4 z-40 inline-flex size-14 items-center justify-center rounded-full bg-[var(--app-primary)] text-white shadow-lg shadow-[var(--app-primary)]/30 transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)] dark:text-[#211f1a]",
-          "md:bottom-6 md:right-6 md:left-auto",
+          "fixed bottom-24 left-4 z-40 inline-flex size-14 items-center justify-center rounded-full bg-olive text-cream shadow-paper-lg transition hover:bg-olive-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive focus-visible:ring-offset-2 focus-visible:ring-offset-paper dark:text-[#221c14]",
         )}
         aria-label="افزودن سریع"
         aria-haspopup="dialog"

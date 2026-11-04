@@ -1,0 +1,507 @@
+.finance-page {
+  --fin-paper: #f9f8f2;
+  --fin-line: #e8e4da;
+  --fin-ink: #30392b;
+  --fin-muted: #858579;
+  --fin-olive: #5c6e50;
+  --fin-rust: #bc795e;
+  color: var(--fin-ink);
+  padding-bottom: 5rem;
+}
+.finance-page * {
+  box-sizing: border-box;
+}
+.fin-heading {
+  text-align: center;
+  padding: 0.55rem 2rem;
+}
+.fin-heading h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: var(--fin-ink);
+}
+.fin-heading p {
+  margin: 0.2rem 0;
+  color: var(--fin-muted);
+  font-size: 0.8rem;
+}
+.fin-currency {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0.2rem 0 0.6rem;
+  font-size: 0.72rem;
+  color: var(--fin-muted);
+}
+.fin-currency select {
+  width: auto;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--fin-line);
+  background: var(--fin-paper);
+  color: var(--fin-ink);
+  border-radius: 0.5rem;
+}
+.fin-month-grid,
+.fin-middle,
+.fin-members {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+.fin-month,
+.fin-card {
+  border: 1px solid var(--fin-line);
+  border-radius: 0.85rem;
+  background: var(--fin-paper);
+  box-shadow: 0 3px 12px #7563460c;
+}
+.fin-month {
+  min-width: 0;
+  min-height: 8rem;
+  display: grid;
+  align-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  text-align: center;
+}
+.fin-month.expense {
+  background: #faf1eb;
+  border-color: #f0ded4;
+}
+.fin-month.income {
+  background: #f0f3e9;
+  border-color: #e1e8d9;
+}
+.fin-month > div {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.8rem;
+}
+.fin-month > div span,
+.fin-round {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  background: #ece8d9;
+  color: #68754f;
+}
+.fin-month.expense > div span {
+  background: #f6ded4;
+  color: #a35a3e;
+}
+.fin-month.income > div span {
+  background: #dfead7;
+  color: #526e46;
+}
+.fin-month b {
+  overflow-wrap: anywhere;
+  font-size: clamp(0.91rem, 4vw, 1.35rem);
+}
+.fin-month small,
+.fin-explanation {
+  font-size: 0.62rem;
+  color: var(--fin-muted);
+}
+.fin-explanation {
+  margin: 0.4rem 0.2rem 0.65rem;
+  line-height: 1.6;
+}
+.fin-card {
+  padding: 0.8rem;
+  min-width: 0;
+}
+.fin-card h3,
+.fin-section-label {
+  font-size: 0.9rem;
+  margin: 0 0 0.55rem;
+}
+.fin-card p {
+  margin: 0.4rem 0;
+  color: var(--fin-muted);
+  font-size: 0.7rem;
+  line-height: 1.65;
+}
+.fin-bills button,
+.fin-recent button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  margin: 0.25rem 0;
+  border: 1px solid var(--fin-line);
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--fin-ink);
+  font: inherit;
+  text-align: right;
+  box-shadow: none;
+}
+.fin-bills button > span:nth-child(2),
+.fin-recent button > span:nth-child(2) {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 0.2rem;
+}
+.fin-bills button strong,
+.fin-recent button strong {
+  overflow-wrap: anywhere;
+  font-size: 0.7rem;
+}
+.fin-bills button small,
+.fin-recent button small {
+  font-size: 0.6rem;
+  color: var(--fin-muted);
+}
+.fin-bills button b,
+.fin-recent button b {
+  font-size: 0.66rem;
+  white-space: normal;
+}
+.fin-round.amber {
+  background: #f8e9cf;
+  color: #a5783a;
+}
+.fin-breakdown-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.fin-legend {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+  flex: 1;
+  font-size: 0.68rem;
+}
+.fin-legend span {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.fin-legend b {
+  display: block;
+  width: 100%;
+}
+.fin-legend i {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+}
+.fin-legend i.olive {
+  background: #59694d;
+}
+.fin-legend i.clay {
+  background: #c9846b;
+}
+.fin-donut {
+  flex: none;
+  width: clamp(4.9rem, 18vw, 7.2rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.fin-donut span {
+  display: grid;
+  place-content: center;
+  text-align: center;
+  border-radius: 50%;
+  width: 68%;
+  height: 68%;
+  background: var(--fin-paper);
+}
+.fin-donut span b {
+  font-size: 0.55rem;
+  overflow-wrap: anywhere;
+}
+.fin-donut span small {
+  font-size: 0.55rem;
+}
+.fin-section-label {
+  margin: 1rem 0.15rem 0.5rem;
+}
+.fin-member > div:first-child {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.fin-avatar {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #e6e5d9;
+  color: #647251;
+}
+.fin-member strong {
+  font-size: 0.83rem;
+}
+.fin-member > small {
+  display: block;
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.64rem;
+  color: var(--fin-muted);
+}
+.fin-member > b {
+  display: block;
+  font-size: 0.85rem;
+}
+.fin-progress {
+  height: 0.48rem;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #e7e2d9;
+  direction: ltr;
+}
+.fin-progress span {
+  display: block;
+  height: 100%;
+  background: #73866a;
+  border-radius: inherit;
+}
+.fin-settlement {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0.65rem 0;
+  background: #edf1e8;
+}
+.fin-settlement > div {
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+  text-align: center;
+  padding: 0.35rem;
+}
+.fin-settlement > div + div {
+  border-inline-start: 1px solid #d9dfd1;
+}
+.fin-settlement > div > span {
+  color: #667c61;
+}
+.fin-settlement strong {
+  font-size: 0.75rem;
+}
+.fin-settlement b {
+  font-size: 1.05rem;
+}
+.fin-settlement small {
+  font-size: 0.6rem;
+  color: var(--fin-muted);
+}
+.fin-transfer {
+  margin: 0.65rem 0;
+}
+.fin-transfer > div {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.fin-transfer svg {
+  color: #c79445;
+}
+.fin-categories,
+.fin-recent {
+  margin: 0.65rem 0;
+}
+.fin-categories > div {
+  display: flex;
+  gap: 0.45rem;
+  overflow: auto;
+  scrollbar-width: none;
+}
+.fin-categories button {
+  flex: 1 0 3rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--fin-ink);
+  font: inherit;
+}
+.fin-categories button span {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: #e3eadb;
+  color: #536f50;
+}
+.fin-categories button:nth-child(2n) span {
+  background: #f7e4da;
+  color: #a45f4e;
+}
+.fin-categories small {
+  font-size: 0.62rem;
+  white-space: nowrap;
+}
+.fin-recent .positive {
+  color: #56815a;
+}
+.fin-recent .negative {
+  color: #a74c39;
+}
+:root .finance-page .fin-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 3rem;
+  margin: 0.65rem 0;
+  padding: 0.6rem;
+  border: 0;
+  border-radius: 1rem;
+  background: #526348;
+  color: white;
+  font: inherit;
+  box-shadow: none;
+  font-weight: 700;
+}
+.finance-details,
+.finance-form {
+  margin: 0.7rem 0;
+  padding: 0.8rem;
+  border: 1px solid var(--fin-line);
+  border-radius: 0.8rem;
+  background: var(--fin-paper);
+}
+.finance-details > summary {
+  cursor: pointer;
+}
+.finance-form form {
+  display: grid;
+  gap: 0.75rem;
+}
+.finance-page .finance-form label,
+.finance-page .finance-details label {
+  display: grid;
+  gap: 0.3rem;
+}
+.finance-page .finance-form input:not([type="checkbox"]),
+.finance-page .finance-form select,
+.finance-page .finance-details input,
+.finance-page .finance-details select {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #cbc5b8;
+  border-radius: 0.6rem;
+  color: var(--fin-ink);
+  background: var(--fin-paper);
+  font: inherit;
+}
+.finance-page .finance-form .item {
+  display: flex;
+  align-items: center;
+}
+.finance-page .finance-form .item input {
+  width: auto;
+}
+.finance-sync {
+  text-align: center;
+  color: var(--fin-muted);
+  font-size: 0.66rem;
+}
+.finance-page .finance-refresh {
+  display: block;
+  margin: auto;
+}
+:root[data-theme="dark"] .finance-page,
+.dark .finance-page {
+  --fin-paper: #383a30;
+  --fin-line: #565b4c;
+  --fin-ink: #f1eadb;
+  --fin-muted: #c4bbab;
+  --fin-olive: #a3b296;
+  --fin-rust: #dca28d;
+}
+.dark .fin-month.expense,
+:root[data-theme="dark"] .fin-month.expense {
+  background: #54423a;
+  border-color: #6d5042;
+}
+.dark .fin-month.income,
+:root[data-theme="dark"] .fin-month.income,
+.dark .fin-settlement,
+:root[data-theme="dark"] .fin-settlement {
+  background: #454e40;
+  border-color: #596554;
+}
+@media (max-width: 380px) {
+  .fin-middle {
+    grid-template-columns: 1fr;
+  }
+  .fin-breakdown-content {
+    justify-content: space-around;
+  }
+  .fin-legend {
+    flex: 0 1 auto;
+  }
+  .fin-month {
+    min-height: 7rem;
+  }
+  .fin-month b {
+    font-size: 0.9rem;
+  }
+}
+.fin-heading {
+  position: relative;
+}
+:root .finance-page .fin-heading button {
+  position: absolute;
+  top: 0.45rem;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fin-ink);
+  box-shadow: none;
+}
+:root .finance-page .fin-heading-back {
+  left: 0.1rem;
+}
+:root .finance-page .fin-heading-settings {
+  right: 2.9rem;
+}
+/* Override the app-wide light-theme solid button rule for outlined controls. */
+:root:not([data-theme="dark"]) .finance-page .fin-bills button,
+:root:not([data-theme="dark"]) .finance-page .fin-recent button,
+:root:not([data-theme="dark"]) .finance-page .fin-categories button,
+:root:not([data-theme="dark"]) .finance-page .fin-heading button,
+:root:not([data-theme="dark"]) .finance-page .fin-stats button {
+  background: transparent;
+  color: var(--fin-ink);
+}
+:root:not([data-theme="dark"]) .finance-page .fin-add {
+  background: #526348;
+  color: #fff;
+}
+:root .finance-page .finance-form button {
+  padding: 0.7rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: #617050;
+  color: white;
+  font: inherit;
+}
+:root .finance-page .finance-form button.minor {
+  background: transparent;
+  border: 1px solid #a4ad99;
+  color: var(--fin-ink);
+}

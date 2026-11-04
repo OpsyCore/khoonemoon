@@ -1,0 +1,163 @@
+import { pendingRequest } from "@/lib/mutations/pending-create";
+import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ChoreRecord, ChoreCompletion } from "./types";
+import { createChoreSchema, updateChoreSchema } from "./schemas";
+const COLUMNS =
+  "id, household_id, title, description, created_by, rotation_mode, current_rotation_index, frequency, interval_days, weekdays, recurrence_timezone, next_due_at, is_active, completion_revision, archived_at, created_at, updated_at, chore_rotation_steps(id, chore_id, position, assignee_id)";
+
+/** Uses the existing transactional completion RPC and database RLS. */
+export function directChores(client: SupabaseClient) {
+  return {
+    async create(input: unknown): Promise<string> {
+      const chore = createChoreSchema.parse(input);
+      const { data: auth, error: authError } = await client.auth.getUser();
+      if (authError || !auth.user) throw new Error("ابتدا وارد حساب خود شوید.");
+      const payload = {
+        ...chore,
+        recurrenceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
+      return pendingRequest<string>({
+        user: auth.user.id,
+        kind: "chore",
+        input: payload,
+        submit: (id) =>
+          client.rpc("mobile_create_once", {
+            p_request_id: id,
+            p_kind: "chore",
+            p_input: payload,
+          }),
+        valid: (value): value is string =>
+          typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value),
+      });
+    },
+    async update(
+      id: string,
+      input: unknown,
+      expectedUpdatedAt: string,
+    ): Promise<void> {
+      const patch = updateChoreSchema
+        .extend({ recurrenceTimezone: z.string().min(1).max(100).optional() })
+        .strict()
+        .parse(input);
+      if (!Object.keys(patch).length)
+        throw new Error("تغییری برای ذخیره وجود ندارد.");
+      const { data, error } = await client.rpc("mobile_patch_chore", {
+        p_id: id,
+        p_patch: patch,
+        p_expected_updated_at: expectedUpdatedAt,
+      });
+      if (error || data !== id)
+        throw new Error(
+          "ویرایش تأیید نشد یا کار تغییر کرده است؛ پیش از تلاش دوباره فهرست را تازه کنید.",
+        );
+    },
+    async list(householdId: string): Promise<ChoreRecord[]> {
+      const rows: ChoreRecord[] = [];
+      for (let offset = 0; offset <= 10000; offset += 500) {
+        const { data, error } = await client
+          .from("chores")
+          .select(COLUMNS)
+          .eq("household_id", householdId)
+          .is("archived_at", null)
+          .order("next_due_at", { ascending: true, nullsFirst: false })
+          .order("id", { ascending: true })
+          .range(offset, offset + 499);
+        if (error) throw new Error("دریافت کارهای خانه ناموفق بود.");
+        if (offset === 10000 && data?.length)
+          throw new Error("تعداد کارهای خانه بیش از حد مجاز است.");
+        rows.push(...((data ?? []) as ChoreRecord[]));
+        if (!data || data.length < 500) return rows;
+      }
+      return rows;
+    },
+    async householdHistory(
+      householdId: string,
+      since: string,
+    ): Promise<
+      (ChoreCompletion & { chores: { id: string; title: string } })[]
+    > {
+      const rows: (ChoreCompletion & {
+        chores: { id: string; title: string };
+      })[] = [];
+      for (let offset = 0; offset <= 10000; offset += 500) {
+        const { data, error } = await client
+          .from("chore_completions")
+          .select(
+            "id,chore_id,completed_by,completed_at,due_at,note,chores!inner(id,title,household_id)",
+          )
+          .eq("chores.household_id", householdId)
+          .gte("completed_at", since)
+          .order("completed_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(offset, offset + 499);
+        if (error) throw new Error("دریافت تاریخچه کارهای خانه ناموفق بود.");
+        if (offset === 10000 && data?.length)
+          throw new Error(
+            "تاریخچه بیش از حد مجاز است؛ خلاصه قابل محاسبه نیست.",
+          );
+        rows.push(...((data ?? []) as unknown as typeof rows));
+        if (!data || data.length < 500) return rows;
+      }
+      return rows;
+    },
+    async history(choreIds: string[]): Promise<ChoreCompletion[]> {
+      if (!choreIds.length) return [];
+      const { data, error } = await client
+        .from("chore_completions")
+        .select("id, chore_id, completed_by, completed_at, due_at, note")
+        .in("chore_id", choreIds)
+        .order("completed_at", { ascending: false })
+        .limit(50);
+      if (error) throw new Error("دریافت تاریخچه کارهای خانه ناموفق بود.");
+      return (data ?? []) as ChoreCompletion[];
+    },
+    async rename(id: string, title: string): Promise<void> {
+      const parsed = updateChoreSchema.parse({ title });
+      const { data, error } = await client
+        .from("chores")
+        .update({ title: parsed.title })
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
+      if (error || !data) throw new Error("ویرایش کار خانه ناموفق بود.");
+    },
+    async setActive(id: string, current: boolean): Promise<void> {
+      const { data, error } = await client
+        .from("chores")
+        .update({ is_active: !current })
+        .eq("id", id)
+        .eq("is_active", current)
+        .is("archived_at", null)
+        .select("id")
+        .maybeSingle();
+      if (error || !data)
+        throw new Error(
+          "وضعیت کار تغییر کرده یا دسترسی وجود ندارد؛ فهرست را تازه کنید.",
+        );
+    },
+    async archive(id: string): Promise<void> {
+      const { data, error } = await client
+        .from("chores")
+        .update({ archived_at: new Date().toISOString(), is_active: false })
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
+      if (error || !data) throw new Error("بایگانی کار خانه ناموفق بود.");
+    },
+    async completeVersion(id: string, revision: number): Promise<void> {
+      const { data, error } = await client.rpc(
+        "complete_chore_expected_version",
+        { p_chore_id: id, p_expected_version: revision },
+      );
+      if (error || !data)
+        throw new Error(
+          "وضعیت کار تغییر کرد یا ثبت انجام تأیید نشد؛ فهرست را تازه کنید.",
+        );
+    },
+    async complete(id: string): Promise<void> {
+      const { error } = await client.rpc("complete_chore", { p_chore_id: id });
+      if (error) throw new Error("ثبت انجام کار خانه ناموفق بود.");
+    },
+  };
+}

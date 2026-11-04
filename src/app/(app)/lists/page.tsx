@@ -1,3 +1,5 @@
+import { PageHeader } from "@/shared/ui/page-header";
+import { loadHouseholdMembers } from "@/features/households/members";
 import { ListsTabs } from "@/features/lists/components/lists-tabs";
 import type { ChoreCompletion, ChoreRecord } from "@/features/chores/types";
 import type { FinancialRecord } from "@/features/finance/types";
@@ -47,7 +49,7 @@ export default async function ListsPage() {
       ? supabase
           .from("chores")
           .select(
-            "id, household_id, title, description, created_by, rotation_mode, current_rotation_index, frequency, interval_days, weekdays, next_due_at, is_active, archived_at, created_at, updated_at, chore_rotation_steps(id, chore_id, position, assignee_id)",
+            "id, household_id, title, description, created_by, rotation_mode, current_rotation_index, frequency, interval_days, weekdays, next_due_at, is_active, completion_revision, archived_at, created_at, updated_at, chore_rotation_steps(id, chore_id, position, assignee_id)",
           )
           .eq("household_id", householdId)
           .is("archived_at", null)
@@ -61,14 +63,6 @@ export default async function ListsPage() {
       .is("archived_at", null)
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(100),
-    householdId
-      ? supabase
-          .from("chore_completions")
-          .select("id, chore_id, completed_by, completed_at, due_at, note")
-          .eq("household_id", householdId)
-          .order("completed_at", { ascending: false })
-          .limit(50)
-      : Promise.resolve({ data: [], error: null }),
   ]);
 
   if (listsResult.error || choresResult.error || recordsResult.error) {
@@ -129,11 +123,7 @@ export default async function ListsPage() {
   }
 
   const membersResult = householdId
-    ? await supabase
-        .from("household_members")
-        .select("user_id, profiles(full_name)")
-        .eq("household_id", householdId)
-        .is("left_at", null)
+    ? await loadHouseholdMembers(supabase, householdId)
     : { data: [], error: null };
 
   const members: TaskMember[] = (
@@ -152,12 +142,11 @@ export default async function ListsPage() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">لیست‌ها</h2>
-        <p className="text-sm text-[var(--app-muted)] dark:text-[var(--app-muted)]">
-          خرید مشترک با هم‌زمان‌سازی زنده، کارهای خانه نوبتی و قبض‌ها در یک جا.
-        </p>
-      </section>
+      <PageHeader
+        title="لیست‌ها"
+        subtitle="خرید مشترک با هم‌زمان‌سازی زنده، کارهای خانه نوبتی و قبض‌ها در یک جا."
+        decor
+      />
 
       <ListsTabs
         lists={lists}
@@ -169,6 +158,7 @@ export default async function ListsPage() {
         activeListId={activeListId}
         canShare={Boolean(householdId)}
         currentUserId={user.id}
+        householdId={householdId}
       />
     </div>
   );

@@ -1,0 +1,570 @@
+.chore-ref {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  --chore-ink: #333d2b;
+  --chore-paper: #f7f4ed;
+  --chore-olive: #66734d;
+  --chore-line: #ded9cc;
+  position: relative;
+  max-width: 760px;
+  margin: auto;
+  padding: 4px 0 28px;
+  color: var(--chore-ink);
+}
+.chore-ref * {
+  box-sizing: border-box;
+}
+.chore-ref-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  min-height: 70px;
+  flex-direction: row-reverse;
+}
+.chore-ref .chore-ref-header button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: #4c593d;
+  background: transparent;
+  box-shadow: none;
+  padding: 5px;
+}
+.chore-ref-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+  color: #38452f;
+  margin: auto;
+}
+.chore-ref-brand > span {
+  color: #b9795e;
+  display: flex;
+  align-items: center;
+  font-size: 24px;
+  line-height: 1;
+}
+.chore-ref-brand strong {
+  font-size: 22px;
+}
+.chore-ref-brand small {
+  color: #7e806d;
+  font-size: 10px;
+  margin-top: 4px;
+}
+.chore-ref-intro {
+  text-align: right;
+  margin: 6px 0 17px;
+  background: url("./assets/recovery-branch.webp") left center/80px auto
+    no-repeat;
+  min-height: 75px;
+}
+.chore-ref-intro h1 {
+  font-size: clamp(25px, 6vw, 38px);
+  font-weight: 800;
+  margin: 0;
+}
+.chore-ref-intro p {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: #858879;
+  font-size: 13px;
+  margin: 5px 0;
+}
+.chore-ref-intro svg {
+  color: #bc826a;
+}
+.chore-ref-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 12px;
+  border-radius: 20px;
+  padding: 16px;
+  background: #e1e3d2;
+  text-align: center;
+  min-height: 125px;
+}
+.chore-ref-hero > div:first-child {
+  flex: 1;
+}
+.chore-ref-hero strong {
+  font-size: clamp(14px, 3.6vw, 19px);
+  line-height: 1.7;
+}
+.chore-ref-hero p {
+  margin: 5px 0;
+  color: #7f866f;
+  font-size: 11px;
+}
+.chore-ref-quote {
+  flex: 1;
+  border-radius: 20px;
+  background: #f6f3e9b3;
+  padding: 12px 5px;
+  color: #606a50;
+  font-size: 11px;
+  line-height: 1.9;
+}
+.chore-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #d6a88e url("./assets/chore-avatar.webp") center / contain
+    no-repeat;
+  vertical-align: middle;
+  color: #fff;
+}
+.chore-avatar span {
+  font-size: 0;
+}
+.chore-avatar.large {
+  width: clamp(64px, 17vw, 110px);
+  height: clamp(64px, 17vw, 110px);
+  border: 4px solid #f6f2e9;
+}
+.chore-ref-tabs {
+  display: flex;
+  background: #e6e5d9;
+  border-radius: 16px;
+  padding: 3px;
+  margin: 14px 0 20px;
+}
+.chore-ref .chore-ref-tabs button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  box-shadow: none;
+  min-height: 46px;
+  background: transparent;
+  color: #535b46;
+  font-weight: 700;
+}
+.chore-ref .chore-ref-tabs button[aria-pressed="true"] {
+  border-radius: 13px;
+  background: #66734e;
+  color: white;
+}
+.chore-ref-tabs svg {
+  width: 19px;
+  height: 19px;
+}
+.chore-ref-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  margin: 16px 0 9px;
+}
+.chore-ref-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: clamp(15px, 3.7vw, 20px);
+  font-weight: 800;
+}
+.chore-ref-heading h2 svg {
+  width: 21px;
+  color: #76815d;
+}
+.chore-ref-heading span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #8c8d7f;
+  font-size: 11px;
+}
+.chore-ref-heading span svg {
+  color: #c4866a;
+}
+.chore-ref-row {
+  display: grid;
+  grid-template-columns: 76px minmax(65px, 1fr) minmax(76px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 100px;
+  padding: 10px;
+  margin: 8px 0;
+  background: #f8f5ee;
+  border: 1px solid var(--chore-line);
+  border-radius: 17px;
+}
+.chore-ref-art {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background-color: #f1ede2;
+  background-position: center;
+  background-size: 80%;
+  background-repeat: no-repeat;
+  display: grid;
+  place-items: center;
+  color: #83906b;
+}
+.chore-ref-art.dishes {
+  background-image: url("./assets/chore-dishes.webp");
+}
+.chore-ref-art.broom {
+  background-image: url("./assets/chore-broom.webp");
+}
+.chore-ref-art.plant {
+  background-image: url("./assets/chore-plant.webp");
+}
+.chore-ref-row-main {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+.chore-ref-row-main strong {
+  font-size: clamp(13px, 3.3vw, 17px);
+  overflow-wrap: anywhere;
+}
+.chore-ref-row-main > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #5e6852;
+  font-size: 12px;
+}
+.chore-ref-meta {
+  display: grid;
+  gap: 8px;
+  font-size: 11px;
+  color: #65715d;
+}
+.chore-ref-meta span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.chore-ref-meta svg {
+  width: 16px;
+  height: 16px;
+}
+.chore-ref .chore-ref-row > button {
+  border: 1px solid #bc7e61;
+  color: #b3785b;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 14px;
+  padding: 9px 12px;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: 12px;
+}
+.chore-ref button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.chore-ref .chore-ref-add {
+  width: min(85%, 340px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 18px auto;
+  border: 0;
+  border-radius: 40px;
+  min-height: 51px;
+  background: #66734e;
+  color: white;
+  box-shadow: none;
+  font-weight: 700;
+}
+.chore-ref-add svg {
+  width: 21px;
+}
+.chore-ref-summary,
+.chore-ref-history {
+  margin: 18px 0;
+  padding: 14px;
+  border-radius: 18px;
+  background: #f9f6efc9;
+  border: 1px solid #eee9dc;
+}
+.chore-ref-summary .chore-ref-heading,
+.chore-ref-history .chore-ref-heading {
+  margin: 0 0 15px;
+}
+.chore-ref-summary p,
+.chore-ref-history p {
+  color: #8a8d7e;
+  font-size: 12px;
+}
+.chore-ref-share {
+  display: grid;
+  grid-template-columns: 32px minmax(35px, 55px) 1fr 50px;
+  align-items: center;
+  gap: 9px;
+  margin: 10px 0;
+  font-size: 12px;
+}
+.chore-ref-bar {
+  height: 22px;
+  background: #e5e3d7;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.chore-ref-bar i {
+  height: 100%;
+  display: block;
+  border-radius: 7px;
+}
+.chore-ref-share small {
+  text-align: center;
+  color: #707967;
+  font-size: 10px;
+}
+.chore-ref-history h2 {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-weight: 800;
+  font-size: 16px;
+}
+.chore-ref-history h2 svg {
+  width: 20px;
+}
+.chore-ref .chore-ref-heading button {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: #778467;
+  padding: 4px;
+  font-size: 11px;
+}
+.chore-ref-heading button svg {
+  width: 16px;
+}
+.chore-ref-history ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.chore-ref-history li {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 0;
+  border-top: 1px solid #e9e4d8;
+  font-size: 11px;
+}
+.chore-ref-history li > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.chore-ref-history li svg {
+  width: 17px;
+}
+.chore-ref-history time {
+  color: #929282;
+  font-size: 10px;
+}
+.chore-ref-history .chore-avatar {
+  width: 26px;
+  height: 26px;
+}
+.chore-ref-error,
+.chore-ref-empty,
+.chore-ref-notice {
+  padding: 12px;
+  color: #767c69;
+  background: #f8f5ee;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.chore-ref-error {
+  color: #a45340;
+}
+.chore-ref-error button {
+  margin-inline-start: 10px;
+}
+.chore-ref-manage {
+  margin-top: 20px;
+  padding: 14px;
+  border: 1px solid #e5dfd2;
+  border-radius: 16px;
+  background: #f8f5ee;
+}
+.chore-ref-manage summary {
+  cursor: pointer;
+  color: #596747;
+  font-weight: 700;
+}
+.chore-ref-manage section {
+  margin-top: 10px;
+}
+.chore-ref-bottom-art {
+  height: 55px;
+  background: url("./assets/recovery-branch.webp") left bottom / 65px auto
+    no-repeat;
+  opacity: 0.75;
+}
+.chore-ref-home {
+  display: none;
+}
+@media (max-width: 400px) {
+  .chore-ref-row {
+    grid-template-columns: 55px minmax(54px, 1fr) minmax(60px, 0.85fr) auto;
+    gap: 4px;
+    padding: 8px;
+  }
+  .chore-ref-art {
+    width: 52px;
+    height: 58px;
+  }
+  .chore-ref .chore-ref-row > button {
+    padding: 8px 7px;
+    font-size: 11px;
+  }
+  .chore-ref-meta {
+    font-size: 10px;
+  }
+  .chore-ref-avatar {
+    width: 28px;
+  }
+  .chore-ref-history li {
+    font-size: 10px;
+  }
+  .chore-ref-hero {
+    padding: 10px;
+    gap: 5px;
+  }
+}
+
+.chore-ref-history .chore-ref-art.mini {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  flex: none;
+}
+:root[data-theme="dark"] .chore-ref,
+.dark .chore-ref {
+  --chore-ink: #eeeade;
+  --chore-paper: #393a31;
+  --chore-line: #615e50;
+  color: var(--chore-ink);
+}
+:root[data-theme="dark"] .chore-ref-brand,
+.dark .chore-ref-brand {
+  color: #e1e3cc;
+}
+:root[data-theme="dark"] .chore-ref-hero,
+.dark .chore-ref-hero {
+  background: #49513d;
+}
+:root[data-theme="dark"] .chore-ref-quote,
+.dark .chore-ref-quote {
+  background: #5b624e;
+  color: #e7e7d8;
+}
+:root[data-theme="dark"] .chore-ref-row,
+:root[data-theme="dark"] .chore-ref-summary,
+:root[data-theme="dark"] .chore-ref-history,
+:root[data-theme="dark"] .chore-ref-empty,
+:root[data-theme="dark"] .chore-ref-manage,
+.dark .chore-ref-row,
+.dark .chore-ref-summary,
+.dark .chore-ref-history,
+.dark .chore-ref-empty,
+.dark .chore-ref-manage {
+  background: #393a31;
+  border-color: #615e50;
+}
+:root[data-theme="dark"] .chore-ref-tabs,
+.dark .chore-ref-tabs {
+  background: #474b3e;
+}
+:root[data-theme="dark"] .chore-ref-tabs button,
+.dark .chore-ref-tabs button {
+  color: #ecebdc;
+}
+:root[data-theme="dark"] .chore-ref-meta,
+:root[data-theme="dark"] .chore-ref-row-main > span,
+.dark .chore-ref-meta,
+.dark .chore-ref-row-main > span {
+  color: #c4ccb6;
+}
+:root[data-theme="dark"] .chore-ref-heading span,
+:root[data-theme="dark"] .chore-ref-history p,
+:root[data-theme="dark"] .chore-ref-share small,
+.dark .chore-ref-heading span,
+.dark .chore-ref-history p,
+.dark .chore-ref-share small {
+  color: #c8c8b9;
+}
+
+/* Keep the dashboard palette above the app-wide native button colors in both
+   themes, regardless of stylesheet import order. */
+:root .chore-ref .chore-ref-header button:not(.calendar-day),
+:root .chore-ref .chore-ref-tabs button:not(.calendar-day),
+:root .chore-ref .chore-ref-row > button:not(.calendar-day),
+:root .chore-ref .chore-ref-heading button:not(.calendar-day) {
+  background: transparent;
+  box-shadow: none;
+}
+:root .chore-ref .chore-ref-tabs button[aria-pressed="true"]:not(.calendar-day),
+:root .chore-ref button.chore-ref-add:not(.calendar-day) {
+  background: #66734e;
+  color: #fff;
+}
+:root .chore-ref .chore-ref-row > button:not(.calendar-day) {
+  color: #934f36;
+  border-color: #a36349;
+}
+
+/* Secondary copy and outlined actions need extra contrast on dark cards. */
+:root[data-theme="dark"] .chore-ref .chore-ref-header button,
+.dark .chore-ref .chore-ref-header button,
+:root[data-theme="dark"] .chore-ref-manage summary,
+.dark .chore-ref-manage summary {
+  color: #dbe5d0;
+}
+:root[data-theme="dark"] .chore-ref-intro p,
+:root[data-theme="dark"] .chore-ref-hero p,
+:root[data-theme="dark"] .chore-ref-summary p,
+:root[data-theme="dark"] .chore-ref-history time,
+:root[data-theme="dark"] .chore-ref-brand small,
+.dark .chore-ref-intro p,
+.dark .chore-ref-hero p,
+.dark .chore-ref-summary p,
+.dark .chore-ref-history time,
+.dark .chore-ref-brand small {
+  color: #d4d5c5;
+}
+:root[data-theme="dark"] .chore-ref-error,
+:root[data-theme="dark"] .chore-ref-notice,
+.dark .chore-ref-error,
+.dark .chore-ref-notice {
+  background: #393a31;
+  color: #e6d0c4;
+}
+:root[data-theme="dark"] .chore-ref .chore-ref-row > button:not(.calendar-day),
+:root.dark .chore-ref .chore-ref-row > button:not(.calendar-day) {
+  color: #f0b89e;
+  border-color: #d49379;
+}
+:root[data-theme="dark"]
+  .chore-ref
+  .chore-ref-heading
+  button:not(.calendar-day),
+:root.dark .chore-ref .chore-ref-heading button:not(.calendar-day) {
+  color: #c5d4b5;
+}

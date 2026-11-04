@@ -1,41 +1,40 @@
 import { NextResponse } from "next/server";
 import { getSessionContext } from "@/lib/api/session";
 
-const ERROR_MESSAGES: Record<string, string> = {
-  CHORE_NOT_FOUND: "کار خانه پیدا نشد.",
-  NOT_HOUSEHOLD_MEMBER: "شما عضو این خانه نیستید.",
-  NOT_AUTHENTICATED: "برای ثبت انجام کار باید وارد حساب شوید.",
-};
-
+/** The caller must supply the revision it displayed, never fetch a new one on
+ * retry: doing so could record the next recurrence after a lost response. */
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
   const session = await getSessionContext();
   if (!session.ok) return session.response;
-
-  const { supabase } = session.context;
-
-  const { data, error } = await supabase.rpc("complete_chore", {
-    p_chore_id: id,
-  });
-
-  if (error) {
-    const friendly =
-      Object.entries(ERROR_MESSAGES).find(([code]) =>
-        error.message.includes(code),
-      )?.[1] ?? "ثبت انجام کار خانه ناموفق بود.";
-
-    return NextResponse.json({ message: friendly }, { status: 400 });
+  const body = await request.json().catch(() => null);
+  if (
+    !body ||
+    !Number.isSafeInteger(body.expectedRevision) ||
+    body.expectedRevision < 0
+  ) {
+    return NextResponse.json(
+      { message: "نسخهٔ کار مشخص نیست؛ فهرست را تازه کنید." },
+      { status: 400 },
+    );
   }
-
-  const row = Array.isArray(data) ? data[0] : data;
-
-  return NextResponse.json({
-    ok: true,
-    completionId: row?.completion_id ?? null,
-    nextDueAt: row?.next_due_at ?? null,
-    nextAssigneeId: row?.next_assignee_id ?? null,
-  });
+  const { data, error } = await session.context.supabase.rpc(
+    "complete_chore_expected_version",
+    {
+      p_chore_id: id,
+      p_expected_version: body.expectedRevision,
+    },
+  );
+  if (error || !data)
+    return NextResponse.json(
+      {
+        message:
+          "نتیجهٔ ثبت انجام مشخص نیست یا کار تغییر کرده؛ فهرست را تازه کنید.",
+      },
+      { status: 409 },
+    );
+  return NextResponse.json({ ok: true, completionId: data });
 }

@@ -62,6 +62,8 @@ export async function POST(request: Request) {
       occurred_at: input.occurredAt ?? new Date().toISOString(),
       due_at: input.dueAt ?? null,
       is_recurring: input.isRecurring,
+      recurrence_rule: input.isRecurring ? input.recurrenceRule : null,
+      recurrence_timezone: input.isRecurring ? input.recurrenceTimezone : null,
     })
     .select(RECORD_SELECT)
     .single();

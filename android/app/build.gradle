@@ -1,0 +1,48 @@
+plugins { id 'com.android.application' }
+
+def signingFile = System.getenv('ANDROID_KEYSTORE_PATH')
+if (!file('../../dist/mobile/index.html').isFile()) {
+    throw new GradleException('Build the standalone mobile assets before assembling the APK.')
+}
+
+android {
+    namespace 'app.khoonemoon.mobile'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'app.khoonemoon.mobile'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+    }
+    sourceSets { main { assets.srcDir "../../dist/mobile" } }
+    signingConfigs {
+        if (signingFile) {
+            release {
+                storeFile file(signingFile)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        // Test installs alongside the existing app; it cannot replace it or
+        // erase its local journal when the CI debug certificate changes.
+        debug {
+            applicationIdSuffix '.trial'
+            resValue 'string', 'app_name', 'خونه‌مون آزمایشی'
+        }
+        release {
+            minifyEnabled false
+            if (signingFile) signingConfig signingConfigs.release
+        }
+    }
+}
+
+
+// Serve bundled files from a secure HTTPS origin without exposing file:// access.
+dependencies {
+    implementation "androidx.webkit:webkit:1.12.1"
+    implementation "androidx.work:work-runtime:2.10.0"
+}

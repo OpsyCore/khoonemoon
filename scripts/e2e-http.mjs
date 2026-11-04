@@ -109,6 +109,7 @@ const guardCases = [
   // The export hands out every row the caller can see; a missing guard here is
   // a bulk data leak, not a cosmetic 500.
   { path: "/api/export", method: "GET" },
+  { path: "/api/documents", method: "GET" },
 ];
 
 /**
@@ -222,6 +223,19 @@ try {
   });
   await expectStatus({ name: "صفحهٔ آفلاین", path: "/offline", status: 200 });
 
+  // Native form submission before React hydrates must not expose credentials
+  // in the URL or browser history. POST is a safe fallback, even if it fails.
+  // Login is rendered behind a client-side Suspense boundary; it is tested
+  // separately by rendering LoginForm with a mocked router.
+  for (const route of ["signup", "forgot-password", "update-password"]) {
+    await expectStatus({
+      name: `روش امن فرم ${route}`,
+      path: `/auth/${route}`,
+      status: 200,
+      contains: 'method="post"',
+    });
+  }
+
   console.log("\nمسیرهای محافظت‌شده");
   await expectStatus({
     name: "داشبورد بدون نشست → هدایت",
@@ -236,6 +250,12 @@ try {
   await expectStatus({
     name: "صندوق یادآورها بدون نشست → هدایت",
     path: "/reminders",
+    status: [307, 302],
+  });
+
+  await expectStatus({
+    name: "مدارک بدون نشست → هدایت",
+    path: "/documents",
     status: [307, 302],
   });
 

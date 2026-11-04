@@ -1,5 +1,8 @@
 "use client";
 
+import { directReminders } from "@/features/reminders/direct-client";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 import { useState } from "react";
 import { BellPlus } from "lucide-react";
 import { Button } from "@/shared/ui/button";
@@ -44,24 +47,18 @@ export function ReminderComposer({
       return;
     }
 
-    const response = await fetch("/api/reminders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await directReminders(createSupabaseBrowserClient()).create({
         targetType,
         targetId,
         baseDateTime,
         offsets: parsedOffsets,
         householdId,
-      }),
-    });
-
-    const payload = (await response.json().catch(() => ({}))) as {
-      message?: string;
-    };
-
-    if (!response.ok) {
-      setError(payload.message ?? "ثبت یادآور ناموفق بود.");
+      });
+    } catch (failure) {
+      setError(
+        failure instanceof Error ? failure.message : "ثبت یادآور تأیید نشد.",
+      );
       setLoading(false);
       return;
     }
@@ -81,7 +78,7 @@ export function ReminderComposer({
   }
 
   return (
-    <div className="space-y-2 rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700">
+    <div className="space-y-2 rounded-2xl border border-line p-3">
       <Input
         label="Offset دقیقه‌ای (مثال: 1440,60,10)"
         value={offsets}

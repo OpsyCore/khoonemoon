@@ -128,8 +128,8 @@ export function SearchPanel() {
                   }
                   className={`rounded-full border px-2.5 py-1 text-xs font-medium transition disabled:opacity-40 ${
                     isActive
-                      ? "border-sky-500 bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200"
-                      : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                      ? "border-olive bg-olive-soft text-olive-ink"
+                      : "border-line bg-card text-ink-soft"
                   }`}
                 >
                   {KIND_LABELS[kind].label} ({toPersianNumber(count)})
@@ -139,9 +139,7 @@ export function SearchPanel() {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">
-              بازه:
-            </span>
+            <span className="text-xs text-muted">بازه:</span>
             {RANGES.map((range) => (
               <Button
                 key={range}
@@ -166,7 +164,7 @@ export function SearchPanel() {
             ) : null}
           </div>
 
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs text-muted">
             {isFiltered
               ? `${toPersianNumber(visible.length)} از ${toPersianNumber(
                   results.length,
@@ -177,7 +175,7 @@ export function SearchPanel() {
       ) : null}
 
       {isLoading ? (
-        <p className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="flex items-center gap-2 text-sm text-muted">
           <Loader2 className="size-4 animate-spin" />
           در حال جستجو...
         </p>
@@ -212,11 +210,11 @@ export function SearchPanel() {
               <li key={`${result.kind}-${result.entity_id}`}>
                 <Card className="flex items-center justify-between gap-3 p-3">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                    <p className="text-sm font-medium text-ink">
                       {result.title}
                     </p>
                     {result.subtitle ? (
-                      <p className="line-clamp-1 text-xs text-zinc-500 dark:text-zinc-400">
+                      <p className="line-clamp-1 text-xs text-muted">
                         {result.subtitle}
                       </p>
                     ) : null}

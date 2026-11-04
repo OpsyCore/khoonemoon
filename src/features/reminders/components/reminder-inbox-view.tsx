@@ -82,7 +82,7 @@ export function ReminderInboxView({
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-2">
         <Card className="space-y-1 p-3">
-          <p className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="flex items-center gap-1 text-xs text-muted">
             <BellRing className="size-3" />
             رسیده
           </p>
@@ -92,7 +92,7 @@ export function ReminderInboxView({
         </Card>
 
         <Card className="space-y-1 p-3">
-          <p className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="flex items-center gap-1 text-xs text-muted">
             <AlarmClock className="size-3" />
             امروز
           </p>
@@ -102,7 +102,7 @@ export function ReminderInboxView({
         </Card>
 
         <Card className="space-y-1 p-3">
-          <p className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="flex items-center gap-1 text-xs text-muted">
             <CheckCheck className="size-3" />
             تحویل‌شده
           </p>
@@ -142,15 +142,22 @@ export function ReminderInboxView({
                 return (
                   <li
                     key={entry.id}
-                    className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-700"
+                    className="rounded-2xl border border-line p-3"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 space-y-0.5">
                         <p className="truncate text-sm font-semibold">
                           {entry.title}
                         </p>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                          {entry.targetType === "TASK" ? "تسک" : "رویداد"}
+                        <p className="text-xs text-muted">
+                          {
+                            {
+                              TASK: "تسک",
+                              EVENT: "رویداد",
+                              CHORE: "کار خانه",
+                              BILL: "قبض",
+                            }[entry.targetType]
+                          }
                           {" · "}
                           {formatJalaliLongDate(date)} —{" "}
                           {formatPersianTime(date)}

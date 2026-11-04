@@ -1,5 +1,12 @@
 "use client";
 
+import { directTasks } from "@/features/tasks/direct-client";
+import { directChores } from "@/features/chores/direct-client";
+import { directCalendar } from "@/features/calendar/direct-client";
+import { directFinance } from "@/features/finance/direct-client";
+import { directShopping } from "@/features/shopping/direct-client";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 import {
   CalendarPlus,
   ChevronRight,
@@ -12,7 +19,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  QUICK_ADD_ENDPOINTS,
   buildQuickBillPayload,
   buildQuickChorePayload,
   buildQuickEventPayload,
@@ -206,30 +212,23 @@ export function QuickAddSheet({
     setErrorMessage(null);
 
     try {
-      const response = await fetch(QUICK_ADD_ENDPOINTS[kind], {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          message?: string;
-        } | null;
-
-        setErrorMessage(
-          payload?.message ??
-            "ثبت ناموفق بود. اتصال و دسترسی خود را بررسی کنید.",
-        );
-        return;
-      }
+      const client = createSupabaseBrowserClient();
+      if (kind === "task") await directTasks(client).create(body);
+      else if (kind === "event") await directCalendar(client).create(body);
+      else if (kind === "shopping") await directShopping(client).addItem(body);
+      else if (kind === "bill") await directFinance(client).create(body);
+      else await directChores(client).create(body);
 
       setSuccessText(successMessage(kind).message);
       setTitle("");
       setAmount("");
       router.refresh();
-    } catch {
-      setErrorMessage("ارتباط با سرور برقرار نشد. دوباره تلاش کنید.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "نتیجه ثبت مشخص نیست؛ فهرست را تازه کنید و همان اطلاعات را دوباره ارسال کنید.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -246,7 +245,7 @@ export function QuickAddSheet({
       onClick={onClose}
     >
       <section
-        className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl border border-zinc-200 bg-white p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl motion-safe:animate-[sheet-up_160ms_ease-out] dark:border-zinc-800 dark:bg-zinc-900 md:inset-x-auto md:bottom-6 md:left-auto md:right-6 md:w-96 md:rounded-3xl"
+        className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl border border-line bg-card p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-paper-lg motion-safe:animate-[sheet-up_160ms_ease-out] md:inset-x-auto md:bottom-6 md:left-auto md:right-6 md:w-96 md:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between gap-2">
@@ -260,12 +259,12 @@ export function QuickAddSheet({
                   setSuccessText(null);
                 }}
                 aria-label="بازگشت به انتخاب نوع"
-                className="rounded-full p-1.5 text-zinc-500 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="rounded-full p-1.5 text-muted transition hover:bg-sunken"
               >
                 <ChevronRight className="size-4" />
               </button>
             ) : null}
-            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <h2 className="text-sm font-semibold text-ink">
               {activeAction ? activeAction.label : "افزودن سریع"}
             </h2>
           </div>
@@ -295,6 +294,13 @@ export function QuickAddSheet({
                     type="button"
                     disabled={disabled}
                     onClick={() => {
+                      if (action.key === "task" || action.key === "event") {
+                        onClose();
+                        router.push(
+                          action.key === "task" ? "/tasks/new" : "/events/new",
+                        );
+                        return;
+                      }
                       setKind(action.key);
                       setErrorMessage(null);
                       setSuccessText(null);
@@ -303,19 +309,19 @@ export function QuickAddSheet({
                     className={cn(
                       "flex w-full items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-right transition",
                       disabled
-                        ? "cursor-not-allowed border-zinc-200 opacity-50 dark:border-zinc-800"
-                        : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800",
+                        ? "cursor-not-allowed border-line opacity-50"
+                        : "border-line hover:bg-sunken",
                     )}
                   >
                     <span className="space-y-0.5">
-                      <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-100">
+                      <span className="block text-sm font-medium text-ink">
                         {action.label}
                       </span>
-                      <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                      <span className="block text-xs text-muted">
                         {disabled ? "نیازمند عضویت در یک خانه" : action.hint}
                       </span>
                     </span>
-                    <Icon className="size-4 shrink-0 text-sky-600 dark:text-sky-400" />
+                    <Icon className="size-4 shrink-0 text-olive-ink" />
                   </button>
                 </li>
               );
@@ -355,11 +361,9 @@ export function QuickAddSheet({
 
             {kind === "shopping" ? (
               <div className="space-y-1.5">
-                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                  لیست
-                </p>
+                <p className="text-sm font-medium text-ink">لیست</p>
                 {lists === null ? (
-                  <p className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="flex items-center gap-2 text-xs text-muted">
                     <Loader2 className="size-3 animate-spin" />
                     در حال دریافت لیست‌ها...
                   </p>
@@ -386,9 +390,7 @@ export function QuickAddSheet({
 
             {kind === "chore" ? (
               <div className="space-y-1.5">
-                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                  تکرار
-                </p>
+                <p className="text-sm font-medium text-ink">تکرار</p>
                 <div className="flex flex-wrap gap-2">
                   {(
                     [
@@ -421,9 +423,7 @@ export function QuickAddSheet({
 
             {kind === "task" || kind === "event" || kind === "bill" ? (
               <div className="space-y-1.5">
-                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                  دسترسی
-                </p>
+                <p className="text-sm font-medium text-ink">دسترسی</p>
                 <div className="flex flex-wrap gap-2">
                   {VISIBILITY_OPTIONS.map((option) => {
                     const disabled =
@@ -466,7 +466,7 @@ export function QuickAddSheet({
           </div>
         )}
 
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-3 text-xs text-muted">
           برای گزینه‌های بیشتر (تکرار، مسئول، توضیحات) از صفحه مربوطه استفاده
           کنید.
         </p>

@@ -18,6 +18,8 @@ export function Input({
   ref,
   ...props
 }: InputProps) {
+  // A generated id keeps <label htmlFor> working even when callers pass
+  // neither `id` nor `name` (previously the label pointed at nothing).
   const generatedId = useId();
   const fieldId = id ?? props.name ?? generatedId;
 
@@ -26,7 +28,7 @@ export function Input({
       {label ? (
         <label
           htmlFor={fieldId}
-          className="block text-sm font-medium text-[var(--app-ink)]"
+          className="block text-[13px] font-medium text-ink-soft"
         >
           {label}
         </label>
@@ -35,18 +37,14 @@ export function Input({
         ref={ref}
         id={fieldId}
         className={cn(
-          "h-11 w-full rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-raised)] px-3 text-sm text-[var(--app-ink)] outline-none transition placeholder:text-[var(--app-muted)] focus:border-[var(--app-primary)] focus:ring-2 focus:ring-[var(--app-focus)]",
-          error ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/30" : "",
+          "h-11 w-full rounded-field border border-line-strong bg-paper px-3.5 text-sm text-ink outline-none transition placeholder:text-faint focus:border-olive focus:ring-2 focus:ring-olive/25",
+          error ? "border-danger focus:border-danger focus:ring-danger/25" : "",
           className,
         )}
         {...props}
       />
-      {error ? (
-        <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>
-      ) : null}
-      {!error && hint ? (
-        <p className="text-xs text-[var(--app-muted)]">{hint}</p>
-      ) : null}
+      {error ? <p className="text-xs text-danger-ink">{error}</p> : null}
+      {!error && hint ? <p className="text-xs text-muted">{hint}</p> : null}
     </div>
   );
 }
