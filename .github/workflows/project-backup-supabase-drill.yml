@@ -51,3 +51,5 @@ jobs:
         run: |
           cd "$RUNNER_TEMP/backup-supabase" || exit 0
           npx --yes supabase@2.122.0 stop --no-backup || true
+
+# Run isolated regression fixture after Android parity changes.
