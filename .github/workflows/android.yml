@@ -1,6 +1,8 @@
 name: Android APK
 on:
   workflow_dispatch:
+  push:
+    branches: ["arena/62660bb1-khoonemoon"]
 
 permissions:
   contents: read
