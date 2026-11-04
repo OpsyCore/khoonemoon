@@ -2,6 +2,10 @@
 
 create extension if not exists pg_trgm;
 
+-- The extension may already live in the dedicated schema on managed Postgres.
+-- Include both locations so gin_trgm_ops resolves before migration 0053 normalizes it.
+set search_path = public, extensions;
+
 create index if not exists tasks_title_trgm_idx
   on public.tasks using gin (title gin_trgm_ops);
 
