@@ -53,7 +53,7 @@ export default async function HomePage({
       <div className="space-y-4">
         <section className="space-y-2">
           <h2 className="text-lg font-semibold">خونه</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          <p className="text-sm text-[var(--app-muted)] dark:text-[var(--app-muted)]">
             برای شروع، یک خانه بسازید یا با دعوت شریک‌تان وارد شوید.
           </p>
         </section>
@@ -124,7 +124,7 @@ export default async function HomePage({
     <div className="space-y-4">
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">خونه</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <p className="text-sm text-[var(--app-muted)] dark:text-[var(--app-muted)]">
           مدیریت خانه، اعضا، دعوت‌نامه‌ها و دسترسی‌ها در این بخش انجام می‌شود.
         </p>
       </section>
