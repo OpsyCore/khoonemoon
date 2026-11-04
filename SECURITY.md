@@ -197,3 +197,13 @@ SQL خام ساخته می‌شوند، Supabase هیچ grant پیش‌فرضی 
   schemas (such as `storage` and `backup_private`).
 - This prevents temporary objects from shadowing trusted relations during a
   SECURITY DEFINER call. The matching migration is `drizzle/0054_secure_definer_temp_search_path.sql`.
+
+
+## 15) Supabase Auth password protection
+
+- The project advisor currently reports leaked-password protection as disabled.
+- This setting is managed in Supabase Dashboard under Authentication settings and
+  is not exposed by the connected Supabase project tools used for this maintenance.
+- Enable it in Dashboard only if the project's plan supports it (Supabase documents
+  availability on Pro and above). Do not claim it is enabled until the dashboard
+  setting is verified.
