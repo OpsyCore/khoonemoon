@@ -37,12 +37,39 @@ export function ShoppingBoard({
   const [isSyncing, setIsSyncing] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const activeListIdRef = useRef(activeListId);
+  const loadSequenceRef = useRef(0);
 
   const loadItems = useCallback(async (listId: string) => {
-    const response = await fetch(`/api/shopping/items?listId=${listId}`);
-    if (!response.ok) return;
-    const payload = (await response.json()) as { items: ShoppingItem[] };
-    setItems(payload.items);
+    if (activeListIdRef.current !== listId) return;
+
+    const requestId = ++loadSequenceRef.current;
+
+    try {
+      const response = await fetch(`/api/shopping/items?listId=${listId}`);
+      if (!response.ok) {
+        if (requestId === loadSequenceRef.current) {
+          setErrorMessage("بارگذاری آیتم‌های لیست ناموفق بود.");
+        }
+        return;
+      }
+
+      const payload = (await response.json()) as { items: ShoppingItem[] };
+      if (
+        requestId !== loadSequenceRef.current ||
+        activeListIdRef.current !== listId
+      ) {
+        return;
+      }
+
+      setItems(payload.items);
+    } catch {
+      if (
+        requestId === loadSequenceRef.current &&
+        activeListIdRef.current === listId
+      ) {
+        setErrorMessage("ارتباط با سرور برای بارگذاری لیست برقرار نشد.");
+      }
+    }
   }, []);
 
   const selectList = async (listId: string) => {
@@ -116,6 +143,7 @@ export function ShoppingBoard({
   const addItem = async () => {
     const name = newItemName.trim();
     if (!name || !activeListId) return;
+    const targetListId = activeListId;
 
     setIsSubmitting(true);
     setErrorMessage(null);
@@ -123,7 +151,7 @@ export function ShoppingBoard({
     const response = await fetch("/api/shopping/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listId: activeListId, name }),
+      body: JSON.stringify({ listId: targetListId, name }),
     });
 
     setIsSubmitting(false);
@@ -137,8 +165,10 @@ export function ShoppingBoard({
     }
 
     const payload = (await response.json()) as { item: ShoppingItem };
-    setNewItemName("");
-    setItems((current) => mergeShoppingItems(current, payload.item));
+    if (activeListIdRef.current === targetListId) {
+      setNewItemName("");
+      setItems((current) => mergeShoppingItems(current, payload.item));
+    }
   };
 
   const deleteItem = async (item: ShoppingItem) => {
@@ -188,6 +218,7 @@ export function ShoppingBoard({
 
     const payload = (await response.json()) as { list: ShoppingList };
     setNewListName("");
+    activeListIdRef.current = payload.list.id;
     setActiveListId(payload.list.id);
     setItems([]);
     router.refresh();
