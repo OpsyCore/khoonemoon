@@ -499,3 +499,17 @@
   background: #60714e;
   color: #fff;
 }
+
+/* Legible secondary and error text on the darker home surfaces. */
+:root[data-theme="dark"] .home-ref-status-header em,
+.dark .home-ref-status-header em {
+  color: #e0dcca;
+}
+:root[data-theme="dark"] .home-ref-message,
+.dark .home-ref-message {
+  color: #f4b4a4;
+}
+:root[data-theme="dark"] .home-ref-activity li > span,
+.dark .home-ref-activity li > span {
+  color: #b5c7a2;
+}

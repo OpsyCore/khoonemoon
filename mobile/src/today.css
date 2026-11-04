@@ -1,6 +1,6 @@
 .today-ref {
   --today-ink: #33382b;
-  --today-muted: #898579;
+  --today-muted: #68685e;
   --today-paper: #faf8f1;
   --today-line: #e7e1d6;
   --today-olive: #657452;
@@ -429,6 +429,7 @@
   --today-olive: #a4b595;
   --today-rust: #dea88f;
 }
+:root.dark .today-ref button.today-ref-item,
 .dark .today-ref button.today-ref-item,
 :root[data-theme="dark"] .today-ref button.today-ref-item {
   background: #45483c;
@@ -458,4 +459,9 @@
   .today-ref-bill {
     flex-wrap: nowrap;
   }
+}
+
+:root[data-theme="dark"] .today-ref-error,
+.dark .today-ref-error {
+  color: #f4b4a4;
 }
