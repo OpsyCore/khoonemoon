@@ -7,7 +7,7 @@ This checklist records code-level observations, **not visual or functional sign-
 ## Screens and flows
 
 - [ ] Today: shared `Today` component; Next route wrapper and mobile task management/quick-add integration differ. Compare action routes, full page and editing states.
-- [ ] Calendar: separate `CalendarBoard` web and `CalendarEvents` mobile. Compare month/week/agenda, create/edit, recurrence, event/task/chore projections and accessibility.
+- [ ] Calendar: separate `CalendarBoard` web and `CalendarEvents` mobile. Mobile now subscribes to the four web sources and supports revision-guarded completion of current chores; compare month/week/agenda, create/edit, recurrence, event/task/chore projections and accessibility on device.
 - [ ] Home: shared `HomeDashboard`; web wrapper and mobile household handling differ. Compare no-house/owner/member, invite, manage and transfer panel.
 - [ ] Shopping: shared `Shopping`, but web `/lists` adds tabs and server-loaded chores/finance while mobile uses a direct destination and household guard. Compare switching lists, edits, realtime and empty/error states.
 - [ ] Finance: shared `Finance`; web has additional legacy ledger route, native link/state handling differs. Compare dashboard, ledger, charts, bills and forms.
@@ -27,7 +27,7 @@ This checklist records code-level observations, **not visual or functional sign-
 - [ ] Compare typography, shared controls, cards, backgrounds, surface contrast and spacing; embedded screen-specific CSS still includes independent colors and rules.
 - [ ] Verify `light`, `dark` and system mode persistence; web uses `.dark`, mobile uses `data-theme`. Device status/navigation bars need independent verification.
 - [ ] Verify RTL, narrow widths, 44–48dp touch targets, horizontal overflow, scroll, keyboard, dialogs and safe-area insets.
-- [ ] Verify Android hardware back behavior for page navigation, dialogs and unsaved forms; WebView back currently checks WebView history, while internal pages use React state.
+- [ ] Verify Android hardware back behavior for page navigation, dialogs and unsaved forms; Native Back now delegates to React navigation/dialog handling; verify device behavior including dirty forms and keyboard.
 - [ ] Compare loading, empty, success, error, offline and partially loaded states for each route.
 - [ ] Confirm RLS, actual two-account isolation, CRUD, Storage, realtime, recovery deep links, notifications and real authentication without exposing private data.
 
@@ -36,6 +36,6 @@ This checklist records code-level observations, **not visual or functional sign-
 - [ ] Capture comparable real web and Android screenshots for every screen and relevant state, light and dark.
 - [ ] Verify actual Android interaction, not just browser emulation or CSS assertions.
 - [ ] Run TypeScript, ESLint, tests, web/mobile production builds and relevant HTTP E2E; compile Android.
-- [ ] Only after implementation and visual/functional verification passes, build and deliver the requested APK.
+- [ ] A test APK may be built after executable checks pass, but must be labeled visually unverified; full sign-off requires device verification and release signing.
 
 A shared token extraction does not by itself satisfy the screen, device, or visual parity criteria.

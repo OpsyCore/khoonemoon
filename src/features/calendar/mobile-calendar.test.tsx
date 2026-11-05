@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   calendarList: vi.fn(),
   taskList: vi.fn(),
   financeList: vi.fn(),
+  choreList: vi.fn(),
+  completeVersion: vi.fn(),
   create: vi.fn(),
   remove: vi.fn(),
 }));
@@ -21,6 +23,12 @@ vi.mock("@/features/calendar/direct-client", () => ({
 }));
 vi.mock("@/features/tasks/direct-client", () => ({
   directTasks: () => ({ list: mocks.taskList }),
+}));
+vi.mock("@/features/chores/direct-client", () => ({
+  directChores: () => ({
+    list: mocks.choreList,
+    completeVersion: mocks.completeVersion,
+  }),
 }));
 vi.mock("@/features/finance/direct-client", () => ({
   directFinance: () => ({ list: mocks.financeList }),
@@ -186,4 +194,65 @@ it("subscribes to the same calendar sources as web and cleans up", async () => {
   await act(async () => root.unmount());
   expect(removeChannel).toHaveBeenCalledWith(channel);
   vi.useRealTimers();
+});
+
+it("completes only the current chore occurrence with its revision and blocks retry after an uncertain result", async () => {
+  const due = new Date();
+  due.setHours(9, 0, 0, 0);
+  mocks.calendarList.mockResolvedValue([]);
+  mocks.taskList.mockResolvedValue([]);
+  mocks.financeList.mockResolvedValue([]);
+  mocks.choreList.mockResolvedValue([
+    {
+      id: "c1",
+      title: "نظافت",
+      is_active: true,
+      next_due_at: due.toISOString(),
+      frequency: "DAILY",
+      interval_days: null,
+      weekdays: null,
+      recurrence_timezone: "UTC",
+      completion_revision: 7,
+    },
+  ]);
+  mocks.completeVersion.mockRejectedValue(new Error("network"));
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  const channel = {
+    on() {
+      return this;
+    },
+    subscribe() {
+      return this;
+    },
+  };
+  const client = {
+    channel: () => channel,
+    removeChannel: vi.fn(),
+  } as unknown as SupabaseClient;
+  const node = document.createElement("div");
+  document.body.append(node);
+  const root = createRoot(node);
+  await act(async () =>
+    root.render(
+      <CalendarEvents client={client} householdId="house" onHouse={vi.fn()} />,
+    ),
+  );
+  await act(async () =>
+    Array.from(node.querySelectorAll("button"))
+      .find((b) => b.textContent?.trim() === "برنامه‌ها")!
+      .click(),
+  );
+  expect(node.textContent).toContain("تخمینی");
+  const buttons = node.querySelectorAll<HTMLButtonElement>(
+    ".calendar-chore-complete",
+  );
+  expect(buttons).toHaveLength(1);
+  await act(async () => buttons[0].click());
+  expect(mocks.completeVersion).toHaveBeenCalledWith("c1", 7);
+  expect(buttons[0].disabled).toBe(true);
+  expect(node.textContent).toContain("نتیجه ثبت انجام مشخص نیست");
+  await act(async () => buttons[0].click());
+  expect(mocks.completeVersion).toHaveBeenCalledTimes(1);
+  await act(async () => root.unmount());
+  vi.restoreAllMocks();
 });

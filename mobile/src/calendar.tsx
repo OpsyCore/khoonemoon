@@ -75,11 +75,15 @@ export function CalendarEvents({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [calendarError, setCalendarError] = useState("");
+  const [completionNeedsRefresh, setCompletionNeedsRefresh] = useState(false);
+  const completionEpoch = useRef(0);
+  const completionInFlight = useRef(false);
   const [loading, setLoading] = useState(true);
   const [loadVersion, setLoadVersion] = useState(0);
 
   useEffect(() => {
     let active = true;
+    const epoch = completionEpoch.current;
     void Promise.all([
       api.list(),
       directTasks(client).list(),
@@ -95,6 +99,8 @@ export function CalendarEvents({
         setBills(financialRows);
         setChores(choreRows);
         setCalendarError("");
+        if (epoch === completionEpoch.current && !completionInFlight.current)
+          setCompletionNeedsRefresh(false);
         setLoading(false);
       })
       .catch(() => {
@@ -364,6 +370,35 @@ export function CalendarEvents({
     setShared(event.visibility === "HOUSEHOLD_SHARED");
     setMessage("");
     setFormOpen(true);
+  }
+  async function completeChore(id: string) {
+    if (busy || loading || completionNeedsRefresh) return;
+    const revision = chores.find(
+      (chore) => chore.id === id,
+    )?.completion_revision;
+    if (typeof revision !== "number") {
+      setMessage("نتیجه ثبت انجام مشخص نیست؛ تقویم را تازه کنید.");
+      setCompletionNeedsRefresh(true);
+      return;
+    }
+    if (!window.confirm("انجام این کار خانه ثبت شود؟")) return;
+    completionEpoch.current += 1;
+    completionInFlight.current = true;
+    setBusy(true);
+    setMessage("");
+    setCompletionNeedsRefresh(true);
+    try {
+      await directChores(client).completeVersion(id, revision);
+      completionInFlight.current = false;
+      setLoading(true);
+      setLoadVersion((n) => n + 1);
+      window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
+    } catch {
+      setMessage("نتیجه ثبت انجام مشخص نیست؛ تقویم را تازه کنید.");
+    } finally {
+      completionInFlight.current = false;
+      setBusy(false);
+    }
   }
   async function remove(id: string) {
     setBusy(true);
@@ -644,6 +679,16 @@ export function CalendarEvents({
                         <MapPin size={14} aria-hidden="true" />
                         {item.location}
                       </small>
+                    )}
+                    {item.kind === "chore" && !item.projected && (
+                      <button
+                        className="calendar-chore-complete"
+                        type="button"
+                        disabled={busy || loading || completionNeedsRefresh}
+                        onClick={() => void completeChore(item.id)}
+                      >
+                        ثبت انجام
+                      </button>
                     )}
                     {event && (
                       <div className="calendar-item-actions">

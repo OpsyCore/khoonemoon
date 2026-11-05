@@ -1062,3 +1062,14 @@ dialog.calendar-form-dialog { width:min(92vw,30rem); max-height:85dvh; padding:1
 :root[data-theme="dark"] .calendar-botanical, :root[data-theme="dark"] .calendar-heading-leaf { mix-blend-mode:normal; opacity:.8; border-radius:0; }
 .calendar-botanical-top { left:.25rem; top:.1rem; width:4.4rem; height:5.8rem; transform:none; }
 .calendar-agenda-meta time[dir="ltr"] { unicode-bidi:isolate; }
+/* Current chore occurrence uses the same guarded action as the web calendar. */
+:root .calendar-page button.calendar-chore-complete:not(.calendar-day) {
+  min-height: 44px;
+  padding: .4rem .65rem;
+  border: 1px solid var(--line);
+  border-radius: .65rem;
+  background: var(--olive-soft);
+  color: var(--olive-ink);
+  font: inherit;
+  font-size: .72rem;
+}
