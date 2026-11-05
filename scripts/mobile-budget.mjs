@@ -66,11 +66,17 @@ if (
   console.log(
     `Total JavaScript: ${total} gzip bytes / ${budgets.mobileMaxGzipBytes}`,
   );
+  const mode = process.argv[2] ?? "all";
+  if (!["all", "initial", "total"].includes(mode))
+    throw new Error("Usage: mobile-budget.mjs [initial|total|all]");
   let failed = false;
-  for (const [label, bytes, limit] of [
-    ["Initial JS", initial, budgets.mobileInitialMaxGzipBytes],
-    ["Total JS", total, budgets.mobileMaxGzipBytes],
-  ]) {
+  const checks = [
+    ["initial", "Initial JS", initial, budgets.mobileInitialMaxGzipBytes],
+    ["total", "Total JS", total, budgets.mobileMaxGzipBytes],
+  ];
+  for (const [, label, bytes, limit] of checks.filter(
+    ([name]) => mode === "all" || name === mode,
+  )) {
     try {
       checkMobileBudget(bytes, limit, label);
     } catch (error) {

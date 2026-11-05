@@ -3,8 +3,8 @@
   "defaultMaxGzipBytes": 240000,
   "sharedMaxGzipBytes": 145000,
   "routes": {},
-  "mobileBudgetNote": "سقف موبایل شامل صفحه تقسیم وظایف، صفحه قطع ارتباط و فرم تسک و یادآوری است؛ مجموع gzip فایل‌های JS مستقل همچنان کنترل می‌شود.",
-  "mobileMaxGzipBytes": 284000,
+  "mobileBudgetNote": "سقف قراردادی مجموع gzip فایل‌های JS مستقل، برای کنترل رشد است نه محدودیت Android یا WebView. با Lazy Loading حجم اولیه کاهش یافت و به دلیل فشرده‌سازی جداگانه chunkها مجموع افزایش یافت.",
+  "mobileMaxGzipBytes": 330000,
   "mobileInitialBudgetNote": "سقف اولیه ۱۹۰٬۰۰۰ بایت gzip برای حفظ مزیت بارگذاری تدریجی نسبت به خط مبنای ۱۷۷٬۷۱۳ بایت؛ اندازه با entry و وابستگی‌های static و بدون dynamic محاسبه می‌شود.",
   "mobileInitialMaxGzipBytes": 190000
 }

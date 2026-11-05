@@ -120,13 +120,18 @@ jobs:
           NEXT_PUBLIC_APP_URL: http://localhost:3000
 
       - name: Build standalone mobile assets (no APK)
+        id: mobile_build
         run: npm run mobile:build
         env:
           VITE_SUPABASE_URL: https://example.supabase.co
           VITE_SUPABASE_ANON_KEY: sb_publishable_test
 
-      - name: Standalone mobile bundle budget
-        run: npm run mobile:budget
+      - name: Standalone mobile initial JS budget
+        run: npm run mobile:budget -- initial
+
+      - name: Standalone mobile total JS budget
+        if: ${{ (success() || failure()) && steps.mobile_build.outcome == 'success' }}
+        run: npm run mobile:budget -- total
 
       - name: End-to-end (HTTP)
         # Boots the real production build and checks pages, redirects and API
