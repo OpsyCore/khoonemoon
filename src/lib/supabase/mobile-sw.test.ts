@@ -106,7 +106,11 @@ describe("standalone mobile service worker privacy", () => {
     } as never);
     fetch
       .mockResolvedValueOnce(shellResponse as never)
-      .mockResolvedValueOnce("navigation" as never);
+      .mockResolvedValueOnce("navigation" as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ["assets/lazy-def.js"],
+      } as never);
     let refresh: Promise<unknown> | undefined;
     handlers.fetch({
       request: {
@@ -128,6 +132,7 @@ describe("standalone mobile service worker privacy", () => {
     expect(requests.map((r) => r.url)).toEqual([
       "https://example.test/app/assets/app-abc.js",
       "https://example.test/app/assets/app-abc.css",
+      "https://example.test/app/assets/lazy-def.js",
     ]);
     expect(requests.every((r) => r.credentials === "omit")).toBe(true);
     const dependencies = cached.addAll.mock.calls[1][0] as Request[];
@@ -143,6 +148,31 @@ describe("standalone mobile service worker privacy", () => {
       "https://example.test/app/index.html",
       shellResponse,
     );
+  });
+  it("rejects an unsafe lazy-asset manifest without replacing the previous shell", async () => {
+    const { handlers, fetch, cached } = worker();
+    fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => "text/html" },
+        clone: () => ({
+          text: async () => '<script src="./assets/app.js"></script>',
+        }),
+      } as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ["assets/../../private.js"],
+      } as never);
+    let install: Promise<unknown> | undefined;
+    handlers.install({
+      request: { method: "", url: "", mode: "" },
+      respondWith: vi.fn(),
+      waitUntil: (p) => {
+        install = p;
+      },
+    });
+    await expect(install).rejects.toThrow("invalid manifest asset");
+    expect(cached.put).not.toHaveBeenCalled();
   });
   it("falls back to the static shell when a scoped navigation is offline", async () => {
     const { handlers, cached } = worker();
@@ -166,14 +196,16 @@ describe("standalone mobile service worker privacy", () => {
   });
   it("does not replace the prior shell when a stylesheet dependency fails", async () => {
     const { handlers, fetch, cached } = worker();
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      headers: { get: () => "text/html" },
-      clone: () => ({
-        text: async () =>
-          '<script src="./assets/app.js"></script><link href="./assets/app.css">',
-      }),
-    } as never);
+    fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => "text/html" },
+        clone: () => ({
+          text: async () =>
+            '<script src="./assets/app.js"></script><link href="./assets/app.css">',
+        }),
+      } as never)
+      .mockResolvedValueOnce({ ok: true, json: async () => [] } as never);
     cached.match.mockResolvedValueOnce({
       text: async () => "body{background:url(./image.webp)}",
     } as never);

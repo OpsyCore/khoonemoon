@@ -6,17 +6,20 @@ import { probeConnection } from "@/shared/utils/connection-probe";
 import "../../public/offline-screen.css";
 import { RecoveryReference } from "@/features/auth/components/recovery-reference";
 import { createClient, type Session } from "@supabase/supabase-js";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
 
 import { createRoot } from "react-dom/client";
 import { useDueReminderCount } from "./reminder-badge";
 import { useMobileNotifications } from "./notifications";
 import { disableBrowserPush } from "./web-push";
-import { Documents } from "./documents";
-import { Reminders } from "./reminders";
-import { Shopping } from "./shopping";
-import { Search } from "./search";
-import { ExportData } from "./export";
+
 import { Today } from "./today";
 import { QuickAdd } from "./quick-add";
 import { loginSchema, signupSchema } from "@/features/auth/schemas";
@@ -26,20 +29,18 @@ import {
   changeRecoveredPassword,
   requestRecovery,
 } from "./recovery";
-import { CalendarEvents } from "./calendar";
+
 import { Tasks } from "./tasks";
-import { NewTask } from "./new-task";
-import { NewEvent } from "./new-event";
-import { Finance } from "./finance";
+
 import { Chores } from "./chores";
-import { ChoresDashboard } from "./chores-dashboard";
-import { Profile } from "./profile";
+
 import { MobileNavigation, type MobilePage } from "./navigation";
 import { useNativeBack } from "./native-back";
+import { LazyScreenBoundary } from "./lazy-screen-boundary";
 import { PendingTransferPanel } from "@/features/households/pending-transfer-panel";
-import { HomeDashboard } from "./home-dashboard";
+
 import { ThemeSettings } from "./theme-settings";
-import { SettingsDashboard } from "./settings";
+
 import { InstallGuide, useInstallPrompt } from "./install-guide";
 import {
   readTheme,
@@ -49,6 +50,46 @@ import {
   type ThemeMode,
 } from "./theme";
 import "./style.css";
+
+const Documents = lazy(() =>
+  import("./documents").then((m) => ({ default: m.Documents })),
+);
+const Reminders = lazy(() =>
+  import("./reminders").then((m) => ({ default: m.Reminders })),
+);
+const Shopping = lazy(() =>
+  import("./shopping").then((m) => ({ default: m.Shopping })),
+);
+const Search = lazy(() =>
+  import("./search").then((m) => ({ default: m.Search })),
+);
+const ExportData = lazy(() =>
+  import("./export").then((m) => ({ default: m.ExportData })),
+);
+const CalendarEvents = lazy(() =>
+  import("./calendar").then((m) => ({ default: m.CalendarEvents })),
+);
+const NewTask = lazy(() =>
+  import("./new-task").then((m) => ({ default: m.NewTask })),
+);
+const NewEvent = lazy(() =>
+  import("./new-event").then((m) => ({ default: m.NewEvent })),
+);
+const Finance = lazy(() =>
+  import("./finance").then((m) => ({ default: m.Finance })),
+);
+const ChoresDashboard = lazy(() =>
+  import("./chores-dashboard").then((m) => ({ default: m.ChoresDashboard })),
+);
+const Profile = lazy(() =>
+  import("./profile").then((m) => ({ default: m.Profile })),
+);
+const HomeDashboard = lazy(() =>
+  import("./home-dashboard").then((m) => ({ default: m.HomeDashboard })),
+);
+const SettingsDashboard = lazy(() =>
+  import("./settings").then((m) => ({ default: m.SettingsDashboard })),
+);
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -643,330 +684,339 @@ function App() {
           />
         </>
       ) : (
-        <>
-          {page !== "calendar" &&
-            page !== "shopping" &&
-            page !== "documents" &&
-            page !== "house" &&
-            page !== "finance" &&
-            page !== "search" &&
-            page !== "settings" &&
-            page !== "task-new" &&
-            page !== "event-new" &&
-            page !== "chores" && (
-              <QuickAdd
+        <LazyScreenBoundary key={page}>
+          <Suspense fallback={<p role="status">در حال بارگذاری صفحه…</p>}>
+            {page !== "calendar" &&
+              page !== "shopping" &&
+              page !== "documents" &&
+              page !== "house" &&
+              page !== "finance" &&
+              page !== "search" &&
+              page !== "settings" &&
+              page !== "task-new" &&
+              page !== "event-new" &&
+              page !== "chores" && (
+                <QuickAdd
+                  client={client}
+                  householdId={household ?? null}
+                  floating={page === "tasks"}
+                  onNewTask={() => {
+                    setPage("task-new");
+                    window.scrollTo(0, 0);
+                  }}
+                  onNewEvent={() => {
+                    setNewEventDate(undefined);
+                    setPage("event-new");
+                    window.scrollTo(0, 0);
+                  }}
+                  onDone={() => setRevision((n) => n + 1)}
+                />
+              )}
+            {page === "house" &&
+              (household === undefined ? (
+                <section>
+                  {householdError ? (
+                    <>
+                      <p role="alert">
+                        دریافت اطلاعات خانه ناموفق بود؛ اتصال را بررسی کنید.
+                      </p>
+                      <button onClick={() => setHouseholdAttempt((n) => n + 1)}>
+                        تلاش دوباره
+                      </button>
+                    </>
+                  ) : (
+                    <p role="status">در حال دریافت اطلاعات خانه…</p>
+                  )}
+                </section>
+              ) : (
+                <HomeDashboard
+                  key={household ?? "no-house"}
+                  client={client}
+                  userId={session.user.id}
+                  householdId={household}
+                  onHouseholdChange={setHousehold}
+                  onSettings={() => setPage("settings")}
+                  onTasks={() => setPage("tasks")}
+                  onCalendar={() => setPage("calendar")}
+                />
+              ))}
+            {page === "shopping" && household && (
+              <Shopping
+                key={`${session.user.id}:${household}:${revision}`}
                 client={client}
-                householdId={household ?? null}
-                floating={page === "tasks"}
-                onNewTask={() => {
-                  setPage("task-new");
-                  window.scrollTo(0, 0);
-                }}
-                onNewEvent={() => {
-                  setNewEventDate(undefined);
-                  setPage("event-new");
-                  window.scrollTo(0, 0);
-                }}
-                onDone={() => setRevision((n) => n + 1)}
-              />
-            )}
-          {page === "house" &&
-            (household === undefined ? (
-              <section>
-                {householdError ? (
-                  <>
-                    <p role="alert">
-                      دریافت اطلاعات خانه ناموفق بود؛ اتصال را بررسی کنید.
-                    </p>
-                    <button onClick={() => setHouseholdAttempt((n) => n + 1)}>
-                      تلاش دوباره
-                    </button>
-                  </>
-                ) : (
-                  <p role="status">در حال دریافت اطلاعات خانه…</p>
-                )}
-              </section>
-            ) : (
-              <HomeDashboard
-                key={household ?? "no-house"}
-                client={client}
-                userId={session.user.id}
                 householdId={household}
-                onHouseholdChange={setHousehold}
-                onSettings={() => setPage("settings")}
-                onTasks={() => setPage("tasks")}
-                onCalendar={() => setPage("calendar")}
               />
-            ))}
-          {page === "shopping" && household && (
-            <Shopping
-              key={`${session.user.id}:${household}:${revision}`}
-              client={client}
-              householdId={household}
-            />
-          )}
-          {page === "shopping" && household === null && (
-            <section>
-              <p>
-                برای استفاده از لیست خرید ابتدا در بخش خانه یک خانه بسازید یا به
-                آن بپیوندید.
-              </p>
-            </section>
-          )}
-          {household === undefined &&
-            householdError &&
-            page !== "house" &&
-            page !== "finance" && (
+            )}
+            {page === "shopping" && household === null && (
               <section>
-                <p role="alert">
-                  وضعیت خانه دریافت نشد؛ اطلاعات مشترک ممکن است نمایش داده نشود.
+                <p>
+                  برای استفاده از لیست خرید ابتدا در بخش خانه یک خانه بسازید یا
+                  به آن بپیوندید.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setHouseholdAttempt((n) => n + 1)}
-                >
-                  تلاش دوباره
-                </button>
               </section>
             )}
-          {page === "tasks" && (
-            <Today
-              key={`today:${session.user.id}`}
-              client={client}
-              onTaskChanged={() => setRevision((n) => n + 1)}
-              onNavigate={(target, section) => {
-                if (section === "chore-list" && !household) {
-                  setPage("house");
-                  return;
-                }
-                if (section === "chore-list") {
-                  setPage("chores");
-                  window.scrollTo(0, 0);
-                  return;
-                }
-                setPage(target);
-                if (section)
-                  window.requestAnimationFrame(() =>
-                    (() => {
-                      const target = document.getElementById(section);
-                      const container = target?.closest("details");
-                      if (container) container.open = true;
-                      target?.scrollIntoView({ block: "start" });
-                    })(),
-                  );
-                else window.scrollTo(0, 0);
-              }}
-            />
-          )}
-          {page === "tasks" && (
-            <details className="today-ref-management">
-              <summary>مدیریت همه کارها</summary>
-              <Tasks
-                key={`${session.user.id}:${household ?? "none"}:${revision}`}
+            {household === undefined &&
+              householdError &&
+              page !== "house" &&
+              page !== "finance" && (
+                <section>
+                  <p role="alert">
+                    وضعیت خانه دریافت نشد؛ اطلاعات مشترک ممکن است نمایش داده
+                    نشود.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setHouseholdAttempt((n) => n + 1)}
+                  >
+                    تلاش دوباره
+                  </button>
+                </section>
+              )}
+            {page === "tasks" && (
+              <Today
+                key={`today:${session.user.id}`}
                 client={client}
-                householdId={household ?? null}
-                onNewTask={() => {
-                  setPage("task-new");
-                  window.scrollTo(0, 0);
-                }}
-              />
-            </details>
-          )}
-          {page === "tasks" && household && (
-            <details className="today-ref-management">
-              <summary>مدیریت کارهای خانه</summary>
-              <Chores key={household} client={client} householdId={household} />
-            </details>
-          )}
-          {page === "chores" && household !== undefined && (
-            <ChoresDashboard
-              key={household ?? "none"}
-              client={client}
-              householdId={household}
-              onSettings={() => setPage("settings")}
-              onHouse={() => setPage("house")}
-            />
-          )}
-          {page === "task-new" && (
-            <NewTask
-              key={session.user.id}
-              client={client}
-              userId={session.user.id}
-              householdId={household ?? null}
-              onDone={() => {
-                setRevision((n) => n + 1);
-                setPage("tasks");
-                window.scrollTo(0, 0);
-              }}
-              onCancel={() => {
-                setPage("tasks");
-                window.scrollTo(0, 0);
-              }}
-            />
-          )}
-          {page === "event-new" && (
-            <NewEvent
-              key={session.user.id}
-              client={client}
-              userId={session.user.id}
-              initialDate={newEventDate}
-              householdId={household ?? null}
-              onDone={() => {
-                setRevision((n) => n + 1);
-                setPage("calendar");
-                window.scrollTo(0, 0);
-              }}
-              onCancel={() => {
-                setPage("calendar");
-                window.scrollTo(0, 0);
-              }}
-            />
-          )}
-          {page === "finance" && (
-            <Finance
-              key={`${session.user.id}:${household ?? "none"}:${revision}`}
-              client={client}
-              householdId={household ?? null}
-              onBack={() => setPage("house")}
-              onSettings={() => setPage("settings")}
-            />
-          )}
-          {page === "search" && (
-            <Search
-              key={session.user.id}
-              client={client}
-              userId={session.user.id}
-              onNavigate={(kind) => {
-                if (kind === "task" || kind === "chore") {
-                  if (kind === "chore" && !household) {
+                onTaskChanged={() => setRevision((n) => n + 1)}
+                onNavigate={(target, section) => {
+                  if (section === "chore-list" && !household) {
                     setPage("house");
                     return;
                   }
-                  setPage("tasks");
-                  window.requestAnimationFrame(() => {
-                    const target = document.getElementById(
-                      kind === "task" ? "task-list" : "chore-list",
+                  if (section === "chore-list") {
+                    setPage("chores");
+                    window.scrollTo(0, 0);
+                    return;
+                  }
+                  setPage(target);
+                  if (section)
+                    window.requestAnimationFrame(() =>
+                      (() => {
+                        const target = document.getElementById(section);
+                        const container = target?.closest("details");
+                        if (container) container.open = true;
+                        target?.scrollIntoView({ block: "start" });
+                      })(),
                     );
-                    const container = target?.closest("details");
-                    if (container) container.open = true;
-                    target?.scrollIntoView({ block: "start" });
-                  });
-                } else
-                  setPage(
-                    (
-                      {
-                        event: "calendar",
-                        shopping_item: "shopping",
-                        finance: "finance",
-                      } as const
-                    )[kind],
-                  );
-              }}
-            />
-          )}
-          {page === "documents" && (
-            <Documents
-              key={`${session.user.id}:${household ?? "none"}:${revision}`}
-              client={client}
-              householdId={household ?? null}
-              onBack={() => setPage("house")}
-            />
-          )}
-          {page === "reminders" && (
-            <Reminders
-              key={session.user.id}
-              client={client}
-              notificationStatus={notificationStatus}
-              householdId={household ?? null}
-            />
-          )}
-          {page === "settings" && (
-            <SettingsDashboard
-              client={client}
-              theme={theme}
-              setTheme={chooseTheme}
-              themePersisted={themePersisted}
-              install={installState}
-              notificationStatus={notificationStatus}
-              backupInAccount
-              onHouse={() => setPage("house")}
-              onAccount={() => setPage("profile")}
-            />
-          )}
-          {page === "profile" && (
-            <>
-              <ThemeSettings
-                mode={theme}
-                setMode={chooseTheme}
-                persisted={themePersisted}
+                  else window.scrollTo(0, 0);
+                }}
               />
-              <InstallGuide state={installState} />
-              <Profile
+            )}
+            {page === "tasks" && (
+              <details className="today-ref-management">
+                <summary>مدیریت همه کارها</summary>
+                <Tasks
+                  key={`${session.user.id}:${household ?? "none"}:${revision}`}
+                  client={client}
+                  householdId={household ?? null}
+                  onNewTask={() => {
+                    setPage("task-new");
+                    window.scrollTo(0, 0);
+                  }}
+                />
+              </details>
+            )}
+            {page === "tasks" && household && (
+              <details className="today-ref-management">
+                <summary>مدیریت کارهای خانه</summary>
+                <Chores
+                  key={household}
+                  client={client}
+                  householdId={household}
+                />
+              </details>
+            )}
+            {page === "chores" && household !== undefined && (
+              <ChoresDashboard
+                key={household ?? "none"}
+                client={client}
+                householdId={household}
+                onSettings={() => setPage("settings")}
+                onHouse={() => setPage("house")}
+              />
+            )}
+            {page === "task-new" && (
+              <NewTask
                 key={session.user.id}
                 client={client}
-                email={session.user.email}
-                onNavigate={setPage}
-              />
-              <PendingTransferPanel
                 userId={session.user.id}
                 householdId={household ?? null}
+                onDone={() => {
+                  setRevision((n) => n + 1);
+                  setPage("tasks");
+                  window.scrollTo(0, 0);
+                }}
+                onCancel={() => {
+                  setPage("tasks");
+                  window.scrollTo(0, 0);
+                }}
               />
-              <ExportData key={`export:${session.user.id}`} client={client} />
-            </>
-          )}
-          {page === "calendar" && (
-            <CalendarEvents
-              key={`${session.user.id}:${household ?? "none"}:${revision}`}
-              client={client}
-              householdId={household ?? null}
-              onHouse={() => setPage("house")}
-              onNewEvent={(date) => {
-                setNewEventDate(date);
-                setPage("event-new");
-                window.scrollTo(0, 0);
-              }}
-            />
-          )}
-          {page === "profile" && (
-            <button
-              className="minor"
-              disabled={busy}
-              onClick={() =>
-                void action(async () => {
-                  const deviceId =
-                    window.KhoonemoonNotifications?.stopBackground?.();
-                  if (deviceId) {
-                    // Offline sign-out still clears the local credential. The
-                    // server credential expires after 30 days if revocation fails.
-                    await Promise.race([
-                      client.rpc("revoke_reminder_device", { p_id: deviceId }),
-                      new Promise((resolve) =>
-                        window.setTimeout(resolve, 4000),
-                      ),
-                    ]).catch(() => {});
-                  }
-                  if (
-                    !window.KhoonemoonNotifications &&
-                    "serviceWorker" in navigator
-                  ) {
-                    try {
-                      const registration =
-                        await navigator.serviceWorker.getRegistration();
-                      if (registration)
-                        await disableBrowserPush(client, registration);
-                    } catch {
-                      /* local logout remains available while offline */
+            )}
+            {page === "event-new" && (
+              <NewEvent
+                key={session.user.id}
+                client={client}
+                userId={session.user.id}
+                initialDate={newEventDate}
+                householdId={household ?? null}
+                onDone={() => {
+                  setRevision((n) => n + 1);
+                  setPage("calendar");
+                  window.scrollTo(0, 0);
+                }}
+                onCancel={() => {
+                  setPage("calendar");
+                  window.scrollTo(0, 0);
+                }}
+              />
+            )}
+            {page === "finance" && (
+              <Finance
+                key={`${session.user.id}:${household ?? "none"}:${revision}`}
+                client={client}
+                householdId={household ?? null}
+                onBack={() => setPage("house")}
+                onSettings={() => setPage("settings")}
+              />
+            )}
+            {page === "search" && (
+              <Search
+                key={session.user.id}
+                client={client}
+                userId={session.user.id}
+                onNavigate={(kind) => {
+                  if (kind === "task" || kind === "chore") {
+                    if (kind === "chore" && !household) {
+                      setPage("house");
+                      return;
                     }
-                  }
-                  const { error } = await client.auth.signOut();
-                  if (error) throw error;
-                })
-              }
-            >
-              خروج از حساب
-            </button>
-          )}
-        </>
+                    setPage("tasks");
+                    window.requestAnimationFrame(() => {
+                      const target = document.getElementById(
+                        kind === "task" ? "task-list" : "chore-list",
+                      );
+                      const container = target?.closest("details");
+                      if (container) container.open = true;
+                      target?.scrollIntoView({ block: "start" });
+                    });
+                  } else
+                    setPage(
+                      (
+                        {
+                          event: "calendar",
+                          shopping_item: "shopping",
+                          finance: "finance",
+                        } as const
+                      )[kind],
+                    );
+                }}
+              />
+            )}
+            {page === "documents" && (
+              <Documents
+                key={`${session.user.id}:${household ?? "none"}:${revision}`}
+                client={client}
+                householdId={household ?? null}
+                onBack={() => setPage("house")}
+              />
+            )}
+            {page === "reminders" && (
+              <Reminders
+                key={session.user.id}
+                client={client}
+                notificationStatus={notificationStatus}
+                householdId={household ?? null}
+              />
+            )}
+            {page === "settings" && (
+              <SettingsDashboard
+                client={client}
+                theme={theme}
+                setTheme={chooseTheme}
+                themePersisted={themePersisted}
+                install={installState}
+                notificationStatus={notificationStatus}
+                backupInAccount
+                onHouse={() => setPage("house")}
+                onAccount={() => setPage("profile")}
+              />
+            )}
+            {page === "profile" && (
+              <>
+                <ThemeSettings
+                  mode={theme}
+                  setMode={chooseTheme}
+                  persisted={themePersisted}
+                />
+                <InstallGuide state={installState} />
+                <Profile
+                  key={session.user.id}
+                  client={client}
+                  email={session.user.email}
+                  onNavigate={setPage}
+                />
+                <PendingTransferPanel
+                  userId={session.user.id}
+                  householdId={household ?? null}
+                />
+                <ExportData key={`export:${session.user.id}`} client={client} />
+              </>
+            )}
+            {page === "calendar" && (
+              <CalendarEvents
+                key={`${session.user.id}:${household ?? "none"}:${revision}`}
+                client={client}
+                householdId={household ?? null}
+                onHouse={() => setPage("house")}
+                onNewEvent={(date) => {
+                  setNewEventDate(date);
+                  setPage("event-new");
+                  window.scrollTo(0, 0);
+                }}
+              />
+            )}
+            {page === "profile" && (
+              <button
+                className="minor"
+                disabled={busy}
+                onClick={() =>
+                  void action(async () => {
+                    const deviceId =
+                      window.KhoonemoonNotifications?.stopBackground?.();
+                    if (deviceId) {
+                      // Offline sign-out still clears the local credential. The
+                      // server credential expires after 30 days if revocation fails.
+                      await Promise.race([
+                        client.rpc("revoke_reminder_device", {
+                          p_id: deviceId,
+                        }),
+                        new Promise((resolve) =>
+                          window.setTimeout(resolve, 4000),
+                        ),
+                      ]).catch(() => {});
+                    }
+                    if (
+                      !window.KhoonemoonNotifications &&
+                      "serviceWorker" in navigator
+                    ) {
+                      try {
+                        const registration =
+                          await navigator.serviceWorker.getRegistration();
+                        if (registration)
+                          await disableBrowserPush(client, registration);
+                      } catch {
+                        /* local logout remains available while offline */
+                      }
+                    }
+                    const { error } = await client.auth.signOut();
+                    if (error) throw error;
+                  })
+                }
+              >
+                خروج از حساب
+              </button>
+            )}
+          </Suspense>
+        </LazyScreenBoundary>
       )}
     </main>
   );

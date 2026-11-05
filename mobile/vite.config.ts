@@ -10,6 +10,20 @@ export default defineConfig(({ command, mode }) => {
   return {
     plugins: [
       {
+        name: "offline-chunk-manifest",
+        enforce: "post",
+        generateBundle(_options, bundle) {
+          const assets = Object.keys(bundle).filter((name) =>
+            /^assets\/[\w./-]+\.(?:js|css|woff2|png|webp|svg)$/.test(name),
+          );
+          this.emitFile({
+            type: "asset",
+            fileName: "precache.json",
+            source: JSON.stringify(assets.sort()),
+          });
+        },
+      },
+      {
         name: "supabase-csp",
         transformIndexHtml(html) {
           return html.replace(

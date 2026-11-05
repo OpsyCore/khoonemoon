@@ -26,20 +26,22 @@ export function handleNativeBack(options: {
     return true;
   }
   if (options.page === "task-new" || options.page === "event-new") {
-    if (
-      options.dirty &&
-      !window.confirm(
-        "تغییرات ذخیره‌نشده ممکن است از دست بروند. ادامه می‌دهید؟",
+    const backButton = document.querySelector<HTMLButtonElement>(
+      '.new-task header button[aria-label="بازگشت"]',
+    );
+    if (backButton) {
+      if (
+        options.dirty &&
+        !window.confirm(
+          "تغییرات ذخیره‌نشده ممکن است از دست بروند. ادامه می‌دهید؟",
+        )
       )
-    )
+        return true;
+      // These forms have their own follow-up/reminder guard and disabled state.
+      backButton.click();
       return true;
-    // These forms have their own follow-up/reminder guard and disabled state.
-    document
-      .querySelector<HTMLButtonElement>(
-        '.new-task header button[aria-label="بازگشت"]',
-      )
-      ?.click();
-    return true;
+    }
+    // While a lazy form is loading, use the normal page history below.
   }
   while (options.history.at(-1) === options.page) options.history.pop();
   if (!options.history.length) return false;

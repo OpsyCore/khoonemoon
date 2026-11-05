@@ -17,6 +17,13 @@ async function refreshShell() {
   )
     throw new Error("shell unavailable");
   const html = await response.clone().text();
+  const manifestResponse = await fetch(new URL("precache.json", scope).href, {
+    cache: "no-store",
+    credentials: "omit",
+  });
+  if (!manifestResponse.ok) throw new Error("asset manifest unavailable");
+  const manifest = await manifestResponse.json();
+  if (!Array.isArray(manifest)) throw new Error("invalid asset manifest");
   const assets = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
     .map((match) => new URL(match[1], scope))
     .filter(
@@ -27,16 +34,28 @@ async function refreshShell() {
         /\.(js|css)$/.test(url.pathname),
     )
     .map((url) => url.href);
-  if (!assets.some((url) => url.endsWith(".js")))
+  for (const path of manifest) {
+    if (
+      typeof path !== "string" ||
+      !/^assets\/[\w./-]+\.(js|css|woff2|png|webp|svg)$/.test(path)
+    )
+      throw new Error("invalid manifest asset");
+    const url = new URL(path, scope);
+    if (url.origin !== scope.origin || !url.pathname.startsWith(staticPrefix))
+      throw new Error("invalid manifest asset");
+    assets.push(url.href);
+  }
+  const uniqueAssets = [...new Set(assets)];
+  if (!uniqueAssets.some((url) => url.endsWith(".js")))
     throw new Error("invalid shell");
   const cache = await caches.open(CACHE);
   await cache.addAll(
-    assets.map((url) => new Request(url, { credentials: "omit" })),
+    uniqueAssets.map((url) => new Request(url, { credentials: "omit" })),
   );
   // The shell depends on fonts and illustrations referenced by its stylesheet.
   // Precache only same-origin, hashed static assets; never follow arbitrary URLs.
   const dependencies = new Set();
-  for (const css of assets.filter((url) => url.endsWith(".css"))) {
+  for (const css of uniqueAssets.filter((url) => url.endsWith(".css"))) {
     const cssResponse = await cache.match(css);
     if (!cssResponse) throw new Error("stylesheet unavailable");
     const text = await cssResponse.text();

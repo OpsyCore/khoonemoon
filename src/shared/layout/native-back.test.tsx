@@ -88,3 +88,16 @@ it("tracks in-app page changes without a browser navigation", async () => {
   expect(host.textContent).toBe("house");
   await act(async () => root.unmount());
 });
+
+it("returns to the previous page while a lazy form is still loading", () => {
+  const navigate = vi.fn();
+  expect(
+    handleNativeBack({
+      page: "event-new",
+      history: ["calendar"],
+      navigate,
+      dirty: false,
+    }),
+  ).toBe(true);
+  expect(navigate).toHaveBeenCalledWith("calendar");
+});
