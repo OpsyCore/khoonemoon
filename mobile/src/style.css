@@ -1073,3 +1073,31 @@ dialog.calendar-form-dialog { width:min(92vw,30rem); max-height:85dvh; padding:1
   font: inherit;
   font-size: .72rem;
 }
+
+/* The destination is the page, not a card. Only inner sections are cards.
+   Keep small safe-area gutters for content, while the paper reaches the edges. */
+:root body {
+  background-color: var(--paper);
+  background-image: none;
+}
+main:not(.login-mobile-main):not(.recovery-mobile-main) {
+  width: 100%;
+  max-width: none;
+  padding-inline-start: max(.75rem, env(safe-area-inset-right));
+  padding-inline-end: max(.75rem, env(safe-area-inset-left));
+}
+:root main > section:is(.settings-ref, .search-ref, .reminder-ref, .profile-ref, .chore-ref, .new-task),
+:root:not([data-theme="dark"]) main > section:is(.settings-ref, .search-ref, .reminder-ref, .profile-ref, .chore-ref, .new-task),
+:root[data-theme="dark"] main > section:is(.settings-ref, .search-ref, .reminder-ref, .profile-ref, .chore-ref, .new-task) {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 0 2rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.bottom-nav {
+  width: 100%;
+}

@@ -349,3 +349,15 @@
     font-size: 11px;
   }
 }
+
+/* The global button fill must not make the unselected themes look selected. */
+:root .settings-ref .settings-ref-themes button[aria-pressed="false"] {
+  background: var(--sunken);
+  border-color: var(--st-line);
+  color: var(--st-text);
+}
+:root .settings-ref .settings-ref-themes button[aria-pressed="true"] {
+  background: var(--olive-soft);
+  border-color: var(--olive-ink);
+  color: var(--olive-ink);
+}
