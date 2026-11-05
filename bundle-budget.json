@@ -4,5 +4,7 @@
   "sharedMaxGzipBytes": 145000,
   "routes": {},
   "mobileBudgetNote": "سقف موبایل شامل صفحه تقسیم وظایف، صفحه قطع ارتباط و فرم تسک و یادآوری است؛ مجموع gzip فایل‌های JS مستقل همچنان کنترل می‌شود.",
-  "mobileMaxGzipBytes": 284000
+  "mobileMaxGzipBytes": 284000,
+  "mobileInitialBudgetNote": "سقف اولیه ۱۹۰٬۰۰۰ بایت gzip برای حفظ مزیت بارگذاری تدریجی نسبت به خط مبنای ۱۷۷٬۷۱۳ بایت؛ اندازه با entry و وابستگی‌های static و بدون dynamic محاسبه می‌شود.",
+  "mobileInitialMaxGzipBytes": 190000
 }

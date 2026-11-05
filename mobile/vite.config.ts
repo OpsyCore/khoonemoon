@@ -36,7 +36,24 @@ export default defineConfig(({ command, mode }) => {
     root,
     base: "./",
     resolve: { alias: { "@": resolve(__dirname, "../src") } },
-    build: { outDir: "../dist/mobile", emptyOutDir: true },
+    build: {
+      outDir: "../dist/mobile",
+      emptyOutDir: true,
+      manifest: true,
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              {
+                name: "deferred-icons",
+                test: /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/](circle-dollar-sign|clock-3|ellipsis|heart|map-pin|plus|refresh-cw|shopping-basket|shopping-cart|square-check|sun|users|users-round)\.mjs$/,
+                includeDependenciesRecursively: false,
+              },
+            ],
+          },
+        },
+      },
+    },
     server: { host: "0.0.0.0", allowedHosts: true },
   };
 });
