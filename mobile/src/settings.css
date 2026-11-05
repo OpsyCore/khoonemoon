@@ -1,10 +1,10 @@
 .settings-ref {
-  --st-card: #faf8f2;
-  --st-line: #e4e1d6;
-  --st-text: #292e24;
-  --st-muted: #85867c;
-  --st-olive: #76805a;
-  --st-icon: #eeede3;
+  --st-card: var(--card);
+  --st-line: var(--line);
+  --st-text: var(--ink);
+  --st-muted: var(--muted-text);
+  --st-olive: var(--olive-ink);
+  --st-icon: var(--olive-soft);
   max-width: 720px;
   margin: auto;
   padding: 0 4px 32px;

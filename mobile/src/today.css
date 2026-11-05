@@ -1,10 +1,10 @@
 .today-ref {
-  --today-ink: #33382b;
-  --today-muted: #68685e;
-  --today-paper: #faf8f1;
-  --today-line: #e7e1d6;
-  --today-olive: #657452;
-  --today-rust: #bd8064;
+  --today-ink: var(--ink);
+  --today-muted: var(--muted-text);
+  --today-paper: var(--card);
+  --today-line: var(--line);
+  --today-olive: var(--olive-ink);
+  --today-rust: var(--clay);
   color: var(--today-ink);
   padding-bottom: 5rem;
 }

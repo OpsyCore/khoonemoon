@@ -1,10 +1,10 @@
 .finance-page {
-  --fin-paper: #f9f8f2;
-  --fin-line: #e8e4da;
-  --fin-ink: #30392b;
-  --fin-muted: #858579;
-  --fin-olive: #5c6e50;
-  --fin-rust: #bc795e;
+  --fin-paper: var(--card);
+  --fin-line: var(--line);
+  --fin-ink: var(--ink);
+  --fin-muted: var(--muted-text);
+  --fin-olive: var(--olive-ink);
+  --fin-rust: var(--clay);
   color: var(--fin-ink);
   padding-bottom: 5rem;
 }

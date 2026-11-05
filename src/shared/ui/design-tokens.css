@@ -13,7 +13,8 @@
   /* ink */
   --ink: #49382b;
   --ink-soft: #63564a;
-  --muted: #8b7c6b;
+  --muted: #b8a88d; /* reference swatch for decorative surfaces */
+  --muted-text: #6f6050; /* readable secondary text on paper/card */
   --faint: #ab9d8b;
   --cream: #fbf7ec; /* text on olive/clay solids */
 
@@ -52,6 +53,7 @@
   --ink: #ede4d1;
   --ink-soft: #cdc1ab;
   --muted: #9c8f7a;
+  --muted-text: #cdc1ab;
   --faint: #786d5c;
   --cream: #f6f1e7;
 

@@ -20,7 +20,7 @@
   --color-line-strong: var(--line-strong);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
-  --color-muted: var(--muted);
+  --color-muted: var(--muted-text);
   --color-faint: var(--faint);
   --color-cream: var(--cream);
   --color-olive: var(--olive);
@@ -139,8 +139,8 @@ dialog.app-shell-drawer::backdrop { background:rgba(49,40,31,.42); }
 .app-shell-drawer-head { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
 .app-shell-drawer-head h2 { font-size:1.3rem; font-weight:700; margin:.3rem 0 0; }
 .app-shell-drawer-head button { display:grid; place-items:center; width:2.6rem; height:2.6rem; border-radius:.8rem; background:var(--sunken); }
-.app-shell-drawer-eyebrow { font-size:.58rem; letter-spacing:.12em; color:var(--muted); }
-.app-shell-drawer > p { margin:.4rem 0 1.5rem; font-size:.78rem; color:var(--muted); }
+.app-shell-drawer-eyebrow { font-size:.58rem; letter-spacing:.12em; color:var(--muted-text); }
+.app-shell-drawer > p { margin:.4rem 0 1.5rem; font-size:.78rem; color:var(--muted-text); }
 .app-shell-drawer nav { display:grid; gap:.35rem; }
 .app-shell-drawer nav a { display:flex; align-items:center; gap:.85rem; min-height:3.8rem; padding:.55rem .65rem; border-radius:.85rem; font-weight:600; }
 .app-shell-drawer nav a:hover { background:var(--olive-soft); }

@@ -2,8 +2,8 @@
 
 :root {
   font-family: "Vazirmatn Variable", sans-serif;
-  color: #3f342b;
-  background: #f6f1e7;
+  color: var(--ink);
+  background: var(--paper);
 }
 * {
   box-sizing: border-box;
@@ -140,9 +140,9 @@ fieldset label {
 }
 /* Warm archival-paper surfaces shared by every mobile section. */
 :root {
-  --paper-card: #fcf8ee;
-  --paper-line: #e2d8c4;
-  --paper-ink: #3f342b;
+  --paper-card: var(--card);
+  --paper-line: var(--line);
+  --paper-ink: var(--ink);
 }
 body {
   background: var(--paper);
@@ -216,9 +216,9 @@ main {
 
 /* Warm paper journal: inspired by the supplied archive illustration. */
 :root {
-  --paper-card: #faf5e9;
-  --paper-line: #d5c8ae;
-  --paper-ink: #36281e;
+  --paper-card: var(--card);
+  --paper-line: var(--line);
+  --paper-ink: var(--ink);
 }
 body {
   background-color: var(--paper);
@@ -866,7 +866,7 @@ section:not(.document-form), aside {
 }
 :root:not([data-theme="dark"]) section:not(.document-form),
 :root:not([data-theme="dark"]) aside {
-  background: linear-gradient(155deg,#fcf9f3,#f8f2e8);
+  background: var(--card);
 }
 section:not(.document-form) > h2 { border-color: rgba(73,56,43,.1); }
 section:not(.document-form) > h2::after { content: none; }
@@ -977,7 +977,7 @@ dialog.app-menu::backdrop { background: rgba(49,40,31,.42); }
 main > header.calendar-shell-header { min-height:0; height:0; padding:0; border:0; overflow:visible; z-index:3; }
 .calendar-shell-header .menu-trigger { top:1.6rem; transform:none; }
 .calendar-shell-header .menu-trigger:not(:disabled):active { transform:translateY(1px); }
-.calendar-page { --cal-ink:#34392b; --cal-muted:#847f70; --cal-paper:#f8f5ec; --cal-line:#e8e3d7; --cal-olive:#6b785c; --cal-rust:#c47d65; --cal-gold:#df9e4d; --cal-rose:#c99d98; color:var(--cal-ink); position:relative; padding-bottom:5rem; }
+.calendar-page { --cal-ink:var(--ink); --cal-muted:var(--muted-text); --cal-paper:var(--card); --cal-line:var(--line); --cal-olive:var(--olive); --cal-rust:var(--clay); --cal-gold:#df9e4d; --cal-rose:#c99d98; color:var(--cal-ink); position:relative; padding-bottom:5rem; }
 .calendar-page button { font:inherit; cursor:pointer; }
 :root .calendar-page button { box-shadow:none; }
 .calendar-hero { position:relative; min-height:8.2rem; padding:1.35rem 2.5rem .35rem; text-align:center; overflow:hidden; }

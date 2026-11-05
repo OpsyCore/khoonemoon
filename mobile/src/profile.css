@@ -17,7 +17,7 @@
 }
 .profile-ref-header p {
   margin: 0.2rem 0;
-  color: var(--muted);
+  color: var(--muted-text);
   font-size: 0.8rem;
 }
 :root .profile-ref .profile-ref-header button:not(.calendar-day) {
@@ -51,7 +51,7 @@
   font-weight: 700;
 }
 .profile-ref-identity small {
-  color: var(--muted);
+  color: var(--muted-text);
   overflow-wrap: anywhere;
 }
 .profile-ref h3 {
@@ -96,7 +96,7 @@
 }
 .profile-ref-links button > b {
   margin-inline-start: auto;
-  color: var(--muted);
+  color: var(--muted-text);
 }
 .profile-ref-form {
   padding: 1rem;
@@ -107,5 +107,5 @@
   color: var(--cream);
 }
 .profile-ref-form small {
-  color: var(--muted);
+  color: var(--muted-text);
 }

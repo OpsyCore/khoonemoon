@@ -2,10 +2,10 @@
   border: 0;
   background: transparent;
   box-shadow: none;
-  --chore-ink: #333d2b;
-  --chore-paper: #f7f4ed;
-  --chore-olive: #66734d;
-  --chore-line: #ded9cc;
+  --chore-ink: var(--ink);
+  --chore-paper: var(--card);
+  --chore-olive: var(--olive-ink);
+  --chore-line: var(--line);
   position: relative;
   max-width: 760px;
   margin: auto;

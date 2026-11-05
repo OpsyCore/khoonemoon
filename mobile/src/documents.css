@@ -1,10 +1,10 @@
 /* Botanical documents archive. Every rule is scoped for both app and web. */
 .docs-ref {
-  --doc-ink: #343a2b;
-  --doc-muted: #898578;
-  --doc-paper: #faf8f1;
-  --doc-line: #e7e1d5;
-  --doc-olive: #657352;
+  --doc-ink: var(--ink);
+  --doc-muted: var(--muted-text);
+  --doc-paper: var(--card);
+  --doc-line: var(--line);
+  --doc-olive: var(--olive-ink);
   color: var(--doc-ink);
   padding-bottom: 5rem;
   position: relative;

@@ -1,10 +1,10 @@
 /* Shopping list: botanical paper cards, scoped so global controls cannot recolor them. */
 .shopping-page {
-  --shop-ink: #2f3526;
-  --shop-paper: #f9f7ef;
-  --shop-muted: #858176;
-  --shop-line: #e2ddcf;
-  --shop-olive: #626f4d;
+  --shop-ink: var(--ink);
+  --shop-paper: var(--card);
+  --shop-muted: var(--muted-text);
+  --shop-line: var(--line);
+  --shop-olive: var(--olive-deep);
   color: var(--shop-ink);
   padding-bottom: 5rem;
 }

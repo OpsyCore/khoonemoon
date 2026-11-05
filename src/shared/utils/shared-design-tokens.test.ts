@@ -15,11 +15,54 @@ describe("shared web and Android design foundation", () => {
       olive: "#85875d",
       clay: "#c98268",
       ink: "#49382b",
-      muted: "#8b7c6b",
+      muted: "#b8a88d",
+      "muted-text": "#6f6050",
       cream: "#fbf7ec",
     })) {
       expect(tokens).toContain(`--${name}: ${value}`);
     }
+  });
+  it("uses the shared palette for the main light screen surfaces", () => {
+    const rules = {
+      "today.css": ["--today-paper: var(--card)", "--today-ink: var(--ink)"],
+      "home-dashboard.css": [
+        "--home-paper: var(--card)",
+        "--home-ink: var(--ink)",
+      ],
+      "shopping.css": ["--shop-paper: var(--card)", "--shop-ink: var(--ink)"],
+      "finance-overview.css": [
+        "--fin-paper: var(--card)",
+        "--fin-ink: var(--ink)",
+      ],
+      "documents.css": ["--doc-paper: var(--card)", "--doc-ink: var(--ink)"],
+      "settings.css": ["--st-card: var(--card)", "--st-text: var(--ink)"],
+      "chores-dashboard.css": [
+        "--chore-paper: var(--card)",
+        "--chore-ink: var(--ink)",
+      ],
+      "new-task.css": ["--nt-paper: var(--card)", "--nt-ink: var(--ink)"],
+    };
+    for (const [file, expected] of Object.entries(rules)) {
+      const css = readFileSync(`mobile/src/${file}`, "utf8");
+      for (const rule of expected) expect(css).toContain(rule);
+    }
+    expect(mobile).toContain("--cal-paper:var(--card)");
+    expect(mobile).toContain("--cal-ink:var(--ink)");
+  });
+  it("keeps reference muted as a swatch but uses a readable text color", () => {
+    function luminance(hex: string) {
+      const rgb = hex.match(/\w\w/g)!.map((part) => parseInt(part, 16) / 255);
+      return rgb
+        .map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+        .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+    }
+    const text = luminance("6f6050");
+    for (const surface of ["f5ebdd", "e9ddc8"]) {
+      expect(
+        (luminance(surface) + 0.05) / (text + 0.05),
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(web).toContain("--color-muted: var(--muted-text)");
   });
   it("applies the same dark tokens to web class and Android data-theme", () => {
     expect(tokens).toMatch(/\.dark,\s*:root\[data-theme="dark"\]\s*\{/);

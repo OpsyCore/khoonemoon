@@ -42,6 +42,7 @@ it("protects today event buttons from the light rule in web dark mode", () => {
       ':root:not([data-theme="dark"]) .today-ref button.today-ref-item',
     ),
   );
-  expect(today).toContain("--today-muted: #68685e");
+  expect(today).toContain("--today-muted: var(--muted-text)");
+  expect(today).toContain("--today-muted: #c4bcaa");
   expect(today).toContain("color: #f4b4a4");
 });
