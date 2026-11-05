@@ -8,8 +8,8 @@
   margin: auto;
   padding: clamp(8.5rem, 28vw, 16rem) clamp(2rem, 10vw, 6rem)
     clamp(9rem, 30vw, 15rem);
-  background: #f4f0e5;
-  color: #39442e;
+  background: var(--paper, #f5ebdd);
+  color: var(--ink, #49382b);
   background-image:
     radial-gradient(circle at 40% 35%, #fff8, transparent 58%),
     radial-gradient(#79694c0e 0.5px, transparent 0.9px);
@@ -94,14 +94,14 @@
   background: url("./offline-art/house.webp") center / contain no-repeat;
 }
 .offline-content h1 {
-  color: #35402a;
+  color: var(--ink, #49382b);
   font-size: clamp(1.8rem, 6.5vw, 2.8rem);
   line-height: 1.4;
   font-weight: 800;
   margin: clamp(1.2rem, 4vw, 2rem) 0 0;
 }
 .offline-content p {
-  color: #6f6c5c;
+  color: var(--muted-text, #6f6050);
   font-size: clamp(0.9rem, 3.5vw, 1.25rem);
   line-height: 2;
   margin: 1rem auto 0;
@@ -167,7 +167,7 @@
   z-index: 10000;
   inset: 0;
   overflow: auto;
-  background: #f4f0e5;
+  background: var(--paper, #f5ebdd);
   pointer-events: auto;
 }
 .offline-overlay .offline-reference {

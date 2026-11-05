@@ -6,11 +6,11 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #4d593d;
+  color: var(--ink);
 }
 .new-event .event-header button {
-  background: #eae5d8;
-  color: #3e4a33;
+  background: var(--sunken);
+  color: var(--ink);
   border: 0;
   border-radius: 50%;
   width: 45px;
@@ -29,7 +29,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #696b58;
+  color: var(--muted-text);
   padding: 10px 12px;
   background: url("./assets/settings-olive.webp") right center / 55px auto
     no-repeat;
@@ -51,8 +51,8 @@
   background: url("./assets/event-calendar.webp") center / contain no-repeat;
 }
 .event-form {
-  background: rgba(250, 247, 241, 0.83);
-  border: 1px solid #dfd9cf;
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 20px;
   padding: 20px;
   box-shadow: 0 7px 24px #695b3a0d;
@@ -72,7 +72,7 @@
 .event-label {
   display: block;
   margin: 0 0 7px;
-  color: #30352c;
+  color: var(--ink);
   font-size: 15px;
   font-weight: 700;
 }
@@ -84,13 +84,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #d2cec5;
+  border: 1px solid var(--line);
   border-radius: 13px;
-  background: #f5f1eb;
+  background: var(--sunken);
   min-height: 52px;
   padding: 0 12px;
   width: 100%;
-  color: #363d31;
+  color: var(--ink);
 }
 .event-control svg,
 .event-date-button svg {
@@ -145,11 +145,11 @@
   padding: 14px;
   border: 1px solid #ddd7ce;
   border-radius: 13px;
-  background: #f5f1eb;
+  background: var(--sunken);
 }
 .event-all-day span {
   flex: 1;
-  color: #838477;
+  color: var(--muted-text);
   font-size: 12px;
 }
 .event-all-day input {
@@ -161,22 +161,22 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid #d2cec5;
+  border: 1px solid var(--line);
   border-radius: 13px;
-  background: #f5f1eb;
+  background: var(--sunken);
   min-height: 67px;
-  color: #33392e;
+  color: var(--ink);
   padding: 10px;
   text-align: right;
 }
 .event-choice button[aria-pressed="true"] {
-  background: #dfe1d2;
+  background: var(--olive-soft);
   border-color: #768265;
 }
 .event-choice small {
   display: block;
   font-size: 11px;
-  color: #85887a;
+  color: var(--muted-text);
 }
 .new-event .event-submit {
   width: 100%;
@@ -233,4 +233,15 @@
 .new-event .event-submit {
   position: relative;
   z-index: 2;
+}
+
+:root[data-theme="dark"] .new-event .event-choice button[aria-pressed="true"],
+.dark .new-event .event-choice button[aria-pressed="true"] {
+  background: var(--olive-soft);
+  border-color: var(--olive-ink);
+  color: var(--ink);
+}
+:root[data-theme="dark"] .new-event .event-label b,
+.dark .new-event .event-label b {
+  color: var(--clay-ink);
 }

@@ -1,6 +1,6 @@
 .search-ref {
-  --search-green: #697750;
-  --search-ink: #252d22;
+  --search-green: var(--olive-ink);
+  --search-ink: var(--ink);
   max-width: 720px;
   margin: auto;
   padding: 0 4px 30px;
@@ -20,12 +20,12 @@
   font-size: clamp(24px, 5vw, 37px);
   font-weight: 800;
   margin: 0 0 7px;
-  color: #252c22;
+  color: var(--ink);
 }
 .search-ref-header p {
   font-size: 14px;
   line-height: 1.9;
-  color: #696b61;
+  color: var(--muted-text);
   margin: 0;
 }
 .search-ref-branch {
@@ -43,8 +43,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #fbfaf6;
-  border: 1px solid #dfdfd4;
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 19px;
   padding: 5px 11px;
   box-shadow: 0 4px 10px #4a4c3818;
@@ -59,7 +59,7 @@
   outline: none;
   padding: 11px 2px;
   font-size: 17px;
-  color: #20281d;
+  color: var(--ink);
 }
 .search-ref-form input::-webkit-search-cancel-button {
   display: none;
@@ -69,7 +69,7 @@
   background: transparent !important;
   box-shadow: none !important;
   padding: 5px;
-  color: #252b22;
+  color: var(--ink);
   min-height: 0;
 }
 .search-ref-form button svg {
@@ -80,8 +80,8 @@
   color: #aaa;
 }
 .search-ref-suggestions {
-  background: #f9f8f3;
-  border: 1px solid #e5e3db;
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 18px;
   padding: 12px;
   margin-top: 8px;
@@ -105,7 +105,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #282e27;
+  color: var(--ink);
   background: none;
   border: 0;
   box-shadow: none;
@@ -146,7 +146,7 @@
   padding: 8px 0;
 }
 .search-ref .search-ref-recent-chips button {
-  background: #eeede5;
+  background: var(--sunken);
   border: 0;
   box-shadow: none;
   border-radius: 99px;
@@ -156,7 +156,7 @@
   white-space: nowrap;
   padding: 7px 12px;
   font-size: 12px;
-  color: #454b3c;
+  color: var(--ink);
 }
 .search-ref-recent small {
   font-size: 10px;
@@ -181,10 +181,10 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid #e3e3da;
+  border: 1px solid var(--line);
   border-radius: 17px;
-  background: #faf9f4;
-  color: #434d3d;
+  background: var(--card);
+  color: var(--ink);
   box-shadow: 0 2px 5px #343d270b;
   padding: 9px 11px;
   font-size: 13px;
@@ -221,8 +221,8 @@
   gap: 8px;
 }
 .search-ref-group {
-  background: #f9f8f3;
-  border: 1px solid #e8e7df;
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 17px;
   overflow: hidden;
 }
@@ -262,9 +262,9 @@
   padding: 0 7px 8px;
 }
 .search-ref-result {
-  border: 1px solid #e9e8e0;
+  border: 1px solid var(--line);
   border-radius: 16px;
-  background: #fbfaf6;
+  background: var(--card);
   overflow: hidden;
 }
 .search-ref-result > summary {
@@ -301,12 +301,12 @@
 }
 .search-ref-result-text > span {
   font-size: 12px;
-  color: #83857e;
+  color: var(--muted-text);
   overflow-wrap: anywhere;
 }
 .search-ref-result-text small {
   font-size: 11px;
-  color: #898d82;
+  color: var(--muted-text);
   display: flex;
   align-items: center;
   gap: 5px;
@@ -345,7 +345,7 @@
 .search-ref-result-detail {
   padding: 0 12px 12px;
   font-size: 12px;
-  color: #6d7268;
+  color: var(--muted-text);
 }
 .search-ref .search-ref-result-detail button {
   background: #6c7952;
@@ -361,7 +361,7 @@
 .search-ref-empty {
   text-align: center;
   padding: 24px 10px;
-  color: #3c4336;
+  color: var(--ink);
 }
 .search-ref-empty > span {
   display: block;
@@ -376,7 +376,7 @@
 }
 .search-ref-empty p {
   font-size: 13px;
-  color: #7b7e72;
+  color: var(--muted-text);
 }
 .search-ref-pagination {
   display: flex;
@@ -387,7 +387,7 @@
   font-size: 12px;
 }
 .search-ref .search-ref-pagination button {
-  background: #f8f7f1;
+  background: var(--card);
   border: 1px solid #ddd;
   border-radius: 12px;
   color: #4a553d;
@@ -418,4 +418,27 @@
   .search-ref-ranges {
     justify-content: flex-start;
   }
+}
+
+/* The result details and controls share the same dark paper as the shell. */
+:root[data-theme="dark"] .search-ref .search-ref-suggest-grid button,
+.dark .search-ref .search-ref-suggest-grid button,
+:root[data-theme="dark"] .search-ref .search-ref-pagination button,
+.dark .search-ref .search-ref-pagination button {
+  color: var(--ink);
+}
+:root[data-theme="dark"] .search-ref .search-ref-result-icon,
+.dark .search-ref .search-ref-result-icon {
+  background: var(--olive-soft);
+  color: var(--olive-ink);
+}
+:root[data-theme="dark"] .search-ref .search-ref-results-heading,
+.dark .search-ref .search-ref-results-heading,
+:root[data-theme="dark"] .search-ref .search-ref-group > summary svg,
+.dark .search-ref .search-ref-group > summary svg {
+  color: var(--olive-ink);
+}
+:root[data-theme="dark"] .search-ref .search-ref-error,
+.dark .search-ref .search-ref-error {
+  color: var(--danger-ink);
 }

@@ -49,6 +49,29 @@ describe("shared web and Android design foundation", () => {
     expect(mobile).toContain("--cal-paper:var(--card)");
     expect(mobile).toContain("--cal-ink:var(--ink)");
   });
+  it("uses shared light and dark tokens for remaining screens and auth", () => {
+    const search = readFileSync("mobile/src/search.css", "utf8");
+    const reminders = readFileSync("mobile/src/reminders.css", "utf8");
+    const event = readFileSync("mobile/src/new-event.css", "utf8");
+    for (const css of [search, reminders, event]) {
+      expect(css).toContain("var(--card)");
+      expect(css).toContain("var(--ink)");
+      expect(css).toContain(':root[data-theme="dark"]');
+      expect(css).toContain(".dark ");
+    }
+    const login = readFileSync(
+      "src/features/auth/components/login-art.css",
+      "utf8",
+    );
+    const recovery = readFileSync(
+      "src/features/auth/components/recovery-reference.css",
+      "utf8",
+    );
+    const offline = readFileSync("public/offline-screen.css", "utf8");
+    expect(login).toContain("--login-paper:var(--paper)");
+    expect(recovery).toContain("background: var(--paper)");
+    expect(offline).toContain("background: var(--paper, #f5ebdd)");
+  });
   it("keeps reference muted as a swatch but uses a readable text color", () => {
     function luminance(hex: string) {
       const rgb = hex.match(/\w\w/g)!.map((part) => parseInt(part, 16) / 255);

@@ -25,8 +25,8 @@ main.recovery-mobile-main {
   padding: 0;
 }
 .recovery-page {
-  --recovery-ink: #495339;
-  --recovery-muted: #777769;
+  --recovery-ink: var(--ink);
+  --recovery-muted: var(--muted-text);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -37,7 +37,7 @@ main.recovery-mobile-main {
   padding: clamp(3rem, 11vw, 6rem) clamp(2rem, 8.5vw, 5.25rem)
     clamp(5rem, 14vw, 7.5rem);
   color: var(--recovery-ink);
-  background: #f4f1e8;
+  background: var(--paper);
   background-image:
     radial-gradient(circle at 40% 20%, #fff9, transparent 60%),
     radial-gradient(#766a4c0d 0.5px, transparent 0.9px);
