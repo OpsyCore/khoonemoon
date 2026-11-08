@@ -4,6 +4,7 @@ import {
   FileText,
   House,
   ListTodo,
+  ReceiptText,
   Search,
   Settings,
   SunMedium,
@@ -20,6 +21,7 @@ export const primaryNavigation = [
   { id: "finance", href: "/finance", label: "مالی", icon: Wallet },
 ] as const;
 export const secondaryNavigation = [
+  { id: "bills", href: "/bills", label: "قبوض و خدمات", icon: ReceiptText },
   { id: "chores", href: "/chores", label: "تقسیم وظایف", icon: House },
   { id: "search", href: "/search", label: "جستجو", icon: Search },
   { id: "documents", href: "/documents", label: "مدارک", icon: FileText },

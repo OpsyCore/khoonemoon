@@ -15,6 +15,7 @@ export type MobilePage =
   | "calendar"
   | "shopping"
   | "finance"
+  | "bills"
   | "profile"
   | "settings"
   | "reminders"

@@ -1,33 +1,33 @@
-/* Shared paper design tokens for the web and standalone Android client. */
+/* Light palette sampled from the settings reference; shared by web and Android. */
 :root {
   color-scheme: light;
 
   /* surfaces */
-  --paper: #f5ebdd; /* app background */
-  --card: #e9ddc8; /* raised paper card */
-  --sunken: #f1e6d6; /* inset / wash areas */
-  --kraft: #d9cbb3; /* kraft accents, skeletons */
-  --line: #ded1bf; /* hairline borders */
-  --line-strong: #cbbc9f;
+  --paper: #f5f2eb; /* app background */
+  --card: #f9f6f0; /* raised paper card */
+  --sunken: #f8f6ef; /* inset / wash areas */
+  --kraft: #dedbd0; /* kraft accents, skeletons */
+  --line: #e3dfd6; /* hairline borders */
+  --line-strong: #d1cec2;
 
   /* ink */
-  --ink: #49382b;
-  --ink-soft: #63564a;
-  --muted: #b8a88d; /* reference swatch for decorative surfaces */
-  --muted-text: #6f6050; /* readable secondary text on paper/card */
-  --faint: #ab9d8b;
-  --cream: #fbf7ec; /* text on olive/clay solids */
+  --ink: #302e25;
+  --ink-soft: #5e5c53;
+  --muted: #aca99c; /* muted decorative surfaces */
+  --muted-text: #655f57; /* readable secondary text on paper/card */
+  --faint: #aaa69a;
+  --cream: #fffdf7; /* text on olive/clay solids */
 
   /* olive — primary */
-  --olive: #85875d;
-  --olive-deep: #73774e; /* hover / pressed solids */
-  --olive-ink: #6e744a; /* olive as text on paper */
-  --olive-soft: #e9ead8; /* olive tint surface */
+  --olive: #69704d;
+  --olive-deep: #5d6843; /* hover / pressed solids */
+  --olive-ink: #59633d; /* olive as text on paper */
+  --olive-soft: #e7e6d9; /* olive tint surface */
 
   /* clay / terracotta — secondary accent */
-  --clay: #c98268;
-  --clay-ink: #b65138;
-  --clay-soft: #f8e4db;
+  --clay: #cca286;
+  --clay-ink: #a34e35;
+  --clay-soft: #f3e5de;
 
   /* feedback */
   --warn-ink: #9a7233;

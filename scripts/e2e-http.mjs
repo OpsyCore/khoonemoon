@@ -248,6 +248,11 @@ try {
     status: [307, 302],
   });
   await expectStatus({
+    name: "قبوض بدون نشست → هدایت",
+    path: "/bills",
+    status: [307, 302],
+  });
+  await expectStatus({
     name: "صندوق یادآورها بدون نشست → هدایت",
     path: "/reminders",
     status: [307, 302],

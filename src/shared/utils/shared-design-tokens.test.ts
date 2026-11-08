@@ -9,15 +9,15 @@ describe("shared web and Android design foundation", () => {
     expect(web).toContain("../shared/ui/design-tokens.css");
     expect(mobile).toContain("../../src/shared/ui/design-tokens.css");
     for (const [name, value] of Object.entries({
-      paper: "#f5ebdd",
-      card: "#e9ddc8",
-      sunken: "#f1e6d6",
-      olive: "#85875d",
-      clay: "#c98268",
-      ink: "#49382b",
-      muted: "#b8a88d",
-      "muted-text": "#6f6050",
-      cream: "#fbf7ec",
+      paper: "#f5f2eb",
+      card: "#f9f6f0",
+      sunken: "#f8f6ef",
+      olive: "#69704d",
+      clay: "#cca286",
+      ink: "#302e25",
+      muted: "#aca99c",
+      "muted-text": "#655f57",
+      cream: "#fffdf7",
     })) {
       expect(tokens).toContain(`--${name}: ${value}`);
     }
@@ -70,7 +70,7 @@ describe("shared web and Android design foundation", () => {
     const offline = readFileSync("public/offline-screen.css", "utf8");
     expect(login).toContain("--login-paper:var(--paper)");
     expect(recovery).toContain("background: var(--paper)");
-    expect(offline).toContain("background: var(--paper, #f5ebdd)");
+    expect(offline).toContain("background: var(--paper, #f5f2eb)");
   });
   it("keeps reference muted as a swatch but uses a readable text color", () => {
     function luminance(hex: string) {
@@ -79,8 +79,8 @@ describe("shared web and Android design foundation", () => {
         .map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
         .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
     }
-    const text = luminance("6f6050");
-    for (const surface of ["f5ebdd", "e9ddc8"]) {
+    const text = luminance("655f57");
+    for (const surface of ["f5f2eb", "f9f6f0"]) {
       expect(
         (luminance(surface) + 0.05) / (text + 0.05),
       ).toBeGreaterThanOrEqual(4.5);

@@ -31,14 +31,14 @@ p {
 }
 section,
 aside {
-  background: #fcf8ee;
+  background: var(--card);
   border: 1px solid #e2d8c4;
   border-radius: 1.2rem;
   padding: 1.2rem;
   margin: 1rem 0;
 }
 aside {
-  background: #eee7d7;
+  background: var(--sunken);
   line-height: 1.8;
 }
 form {
@@ -60,7 +60,7 @@ button {
 input,
 select {
   width: 100%;
-  background: #f6f1e7;
+  background: var(--sunken);
   border: 1px solid #cbbc9f;
   color: inherit;
 }
@@ -189,7 +189,7 @@ main {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   padding: 0.45rem 0.25rem calc(0.45rem + env(safe-area-inset-bottom));
-  background: #fcf8ee;
+  background: var(--card);
   border: 1px solid #e2d8c4;
   border-radius: 1.15rem 1.15rem 0 0;
   box-shadow: 0 -5px 22px rgba(74, 58, 35, 0.1);
@@ -265,7 +265,7 @@ section h3 {
 }
 input,
 select {
-  background: #f7f1e5;
+  background: var(--sunken);
   border: 1px solid #cdbfa6;
   border-radius: 0.55rem;
 }
@@ -359,7 +359,7 @@ button:not(.calendar-day) {
   height: 3.5rem;
   border-radius: 50%;
   padding: 0.7rem;
-  background: #f4ebd9;
+  background: var(--sunken);
   box-shadow:
     0 0 0 6px #e6d8bf,
     0 3px 9px #6e593d3d;
@@ -382,7 +382,7 @@ button:not(.calendar-day) {
   padding: 0.4rem 0.65rem;
   font-size: 0.76rem;
   color: #685a4b;
-  background: #f2ebdc;
+  background: var(--sunken);
   border: 1px solid #d3c5ab;
   border-bottom: 0;
 }
@@ -538,7 +538,7 @@ section fieldset {
   background: rgba(250, 245, 233, 0.75);
 }
 button.minor {
-  background-color: #f7f1e4;
+  background-color: var(--sunken);
   border-color: #c9b99c;
   color: #5f6840;
 }
@@ -551,7 +551,7 @@ button:not(:disabled):active {
 }
 .today-cards button {
   text-align: start;
-  background: #f6efdf;
+  background: var(--card);
 }
 @media (max-width: 330px) {
   .today-cards {
@@ -708,7 +708,7 @@ textarea {
   border: 1px solid #cdbfa6;
   border-radius: 0.55rem;
   padding: 0.7rem;
-  background: #f7f1e5;
+  background: var(--sunken);
   color: inherit;
 }
 :focus-visible {
@@ -820,7 +820,7 @@ dialog {
   max-width: min(94vw, 34rem);
   max-height: 88vh;
   overflow-y: auto;
-  background: var(--paper, #f6f1e7);
+  background: var(--paper, #f5f2eb);
   color: inherit;
   border: 1px solid #cbbba2;
   border-radius: 1.2rem;
@@ -857,7 +857,7 @@ main > header {
   border-bottom: 1px solid rgba(73,56,43,.1);
   background: none;
 }
-main > header h1 { color: #49382b; font-size: 1.55rem; letter-spacing: -.035em; }
+main > header h1 { color: var(--ink); font-size: 1.55rem; letter-spacing: -.035em; }
 main > header p { color: #897967; font-size: .76rem; margin: .15rem 0 0; }
 section:not(.document-form), aside {
   border: 1px solid rgba(73,56,43,.10);
@@ -871,9 +871,9 @@ section:not(.document-form), aside {
 section:not(.document-form) > h2 { border-color: rgba(73,56,43,.1); }
 section:not(.document-form) > h2::after { content: none; }
 :root:not([data-theme="dark"]) section h2,
-:root:not([data-theme="dark"]) section h3 { color: #49382b; }
-:root:not([data-theme="dark"]) button:not(.calendar-day) { background-color: #73774e; }
-:root:not([data-theme="dark"]) button.minor { background: #f7f1e8; color: #666b43; border-color: #ddd0bc; }
+:root:not([data-theme="dark"]) section h3 { color: var(--ink); }
+:root:not([data-theme="dark"]) button:not(.calendar-day) { background-color: #5d6843; }
+:root:not([data-theme="dark"]) button.minor { background: var(--sunken); color: #666b43; border-color: #ddd0bc; }
 :root:not([data-theme="dark"]) .error { color: #a14d3b; }
 
 /* Five equal destinations never scroll horizontally. */
@@ -886,7 +886,7 @@ section:not(.document-form) > h2::after { content: none; }
   border: 1px solid rgba(73,56,43,.1);
   border-bottom: 0;
   border-radius: 1.3rem 1.3rem 0 0;
-  background: rgba(251,247,240,.97);
+  background: rgba(249,246,240,.97);
   box-shadow: 0 -8px 30px rgba(73,56,43,.08);
 }
 .bottom-nav button:not(.calendar-day),
@@ -907,7 +907,7 @@ section:not(.document-form) > h2::after { content: none; }
   line-height: 1.3;
 }
 .bottom-nav .nav-icon { display: flex; align-items: center; justify-content: center; width: 2.7rem; height: 1.8rem; border-radius: 1rem; }
-.bottom-nav button[aria-current="page"] .nav-icon { background: #e5e7d5; color: #60683b; }
+.bottom-nav button[aria-current="page"] .nav-icon { background: var(--olive-soft); color: #60683b; }
 .bottom-nav button[aria-current="page"],
 :root:not([data-theme="dark"]) .bottom-nav button[aria-current="page"] { color: #60683b; background: transparent; font-weight: 700; }
 
@@ -922,8 +922,8 @@ section:not(.document-form) > h2::after { content: none; }
   height: 2.85rem;
   min-height: 2.85rem;
   padding: 0;
-  color: #49382b;
-  background: #fbf7f0;
+  color: var(--ink);
+  background: var(--card);
   border: 1px solid rgba(73,56,43,.12);
   border-radius: .9rem;
   box-shadow: 0 3px 12px rgba(73,56,43,.05);
@@ -945,8 +945,8 @@ dialog.app-menu {
   padding: max(1.4rem, env(safe-area-inset-top)) 1.2rem calc(1.4rem + env(safe-area-inset-bottom));
   border: 0;
   border-radius: 1.4rem 0 0 1.4rem;
-  background: #fbf7f0;
-  color: #49382b;
+  background: var(--card);
+  color: var(--ink);
   box-shadow: -12px 0 45px rgba(42,33,25,.14);
 }
 dialog.app-menu::backdrop { background: rgba(49,40,31,.42); }
@@ -954,14 +954,14 @@ dialog.app-menu::backdrop { background: rgba(49,40,31,.42); }
 .app-menu-header h2 { margin: .3rem 0 0; font-size: 1.3rem; color: inherit; }
 .app-menu-eyebrow { font-size:.58rem; letter-spacing:.12em; color:#a3917a; }
 .app-menu .app-menu-description { margin: .4rem 0 1.5rem; font-size:.78rem; color:#8c7e6d; }
-.app-menu .menu-close, :root:not([data-theme="dark"]) .app-menu .menu-close { width:2.6rem; height:2.6rem; min-height:2.6rem; padding:0; display:grid; place-items:center; border-radius:.8rem; background:#f1e9dc; color:#49382b; }
+.app-menu .menu-close, :root:not([data-theme="dark"]) .app-menu .menu-close { width:2.6rem; height:2.6rem; min-height:2.6rem; padding:0; display:grid; place-items:center; border-radius:.8rem; background:var(--sunken); color:var(--ink); }
 .app-menu-links { display:grid; gap:.35rem; }
 .app-menu-links button, :root:not([data-theme="dark"]) .app-menu-links button {
   display:flex; align-items:center; gap:.85rem; width:100%; min-height:3.8rem; padding:.55rem .65rem;
   border:0; border-radius:.85rem; background:transparent; color:inherit; text-align:start; font-weight:600;
 }
-.app-menu-links button[aria-current="page"] { background:#e9ebdc; color:#59613a; }
-.app-menu-icon { width:2.55rem; height:2.55rem; display:grid; place-items:center; border-radius:.8rem; background:#f1ebdf; color:#7a8056; }
+.app-menu-links button[aria-current="page"] { background:var(--olive-soft); color:#59613a; }
+.app-menu-icon { width:2.55rem; height:2.55rem; display:grid; place-items:center; border-radius:.8rem; background:var(--sunken); color:var(--olive-ink); }
 .app-menu-count { margin-inline-start:auto; }
 :root[data-theme="dark"] .menu-trigger { background:#37372b; color:#f5ebdd; border-color:#756a53; }
 :root[data-theme="dark"] dialog.app-menu { background:#302d24; color:#f2e9d7; }
@@ -987,7 +987,7 @@ main > header.calendar-shell-header { min-height:0; height:0; padding:0; border:
 :root .calendar-page .calendar-house-button { position:absolute; top:1.3rem; left:.2rem; width:2.7rem; height:2.7rem; min-height:0; display:grid; place-items:center; padding:0; border:0; color:var(--cal-ink); background:transparent; }
 .calendar-month-heading { display:flex; align-items:center; justify-content:center; gap:1.2rem; font-size:1.2rem; }
 :root .calendar-page .calendar-month-heading button { display:grid; place-items:center; width:2.3rem; height:2.3rem; min-height:0; padding:0; border:0; background:transparent; color:var(--cal-ink); }
-.calendar-views { display:grid; grid-template-columns:repeat(3,1fr); padding:.15rem; border:1px solid #e6e0d2; background:#ece9df; border-radius:999px; margin:0 1.25rem .8rem; }
+.calendar-views { display:grid; grid-template-columns:repeat(3,1fr); padding:.15rem; border:1px solid #e6e0d2; background:var(--sunken); border-radius:999px; margin:0 1.25rem .8rem; }
 :root .calendar-page .calendar-views button { min-height:2.55rem; padding:.3rem; border:0; border-radius:999px; color:#5b594e; background:transparent; }
 :root .calendar-page .calendar-views button[aria-pressed="true"] { background:#6e7b5c; color:white; box-shadow:0 3px 8px #6c725443; }
 .calendar-month-card, .calendar-day-panel { border:1px solid var(--cal-line); border-radius:.8rem; background:var(--cal-paper); box-shadow:0 4px 12px #5a513511; }
@@ -1002,7 +1002,7 @@ main > header.calendar-shell-header { min-height:0; height:0; padding:0; border:
 .calendar-dots { display:flex; justify-content:center; gap:.2rem; min-height:.4rem; }
 .calendar-dot { display:inline-block; flex:none; width:.43rem; height:.43rem; border-radius:50%; background:#888; }
 .calendar-dot.is-event { background:var(--cal-rust); }.calendar-dot.is-task { background:var(--cal-rose); }.calendar-dot.is-chore { background:var(--cal-olive); }.calendar-dot.is-bill { background:var(--cal-gold); }
-.calendar-legend { display:flex; flex-wrap:wrap; justify-content:space-around; gap:.5rem .3rem; margin-top:.5rem; padding:.6rem .3rem; border-radius:999px; background:#eee8dd; font-size:clamp(.58rem,2.5vw,.75rem); }
+.calendar-legend { display:flex; flex-wrap:wrap; justify-content:space-around; gap:.5rem .3rem; margin-top:.5rem; padding:.6rem .3rem; border-radius:999px; background:var(--sunken); font-size:clamp(.58rem,2.5vw,.75rem); }
 .calendar-legend span { display:flex; align-items:center; gap:.3rem; white-space:nowrap; }.calendar-legend .calendar-dot { width:.65rem; height:.65rem; }
 .calendar-week-strip { display:grid; grid-template-columns:repeat(7,1fr); gap:.15rem; margin-bottom:.8rem; }
 :root .calendar-page .calendar-week-strip button { min-width:0; min-height:3.7rem; padding:.3rem 0; border:1px solid var(--cal-line); border-radius:.6rem; background:var(--cal-paper); color:var(--cal-ink); display:grid; place-items:center; font-size:.65rem; }
@@ -1014,7 +1014,7 @@ main > header.calendar-shell-header { min-height:0; height:0; padding:0; border:
 .calendar-heading-quote { position:absolute; left:4.4rem; bottom:1rem; color:#777462; font-size:.7rem; }
 .calendar-day-content { padding:.95rem .7rem 1rem; }.calendar-day-content h3 { margin:0 .3rem .75rem; }.calendar-empty { color:var(--cal-muted); font-size:.85rem; padding:1rem .4rem; }
 .calendar-agenda-list { list-style:none; margin:0; padding:0; display:grid; gap:.55rem; }
-.calendar-agenda-card { --item-color:var(--cal-rust); display:flex; justify-content:space-between; align-items:center; gap:.4rem; padding:.65rem .7rem; border:1px solid var(--cal-line); border-inline-start:5px solid var(--item-color); border-radius:.7rem; background:#fcfaf4; box-shadow:0 3px 9px #554d3810; }
+.calendar-agenda-card { --item-color:var(--cal-rust); display:flex; justify-content:space-between; align-items:center; gap:.4rem; padding:.65rem .7rem; border:1px solid var(--cal-line); border-inline-start:5px solid var(--item-color); border-radius:.7rem; background:var(--card); box-shadow:0 3px 9px #554d3810; }
 .calendar-agenda-card.is-task { --item-color:var(--cal-rose); }.calendar-agenda-card.is-chore { --item-color:var(--cal-olive); }.calendar-agenda-card.is-bill { --item-color:var(--cal-gold); }
 .calendar-agenda-main { display:flex; min-width:0; align-items:center; gap:.55rem; }.calendar-item-icon { width:2.8rem; height:2.8rem; border-radius:50%; display:grid; place-items:center; flex:none; background:color-mix(in srgb,var(--item-color) 10%,transparent); color:var(--item-color); }.calendar-item-text { display:grid; gap:.2rem; min-width:0; }.calendar-item-text strong { overflow-wrap:anywhere; font-size:.9rem; }.calendar-item-text span, .calendar-agenda-meta small { color:var(--cal-muted); font-size:.67rem; }
 .calendar-agenda-meta { display:grid; justify-items:end; gap:.2rem; text-align:end; font-size:.78rem; flex-shrink:0; }.calendar-agenda-meta small { display:flex; align-items:center; gap:.15rem; }.calendar-item-actions { display:flex; gap:.2rem; }
@@ -1101,3 +1101,5 @@ main:not(.login-mobile-main):not(.recovery-mobile-main) {
 .bottom-nav {
   width: 100%;
 }
+/* Bills root is edge-to-edge like the other reference pages. */
+:root main > .bills-page { width:100%; max-width:none; margin:0; background:transparent; border:0; box-shadow:none; }

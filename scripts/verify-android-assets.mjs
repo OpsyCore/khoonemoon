@@ -42,12 +42,14 @@ for (const name of assets) {
 }
 const css = cssParts.join("\n");
 for (const marker of [
-  "#f5ebdd",
-  "#85875d",
-  "#c98268",
+  "#f5f2eb",
+  "#69704d",
+  "#cca286",
   ".home-ref-stats",
   ".today-ref-grid",
   ".chore-ref-tabs",
+  ".bills-page",
+  ".bills-category",
 ]) {
   if (!css.includes(marker))
     throw new Error(`Missing expected UI marker: ${marker}`);

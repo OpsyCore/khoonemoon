@@ -22,13 +22,13 @@
 }
 .settings-ref-header h1 {
   font-size: clamp(30px, 6vw, 42px);
-  color: #44512d;
+  color: #414725;
   font-weight: 800;
   margin: 8px 0 4px;
   position: relative;
 }
 .settings-ref-header p {
-  color: #84867a;
+  color: var(--muted-text);
   font-size: 14px;
   margin: 0;
   position: relative;
@@ -38,8 +38,8 @@
   width: 170px;
   height: 170px;
   border-radius: 50%;
-  background: #ce907a;
-  opacity: 0.8;
+  background: var(--clay);
+  opacity: 1;
   left: 45px;
   top: 62px;
 }

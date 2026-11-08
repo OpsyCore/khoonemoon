@@ -75,6 +75,7 @@ const NewTask = lazy(() =>
 const NewEvent = lazy(() =>
   import("./new-event").then((m) => ({ default: m.NewEvent })),
 );
+const Bills = lazy(() => import("./bills").then((m) => ({ default: m.Bills })));
 const Finance = lazy(() =>
   import("./finance").then((m) => ({ default: m.Finance })),
 );
@@ -140,7 +141,7 @@ function App() {
       document.documentElement.style.colorScheme = resolved;
       document
         .querySelector('meta[name="theme-color"]')
-        ?.setAttribute("content", resolved === "dark" ? "#262119" : "#f5ebdd");
+        ?.setAttribute("content", resolved === "dark" ? "#262119" : "#f5f2eb");
     };
     apply();
     media?.addEventListener("change", apply);
@@ -430,6 +431,7 @@ function App() {
               page === "documents" ||
               page === "house" ||
               page === "finance" ||
+              page === "bills" ||
               page === "tasks" ||
               page === "chores" ||
               page === "search" ||
@@ -448,6 +450,7 @@ function App() {
               page === "documents" ||
               page === "house" ||
               page === "finance" ||
+              page === "bills" ||
               page === "tasks" ||
               page === "chores" ||
               page === "search" ||
@@ -691,6 +694,7 @@ function App() {
               page !== "documents" &&
               page !== "house" &&
               page !== "finance" &&
+              page !== "bills" &&
               page !== "search" &&
               page !== "settings" &&
               page !== "task-new" &&
@@ -867,6 +871,14 @@ function App() {
                   setPage("calendar");
                   window.scrollTo(0, 0);
                 }}
+              />
+            )}
+            {page === "bills" && (
+              <Bills
+                client={client}
+                householdId={household ?? null}
+                onReminders={() => setPage("reminders")}
+                onFinance={() => setPage("finance")}
               />
             )}
             {page === "finance" && (

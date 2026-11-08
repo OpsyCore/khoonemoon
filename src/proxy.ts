@@ -8,6 +8,7 @@ const PROTECTED_PREFIXES = [
   "/lists",
   "/profile",
   "/documents",
+  "/bills",
   "/settings",
   "/search",
 ];
@@ -58,6 +59,7 @@ export const config = {
     "/lists/:path*",
     "/profile/:path*",
     "/documents/:path*",
+    "/bills/:path*",
     "/settings/:path*",
     "/search/:path*",
     "/auth/:path*",
