@@ -1,0 +1,76 @@
+/* Light palette sampled from the settings reference; shared by web and Android. */
+:root {
+  color-scheme: light;
+
+  /* surfaces */
+  --paper: #f5f2eb; /* app background */
+  --card: #f9f6f0; /* raised paper card */
+  --sunken: #f8f6ef; /* inset / wash areas */
+  --kraft: #dedbd0; /* kraft accents, skeletons */
+  --line: #e3dfd6; /* hairline borders */
+  --line-strong: #d1cec2;
+
+  /* ink */
+  --ink: #302e25;
+  --ink-soft: #5e5c53;
+  --muted: #aca99c; /* muted decorative surfaces */
+  --muted-text: #655f57; /* readable secondary text on paper/card */
+  --faint: #aaa69a;
+  --cream: #fffdf7; /* text on olive/clay solids */
+
+  /* olive — primary */
+  --olive: #69704d;
+  --olive-deep: #5d6843; /* hover / pressed solids */
+  --olive-ink: #59633d; /* olive as text on paper */
+  --olive-soft: #e7e6d9; /* olive tint surface */
+
+  /* clay / terracotta — secondary accent */
+  --clay: #cca286;
+  --clay-ink: #a34e35;
+  --clay-soft: #f3e5de;
+
+  /* feedback */
+  --warn-ink: #9a7233;
+  --warn-soft: #f1e5c9;
+  --danger: #b0563c;
+  --danger-ink: #a44e33;
+  --danger-soft: #f4dfd4;
+
+  --shadow-tint: 63, 52, 43;
+}
+
+.dark,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #262119;
+  --card: #2e2920;
+  --sunken: #201c15;
+  --kraft: #4c4232;
+  --line: #3c352a;
+  --line-strong: #55492f;
+
+  --ink: #ede4d1;
+  --ink-soft: #cdc1ab;
+  --muted: #9c8f7a;
+  --muted-text: #cdc1ab;
+  --faint: #786d5c;
+  --cream: #f6f1e7;
+
+  --olive: #8f955f;
+  --olive-deep: #a0a771;
+  --olive-ink: #c2c793;
+  --olive-soft: #363927;
+
+  --clay: #c76f53;
+  --clay-ink: #e7a48d;
+  --clay-soft: #452f26;
+
+  --warn-ink: #d3b074;
+  --warn-soft: #423826;
+  --danger: #a85942;
+  --danger-ink: #e4a48c;
+  --danger-soft: #46302a;
+
+  --shadow-tint: 0, 0, 0;
+}

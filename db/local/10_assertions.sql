@@ -58,6 +58,25 @@ insert into public.financial_records (
   'HOUSEHOLD_SHARED', 'BILL', 'قبض برق', 500000, now() - interval '2 day'
 );
 
+-- SECURITY DEFINER routines in application/private schemas pin pg_catalog first
+-- and put pg_temp explicitly last, preventing temporary-object shadowing.
+do $$
+begin
+  if exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname in ('public', 'backup_private')
+      and p.prosecdef
+      and not exists (
+        select 1 from unnest(coalesce(p.proconfig, array[]::text[])) cfg
+        where cfg like 'search_path=pg_catalog,%pg_temp'
+      )
+  ) then
+    raise exception 'SECURITY FAIL: SECURITY DEFINER search_path is not pinned';
+  end if;
+end $$;
+
 -- ---------------------------------------------------------------------------
 -- Grants
 -- ---------------------------------------------------------------------------
@@ -544,6 +563,9 @@ end $$;
 -- only that user's scheduling data, and revoked/foreign tokens are rejected.
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}', false);
 select public.register_reminder_device('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', repeat('a',64));
+insert into public.tasks(id,title,creator_id,owner_id,visibility) values
+ ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3','Device fixture A','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','PRIVATE'),
+ ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4','Device fixture B','00000000-0000-4000-8000-00000000000b','00000000-0000-4000-8000-00000000000b','PRIVATE');
 insert into public.reminders (id,target_type,target_id,user_id,remind_at,status) values
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1','TASK','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3','00000000-0000-4000-8000-00000000000a',now() + interval '1 day','PENDING'),
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2','TASK','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4','00000000-0000-4000-8000-00000000000b',now() + interval '1 day','PENDING');
@@ -911,7 +933,8 @@ begin
   if has_table_privilege('authenticated','public.standalone_push_jobs','select') then raise exception 'queue must not be visible'; end if;
   update public.profiles set timezone='UTC' where id=a;
   insert into public.notification_preferences(user_id,web_push_enabled,quiet_hours_enabled) values(a,true,false) on conflict(user_id) do update set web_push_enabled=true,quiet_hours_enabled=false;
-  insert into public.reminders(user_id,target_type,target_id,remind_at) values(a,'TASK',gen_random_uuid(),now()-interval '1 minute') returning id into rid;
+  insert into public.tasks(id,title,creator_id,owner_id,visibility) values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaef1','Queue fixture',a,a,'PRIVATE') on conflict(id) do nothing;
+  insert into public.reminders(user_id,target_type,target_id,remind_at) values(a,'TASK','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaef1',now()-interval '1 minute') returning id into rid;
   insert into public.push_subscriptions(user_id,endpoint,p256dh,auth) values(a,'https://updates.push.services.mozilla.com/wpush/v2/db-test','aaaaaaaaaaaaaaaaaaaa','aaaaaaaa') returning id into sid;
   select * into job from public.standalone_push_claim(1);
   if job.job_id is null or not public.standalone_push_validate(job.job_id,job.token) then raise exception 'queue claim failed'; end if;
@@ -1257,5 +1280,221 @@ end $$;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000000b","role":"authenticated"}',true);
 do $$ begin
  if exists(select 1 from public.mobile_create_requests where request_id='11111111-1111-4111-8111-111111111111') then raise exception 'other account sees receipt'; end if;
+end $$;
+rollback;
+
+-- Meal plans are shared only with active household members; strangers cannot read or write.
+begin;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}',true);
+set local role authenticated;
+insert into public.meal_plans(id,household_id,created_by,meal_date,meal_type,title)
+values('00000000-0000-4000-8000-0000000000e1','00000000-0000-4000-8000-0000000000f1','00000000-0000-4000-8000-00000000000a','2026-11-08','lunch','fixture');
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000000b","role":"authenticated"}',true);
+do $$ begin if (select count(*) from public.meal_plans) <> 1 then raise exception 'meal member cannot read'; end if; end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}',true);
+do $$ begin
+ if exists(select 1 from public.meal_plans) then raise exception 'meal data leaked'; end if;
+ update public.meal_plans set title='leaked' where id='00000000-0000-4000-8000-0000000000e1';
+ if found then raise exception 'outsider changed meal'; end if;
+ begin
+  insert into public.meal_plans(household_id,created_by,meal_date,meal_type,title)
+  values('00000000-0000-4000-8000-0000000000f1','00000000-0000-4000-8000-00000000000c','2026-11-08','dinner','unauthorized');
+  raise exception 'outsider inserted meal';
+ exception when insufficient_privilege then null; end;
+end $$;
+rollback;
+
+-- Occasions, cleaning tasks, document renewals, appliances, v2 reminders and v3 signed backup.
+begin;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}',true);
+set local role authenticated;
+do $$
+declare
+  occ_id uuid := '00000000-0000-4000-8000-000000000701';
+  priv_occ_id uuid := '00000000-0000-4000-8000-000000000702';
+  clean_id uuid;
+  succ_id uuid;
+  occ_task1 uuid;
+  occ_task2 uuid;
+  app_id uuid := '00000000-0000-4000-8000-000000000703';
+  priv_app_id uuid := '00000000-0000-4000-8000-000000000704';
+  log1 uuid;
+  log2 uuid;
+  ren1 uuid;
+  ren2 uuid;
+  v1_snap jsonb;
+  v2_snap jsonb;
+  v3_signed jsonb;
+  v3_res jsonb;
+begin
+  if has_function_privilege('anon','public.renew_document(uuid,date,text,uuid,uuid)','execute')
+     or has_function_privilege('anon','public.record_appliance_maintenance(jsonb)','execute')
+     or has_function_privilege('anon','public.mobile_list_reminders_v2()','execute')
+     or has_function_privilege('anon','public.mobile_signed_export_snapshot_v3()','execute') then
+    raise exception 'HOME MGMT FAIL: anon execute granted';
+  end if;
+
+  -- Jalali annual occasion (including 30 Esfand valid date check)
+  insert into public.events(id,title,creator_id,owner_id,household_id,visibility,start_at,end_at,all_day,occasion_type,recurrence_calendar,jalali_month,jalali_day,gift_idea,occasion_plan)
+  values
+    (occ_id,'سالگرد ازدواج','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-0000000000f1','HOUSEHOLD_SHARED','2026-03-20T00:00:00Z','2026-03-21T00:00:00Z',true,'ANNIVERSARY','JALALI_YEARLY',12,30,'گل و کتاب','شام خانوادگی'),
+    (priv_occ_id,'تولد خصوصی','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a',null,'PRIVATE','2026-05-10T00:00:00Z','2026-05-11T00:00:00Z',true,'BIRTHDAY','JALALI_YEARLY',2,20,'ساعت',null);
+
+  -- Invalid Jalali date (31 Mehr) rejected
+  begin
+    insert into public.events(title,creator_id,owner_id,visibility,start_at,end_at,all_day,occasion_type,recurrence_calendar,jalali_month,jalali_day)
+    values('نامعتبر','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','PRIVATE','2026-10-01T00:00:00Z','2026-10-02T00:00:00Z',true,'PERSONAL','JALALI_YEARLY',7,31);
+    raise exception 'OCCASION FAIL: 31 Mehr accepted';
+  exception when check_violation then null; end;
+
+  -- Create task from occasion is deduplicated per owner and occurrence year
+  occ_task1 := public.mobile_create_task(jsonb_build_object(
+    'title','تهیه هدیه سالگرد','visibility','HOUSEHOLD_SHARED','priority','HIGH',
+    'sourceEventId',occ_id,'sourceOccurrenceYear',1405,
+    'assigneeIds',jsonb_build_array('00000000-0000-4000-8000-00000000000a'),
+    'recurrence',jsonb_build_object('frequency','NONE')
+  ));
+  occ_task2 := public.mobile_create_task(jsonb_build_object(
+    'title','تهیه هدیه سالگرد','visibility','HOUSEHOLD_SHARED','priority','HIGH',
+    'sourceEventId',occ_id,'sourceOccurrenceYear',1405,
+    'assigneeIds',jsonb_build_array('00000000-0000-4000-8000-00000000000a'),
+    'recurrence',jsonb_build_object('frequency','NONE')
+  ));
+  if occ_task1 is distinct from occ_task2 then raise exception 'OCCASION FAIL: duplicate task created from occasion'; end if;
+
+  -- Cleaning task on existing tasks with checklist reset on completion
+  clean_id := public.mobile_create_task(jsonb_build_object(
+    'title','نظافت آشپزخانه','visibility','HOUSEHOLD_SHARED','priority','NORMAL',
+    'dueAt',(now() + interval '2 days')::text,
+    'taskKind','CLEANING','cleaningZone','KITCHEN',
+    'cleaningChecklist',jsonb_build_array(
+      jsonb_build_object('id','c1','title','تمیز کردن گاز','done',true),
+      jsonb_build_object('id','c2','title','شستن سینک','done',true)
+    ),
+    'assigneeIds',jsonb_build_array('00000000-0000-4000-8000-00000000000b'),
+    'recurrence',jsonb_build_object('frequency','INTERVAL_DAYS','intervalDays',14),
+    'recurrenceTimezone','Asia/Tehran'
+  ));
+  succ_id := public.mobile_complete_task(clean_id);
+  if succ_id is null then raise exception 'CLEANING FAIL: recurring cleaning task did not spawn successor'; end if;
+  if exists(select 1 from public.tasks t, jsonb_array_elements(t.cleaning_checklist) e where t.id = succ_id and (e->>'done')::boolean) then
+    raise exception 'CLEANING FAIL: successor checklist items were not reset';
+  end if;
+
+  -- Document expiry & idempotent renewal cancels pending DOCUMENT reminders
+  update public.documents set category='INSURANCE', issued_at='2025-10-01', expires_at='2026-11-01', issuer='بیمه ایران', renewal_required=true where id='00000000-0000-4000-8000-0000000000e2';
+  perform public.mobile_create_reminders_v2(jsonb_build_array(jsonb_build_object(
+    'target_type','DOCUMENT','target_id','00000000-0000-4000-8000-0000000000e2','household_id','00000000-0000-4000-8000-0000000000f1','remind_at',(now() + interval '1 day')::text
+  )));
+  ren1 := public.renew_document('00000000-0000-4000-8000-0000000000e2', '2027-11-01', 'تمدید سالانه', null, '77777777-7777-4777-8777-777777777771');
+  ren2 := public.renew_document('00000000-0000-4000-8000-0000000000e2', '2027-11-01', 'تمدید سالانه', null, '77777777-7777-4777-8777-777777777771');
+  if ren1 is distinct from ren2 then raise exception 'DOC RENEWAL FAIL: request_id not idempotent'; end if;
+  begin
+    perform public.renew_document('00000000-0000-4000-8000-0000000000e1', '2027-11-01', 'تمدید دیگر', null, '77777777-7777-4777-8777-777777777771');
+    raise exception 'DOC RENEWAL FAIL: reused request_id on different document';
+  exception when others then if sqlerrm <> 'REQUEST_ID_REUSED_WITH_DIFFERENT_TARGET' then raise; end if; end;
+  if exists(select 1 from public.reminders where target_type='DOCUMENT' and target_id='00000000-0000-4000-8000-0000000000e2' and status='PENDING') then
+    raise exception 'DOC RENEWAL FAIL: stale document reminder remained pending';
+  end if;
+
+  -- Appliances & maintenance with finance + document link + central reminder
+  insert into public.home_appliances(id,household_id,owner_id,created_by,visibility,name,appliance_group,brand,model,serial_number,purchased_on,service_interval_days,assignee_id)
+  values
+    (app_id,'00000000-0000-4000-8000-0000000000f1','00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','HOUSEHOLD_SHARED','پکیج دیواری','SYSTEM','بوتان','Perla','SN-100','2024-01-10',180,'00000000-0000-4000-8000-00000000000b'),
+    (priv_app_id,null,'00000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','PRIVATE','لپ‌تاپ شخصی','OTHER','Lenovo','T14',null,null,null,'00000000-0000-4000-8000-00000000000a');
+
+  log1 := public.record_appliance_maintenance(jsonb_build_object(
+    'requestId','77777777-7777-4777-8777-777777777772',
+    'applianceId',app_id,'kind','SERVICE','title','رسوب‌گیری سالانه',
+    'performedOn','2026-10-28','costAmount',1500000,'recordInFinance',true,
+    'technicianName','استاد رضایی','technicianContact','09120000000',
+    'documentId','00000000-0000-4000-8000-0000000000e2',
+    'reminderOffsetsMinutes',jsonb_build_array(10080, 1440)
+  ));
+  log2 := public.record_appliance_maintenance(jsonb_build_object(
+    'requestId','77777777-7777-4777-8777-777777777772',
+    'applianceId',app_id,'kind','SERVICE','title','رسوب‌گیری سالانه'
+  ));
+  if log1 is distinct from log2 then raise exception 'APPLIANCE FAIL: maintenance log duplicated on retry'; end if;
+  begin
+    perform public.record_appliance_maintenance(jsonb_build_object(
+      'requestId','77777777-7777-4777-8777-777777777772',
+      'applianceId',priv_app_id,'kind','SERVICE','title','تست تداخل شناسه درخواست'
+    ));
+    raise exception 'APPLIANCE FAIL: reused requestId on different appliance';
+  exception when others then if sqlerrm <> 'REQUEST_ID_REUSED_WITH_DIFFERENT_TARGET' then raise; end if; end;
+  if not exists(select 1 from public.document_attachments where document_id='00000000-0000-4000-8000-0000000000e2' and entity_type='APPLIANCE' and entity_id=app_id) then
+    raise exception 'APPLIANCE FAIL: invoice document not attached';
+  end if;
+
+  -- Legacy v1 direct SELECT hides APPLIANCE/DOCUMENT reminders so old APKs never crash
+  perform set_config('app.reminder_schema_version', '', true);
+  if exists(select 1 from public.reminders where target_type in ('APPLIANCE','DOCUMENT','MEAL')) then
+    raise exception 'COMPAT FAIL: legacy SELECT leaked v2 reminder target_type';
+  end if;
+  if jsonb_array_length(public.mobile_list_reminders_v2()) < 2 then
+    raise exception 'COMPAT FAIL: v2 reminder RPC did not return v2 reminders';
+  end if;
+
+  -- Legacy v1 (19-table) and v2 (20-table) exports remain intact; v3 exports 23 tables
+  perform set_config('app.reminder_schema_version', '', true);
+  v1_snap := public.mobile_export_snapshot();
+  v2_snap := public.mobile_export_snapshot_v2();
+  v3_signed := public.mobile_signed_export_snapshot_v3();
+  if (select count(*) from jsonb_object_keys(v1_snap->'tables')) <> 19 then
+    raise exception 'BACKUP FAIL: v1 table count changed';
+  end if;
+  if (select count(*) from jsonb_object_keys(v2_snap->'tables')) <> 20 then
+    raise exception 'BACKUP FAIL: v2 table count changed';
+  end if;
+  if (select count(*) from jsonb_object_keys(v3_signed->'payload'->'snapshot'->'tables')) <> 23 then
+    raise exception 'BACKUP FAIL: v3 table count expected 23';
+  end if;
+  v3_res := public.mobile_restore_signed_home_v3(v3_signed->'payload', v3_signed->>'signature', '00000000-0000-4000-8000-0000000000f1');
+  if (v3_res->>'inserted')::int <> 0 then
+    raise exception 'BACKUP FAIL: v3 restore overwrote or duplicated existing rows';
+  end if;
+end $$;
+
+-- Partner sees shared occasion/appliance/renewal, not private ones; outsider sees none.
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000000b","role":"authenticated"}',true);
+do $$
+begin
+  if (select count(*) from public.home_appliances) <> 1
+     or exists(select 1 from public.home_appliances where visibility='PRIVATE')
+     or exists(select 1 from public.events where id='00000000-0000-4000-8000-000000000702')
+     or (select count(*) from public.document_renewals) <> 1 then
+    raise exception 'RLS FAIL: partner visibility boundary violated';
+  end if;
+  begin
+    perform public.mobile_create_task(jsonb_build_object(
+      'title','جعل از مناسبت خصوصی','visibility','PRIVATE',
+      'sourceEventId','00000000-0000-4000-8000-000000000702',
+      'assigneeIds','[]'::jsonb,'recurrence',jsonb_build_object('frequency','NONE')
+    ));
+    raise exception 'RLS FAIL: partner linked task to private occasion';
+  exception when others then if sqlerrm <> 'EVENT_NOT_FOUND_OR_FORBIDDEN' then raise; end if; end;
+end $$;
+
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000000c","role":"authenticated"}',true);
+do $$
+begin
+  if (select count(*) from public.home_appliances) <> 0
+     or (select count(*) from public.appliance_maintenance_logs) <> 0
+     or (select count(*) from public.document_renewals) <> 0 then
+    raise exception 'RLS FAIL: outsider read home management tables';
+  end if;
+  if public.document_entity_household_compatible(
+    '00000000-0000-4000-8000-0000000000f1',
+    'APPLIANCE',
+    '00000000-0000-4000-8000-000000000703'
+  ) then
+    raise exception 'RLS FAIL: outsider learned shared appliance-household compatibility';
+  end if;
+  begin
+    insert into public.home_appliances(household_id,owner_id,created_by,visibility,name)
+    values('00000000-0000-4000-8000-0000000000f1','00000000-0000-4000-8000-00000000000c','00000000-0000-4000-8000-00000000000c','HOUSEHOLD_SHARED','جعل وسیله');
+    raise exception 'RLS FAIL: outsider inserted appliance into household';
+  exception when insufficient_privilege then null; end;
 end $$;
 rollback;

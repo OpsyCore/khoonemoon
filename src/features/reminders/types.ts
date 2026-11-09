@@ -1,5 +1,42 @@
-export type ReminderTargetType = "TASK" | "EVENT" | "CHORE" | "BILL";
+export type ReminderTargetType =
+  "TASK" | "EVENT" | "CHORE" | "BILL" | "DOCUMENT" | "APPLIANCE" | "MEAL";
+
+export const REMINDER_TARGET_LABELS: Record<ReminderTargetType, string> = {
+  TASK: "تسک",
+  EVENT: "رویداد",
+  CHORE: "کار خانه",
+  BILL: "قبض",
+  DOCUMENT: "مدرک",
+  APPLIANCE: "وسیله",
+  MEAL: "برنامه غذایی",
+};
+
 export type ReminderStatus = "PENDING" | "SNOOZED" | "SENT" | "CANCELED";
+
+export type ReminderSourceGroup =
+  | "BILL"
+  | "SUBSCRIPTION"
+  | "MEAL"
+  | "APPLIANCE"
+  | "OCCASION"
+  | "EVENT"
+  | "CLEANING"
+  | "TASK"
+  | "CHORE"
+  | "DOCUMENT";
+
+export const REMINDER_GROUP_LABELS: Record<ReminderSourceGroup, string> = {
+  BILL: "قبض",
+  SUBSCRIPTION: "اشتراک و قسط",
+  MEAL: "برنامه غذایی",
+  APPLIANCE: "وسایل و تعمیرات",
+  OCCASION: "مناسبت",
+  EVENT: "رویداد",
+  CLEANING: "نظافت",
+  TASK: "کارها",
+  CHORE: "تقسیم وظایف",
+  DOCUMENT: "مدارک",
+};
 
 export type ReminderRecord = {
   id: string;

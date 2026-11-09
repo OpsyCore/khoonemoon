@@ -2,6 +2,8 @@ import { pendingRequest } from "@/lib/mutations/pending-create";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createDocumentMetaSchema,
+  documentCategorySchema,
+  documentExpiryMetaSchema,
   updateDocumentSchema,
   createDocumentAttachmentSchema,
 } from "./schemas";
@@ -9,29 +11,35 @@ import {
   DOCUMENT_BUCKET,
   DOCUMENT_SELECT,
   DOCUMENT_SIGNED_URL_SECONDS,
+  type DocumentCategory,
   type DocumentRecord,
   DOCUMENT_ATTACHMENT_SELECT,
   type DocumentAttachment,
   type DocumentEntityType,
+  type DocumentRenewalRecord,
 } from "./types";
 import { z } from "zod";
 
-export const documentCategory = z.enum([
-  "IDENTITY",
-  "FINANCE",
-  "HOME",
-  "TRAVEL",
-  "OTHER",
-]);
+export const documentCategory = documentCategorySchema;
 export type MobileDocument = DocumentRecord & {
-  category: z.infer<typeof documentCategory>;
+  category: DocumentCategory;
 };
 const COLUMNS = `${DOCUMENT_SELECT},category`;
+
+export type DocumentExtraInput = {
+  issuedAt?: string | null;
+  expiresAt?: string | null;
+  issuer?: string | null;
+  referenceCode?: string | null;
+  renewalRequired?: boolean;
+};
+
 async function currentUser(client: SupabaseClient) {
   const { data, error } = await client.auth.getUser();
   if (error || !data.user) throw new Error("ابتدا وارد حساب خود شوید.");
   return data.user.id;
 }
+
 export function directDocuments(client: SupabaseClient) {
   return {
     async possibleOrphans(): Promise<{ path: string; uploaded_at: string }[]> {
@@ -104,13 +112,17 @@ export function directDocuments(client: SupabaseClient) {
       description,
       visibility,
       category,
+      extra,
+      onCreated,
     }: {
       file: File;
       title: string;
       description: string;
       visibility: "PRIVATE" | "HOUSEHOLD_SHARED";
       category: string;
-    }) {
+      extra?: DocumentExtraInput;
+      onCreated?: (id: string) => void;
+    }): Promise<void> {
       const meta = createDocumentMetaSchema.parse({
         title,
         description: description || null,
@@ -118,6 +130,15 @@ export function directDocuments(client: SupabaseClient) {
         mimeType: file.type,
         fileSize: file.size,
       });
+      const expiryMeta = extra
+        ? documentExpiryMetaSchema.parse({
+            issuedAt: extra.issuedAt || null,
+            expiresAt: extra.expiresAt || null,
+            issuer: extra.issuer || null,
+            referenceCode: extra.referenceCode || null,
+            renewalRequired: extra.renewalRequired,
+          })
+        : null;
       const categoryValue = documentCategory.parse(category);
       const user = await currentUser(client);
       let house: string | null = null;
@@ -140,11 +161,21 @@ export function directDocuments(client: SupabaseClient) {
       ).join("");
       const safe =
         file.name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 80) || "file";
+      let createdId = "";
       await pendingRequest<true>({
         user,
         kind: "document",
-        input: { meta, categoryValue, visibility, house, safe, fileHash },
+        input: {
+          meta,
+          categoryValue,
+          visibility,
+          house,
+          safe,
+          fileHash,
+          ...(expiryMeta ? { expiryMeta } : {}),
+        },
         submit: async (id) => {
+          createdId = id;
           const path =
             visibility === "PRIVATE"
               ? `user/${user}/${id}/${safe}`
@@ -167,8 +198,6 @@ export function directDocuments(client: SupabaseClient) {
             .from(DOCUMENT_BUCKET)
             .upload(path, file, { contentType: meta.mimeType, upsert: false });
           if (upload.error) {
-            // A lost upload response can leave the object in Storage. Reuse it
-            // only when its bytes exactly match; never overwrite or delete it.
             const existing = await client.storage
               .from(DOCUMENT_BUCKET)
               .download(path);
@@ -199,6 +228,15 @@ export function directDocuments(client: SupabaseClient) {
               storage_path: path,
               visibility,
               category: categoryValue,
+              ...(expiryMeta
+                ? {
+                    issued_at: expiryMeta.issuedAt ?? null,
+                    expires_at: expiryMeta.expiresAt ?? null,
+                    issuer: expiryMeta.issuer ?? null,
+                    reference_code: expiryMeta.referenceCode ?? null,
+                    renewal_required: expiryMeta.renewalRequired ?? false,
+                  }
+                : {}),
             })
             .select("id")
             .single();
@@ -209,29 +247,92 @@ export function directDocuments(client: SupabaseClient) {
         },
         valid: (value): value is true => value === true,
       });
+      if (createdId && onCreated) onCreated(createdId);
     },
     async update(
       id: string,
       title: string,
       description: string,
       category: string,
+      extra?: DocumentExtraInput,
     ) {
       const meta = updateDocumentSchema.parse({
         title,
         description: description || null,
       });
       const checked = documentCategory.parse(category);
+      const expiryMeta = extra
+        ? documentExpiryMetaSchema.parse({
+            issuedAt: extra.issuedAt || null,
+            expiresAt: extra.expiresAt || null,
+            issuer: extra.issuer || null,
+            referenceCode: extra.referenceCode || null,
+            renewalRequired: extra.renewalRequired,
+          })
+        : null;
       const { data, error } = await client
         .from("documents")
-        .update({ ...meta, category: checked })
+        .update({
+          ...meta,
+          category: checked,
+          ...(expiryMeta
+            ? {
+                issued_at: expiryMeta.issuedAt ?? null,
+                expires_at: expiryMeta.expiresAt ?? null,
+                issuer: expiryMeta.issuer ?? null,
+                reference_code: expiryMeta.referenceCode ?? null,
+                renewal_required: expiryMeta.renewalRequired ?? false,
+              }
+            : {}),
+        })
         .eq("id", id)
         .select("id")
         .maybeSingle();
       if (error || !data) throw new Error("ویرایش مدرک ناموفق بود.");
     },
+    async renew(input: {
+      documentId: string;
+      newExpiresAt: string;
+      note?: string;
+      replacementDocumentId?: string | null;
+    }): Promise<string> {
+      const user = await currentUser(client);
+      const parsed = z
+        .object({
+          documentId: z.string().uuid(),
+          newExpiresAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          note: z.string().trim().max(500).optional(),
+          replacementDocumentId: z.string().uuid().nullable().optional(),
+        })
+        .parse(input);
+      return pendingRequest<string>({
+        user,
+        kind: "document-renew",
+        input: parsed,
+        submit: (reqId) =>
+          client.rpc("renew_document", {
+            p_document_id: parsed.documentId,
+            p_new_expires_at: parsed.newExpiresAt,
+            p_note: parsed.note || null,
+            p_replacement_document_id: parsed.replacementDocumentId || null,
+            p_request_id: reqId,
+          }),
+        valid: (val): val is string =>
+          typeof val === "string" && /^[0-9a-f-]{36}$/i.test(val),
+      });
+    },
+    async renewals(documentId: string): Promise<DocumentRenewalRecord[]> {
+      const { data, error } = await client
+        .from("document_renewals")
+        .select(
+          "id,document_id,renewed_by,previous_expires_at,new_expires_at,renewed_at,note,replacement_document_id,request_id,created_at",
+        )
+        .eq("document_id", documentId)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error("دریافت سابقه تمدید ناموفق بود.");
+      return (data ?? []) as DocumentRenewalRecord[];
+    },
     async remove(record: MobileDocument) {
-      // Confirm metadata deletion before deleting the file. If the DB response
-      // is lost, preserve the file: the row may still exist.
       const { data, error } = await client
         .from("documents")
         .delete()
@@ -268,12 +369,13 @@ export function directDocuments(client: SupabaseClient) {
         CHORE: "chores",
         SHOPPING_LIST: "shopping_lists",
         FINANCE_RECORD: "financial_records",
+        APPLIANCE: "home_appliances",
       } as const;
-      const field = type === "SHOPPING_LIST" ? "name" : "title";
-      const { data, error } = await client
-        .from(tables[type])
-        .select(`id,${field}`)
-        .limit(1000);
+      const field =
+        type === "SHOPPING_LIST" || type === "APPLIANCE" ? "name" : "title";
+      let query = client.from(tables[type]).select(`id,${field}`).limit(1000);
+      if (type === "APPLIANCE") query = query.is("archived_at", null);
+      const { data, error } = await query;
       if (error) throw new Error("دریافت موارد قابل پیوند ناموفق بود.");
       return ((data ?? []) as unknown as Record<string, string>[]).map(
         (row) => ({ id: row.id, title: row[field] }),

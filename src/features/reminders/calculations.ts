@@ -9,7 +9,7 @@ export function buildReminderTimes({
 }) {
   const baseMs = new Date(baseDateTime).getTime();
 
-  return [...offsetsMinutes]
+  return [...new Set(offsetsMinutes)]
     .sort((a, b) => b - a)
     .map((minutesBefore) =>
       new Date(baseMs - minutesBefore * 60_000).toISOString(),

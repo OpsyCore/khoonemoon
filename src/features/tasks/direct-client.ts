@@ -2,11 +2,11 @@ import { pendingRequest } from "@/lib/mutations/pending-create";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { applyTaskCompletion } from "./security";
 import { z } from "zod";
-import { createTaskSchema } from "./schemas";
-import type { TaskRecord } from "./types";
+import { cleaningChecklistItemSchema, createTaskSchema } from "./schemas";
+import type { CleaningChecklistItem, TaskRecord } from "./types";
 
 const COLUMNS =
-  "id, title, description, creator_id, owner_id, household_id, visibility, status, priority, due_at, completed_at, archived_at, created_at, updated_at, task_assignees(assignee_id), task_recurrences(frequency, interval_days, weekdays, recurrence_timezone)";
+  "id, title, description, creator_id, owner_id, household_id, visibility, status, priority, due_at, completed_at, archived_at, task_kind, cleaning_zone, cleaning_checklist, source_event_id, source_occurrence_year, created_at, updated_at, task_assignees(assignee_id), task_recurrences(frequency, interval_days, weekdays, recurrence_timezone)";
 
 /** User-scoped task operations. Completion atomically creates a successor when recurring. */
 export function directTasks(client: SupabaseClient) {
@@ -82,6 +82,37 @@ export function directTasks(client: SupabaseClient) {
         .select("id")
         .maybeSingle();
       if (error || !data) throw new Error("ویرایش تسک ناموفق بود.");
+    },
+    async updateChecklist(
+      task: Pick<TaskRecord, "id" | "updated_at">,
+      checklist: CleaningChecklistItem[],
+    ): Promise<void> {
+      const items = z
+        .array(cleaningChecklistItemSchema)
+        .max(30)
+        .parse(checklist);
+      const { data, error } = await client
+        .from("tasks")
+        .update({ cleaning_checklist: items })
+        .eq("id", task.id)
+        .eq("updated_at", task.updated_at)
+        .select("id")
+        .maybeSingle();
+      if (error || !data)
+        throw new Error("وضعیت چک‌لیست تغییر کرده است؛ فهرست را تازه کنید.");
+    },
+    async carryOver(
+      task: Pick<TaskRecord, "id" | "updated_at">,
+      newDueAt: string,
+    ): Promise<void> {
+      const iso = z.string().datetime().parse(newDueAt);
+      const { data, error } = await client.rpc("mobile_carry_over_task", {
+        p_task_id: task.id,
+        p_new_due_at: iso,
+        p_expected_updated_at: task.updated_at,
+      });
+      if (error || data !== task.id)
+        throw new Error("انتقال موعد تسک ناموفق بود؛ فهرست را تازه کنید.");
     },
     async archive(id: string): Promise<void> {
       const { data, error } = await client

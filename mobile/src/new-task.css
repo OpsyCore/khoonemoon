@@ -1,8 +1,8 @@
 .new-task {
-  --nt-paper: #faf7f1;
-  --nt-border: #e5e1d9;
-  --nt-ink: #2e3427;
-  --nt-olive: #626c46;
+  --nt-paper: var(--card);
+  --nt-border: var(--line);
+  --nt-ink: var(--ink);
+  --nt-olive: var(--olive-deep);
   max-width: 700px;
   margin: auto;
   color: var(--nt-ink);

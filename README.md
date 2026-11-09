@@ -8,18 +8,18 @@
 
 ## وضعیت فعلی
 
-| Milestone | موضوع                          | وضعیت       |
-| --------- | ------------------------------ | ----------- |
-| M1        | Foundation UI/RTL/PWA/theme    | ✅          |
-| M2        | Auth + Profile                 | ✅          |
-| M3        | Household + Invitations + RLS  | ✅          |
-| M4        | Tasks + Recurrence             | ✅          |
-| M5        | Today + Calendar (Jalali)      | ✅          |
-| M6        | Reminders + Notification prefs | ✅          |
-| M7        | Chores + Rotation              | ✅          |
-| M8        | Shopping + Realtime            | ✅          |
-| M9        | Finance Lite (bills)           | ✅          |
-| M10       | Search + Settings              | ✅          |
+| Milestone | موضوع                                    | وضعیت       |
+| --------- | ---------------------------------------- | ----------- |
+| M1        | Foundation UI/RTL/PWA/theme              | ✅          |
+| M2        | Auth + Profile                           | ✅          |
+| M3        | Household + Invitations + RLS            | ✅          |
+| M4        | Tasks + Recurrence                       | ✅          |
+| M5        | Today + Calendar (Jalali)                | ✅          |
+| M6        | Reminders + Notification prefs           | ✅          |
+| M7        | Chores + Rotation                        | ✅          |
+| M8        | Shopping + Realtime                      | ✅          |
+| M9        | Finance Lite (bills)                     | ✅          |
+| M10       | Search + Settings                        | ✅          |
 | M30       | Security, stability & design consistency | 🚧 در جریان |
 
 جزئیات در [`FEATURES.md`](./FEATURES.md) و [`TODO.md`](./TODO.md).
@@ -112,6 +112,22 @@ npm run build && npm run budget
 اگر مسیری از سقفش بگذرد، اسکریپت با کد خطا خارج می‌شود و **CI قرمز می‌شود**.
 دو راه‌حل: import اضافه را حذف کنید، یا اگر رشد آگاهانه و موجه است سقف را در
 `bundle-budget.json` به‌روز کنید (تغییر سقف در PR دیده می‌شود، پس پنهانی نیست).
+
+#### بودجهٔ Android WebView
+
+پس از `npm run mobile:build`، دستور `npm run mobile:budget` دو معیار مستقل
+جاوااسکریپت gzip را بررسی می‌کند. برای بررسی جداگانه می‌توان
+`npm run mobile:budget -- initial` یا `npm run mobile:budget -- total` را اجرا کرد:
+
+- **Initial:** سقف ۱۹۰٬۰۰۰ بایت برای entry و وابستگی‌های static، بدون chunkهای lazy.
+- **Total:** سقف ۳۳۰٬۰۰۰ بایت برای مجموع gzip جداگانهٔ همهٔ فایل‌های JS در `dist/mobile/assets`.
+
+Total یک budget قراردادی برای کنترل رشد است، نه محدودیت Android، WebView یا حجم APK.
+با Lazy Loading، حجم اولیه از ۲۸۳٬۹۷۵ به حدود ۱۷۷٬۵۰۰ بایت gzip کاهش یافت؛
+اما فشرده‌سازی جداگانهٔ chunkها مجموع را به حدود ۳۰۴٬۰۰۰ بایت رساند.
+به همین دلیل سقف Total از ۲۸۴٬۰۰۰ به ۳۳۰٬۰۰۰ بایت افزایش یافته است، در حالی که
+سقف Initial ثابت مانده است. این اعداد جایگزین اندازه‌گیری عملکرد روی دستگاه نیستند.
+جزئیات chunkها و روش محاسبه در `ANDROID_CHUNK_ANALYSIS_FA.md` حفظ شده است.
 
 برای یک مسیر خاص می‌توانید سقف جدا بگذارید:
 

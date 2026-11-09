@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   Ban,
@@ -19,10 +19,19 @@ import {
 } from "lucide-react";
 import { ZodError } from "zod";
 import { directTasks } from "@/features/tasks/direct-client";
+import {
+  cadenceToRecurrence,
+  CLEANING_CADENCE_LABELS,
+  type CleaningCadencePreset,
+} from "@/features/tasks/cleaning";
 import { directReminders } from "@/features/reminders/direct-client";
-import type {
-  TaskPriority,
-  TaskRecurrenceFrequency,
+import {
+  CLEANING_ZONE_LABELS,
+  type CleaningChecklistItem,
+  type CleaningZone,
+  type TaskKind,
+  type TaskPriority,
+  type TaskRecurrenceFrequency,
 } from "@/features/tasks/types";
 import {
   getMonthGrid,
@@ -35,25 +44,12 @@ import {
 import { MemberFields } from "./schedule-fields";
 import { taskEditTime } from "./task-edit-time";
 import { toDateTimeLocal } from "@/features/quick-add/payload";
+import { useReminderFollowup } from "./reminder-followup";
+import type { ReminderFollowup } from "./reminder-followup";
+import { parseReminderFollowup as parseFollowup } from "./reminder-followup";
 import "./new-task.css";
 
-type Followup = { id: string; due: string; minutes: number };
-const idPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export function parseFollowup(raw: string | null): Followup | null {
-  try {
-    const value = JSON.parse(raw ?? "null");
-    return value &&
-      idPattern.test(value.id) &&
-      typeof value.due === "string" &&
-      Number.isFinite(Date.parse(value.due)) &&
-      [0, 10, 15, 30, 60, 1440].includes(value.minutes)
-      ? value
-      : null;
-  } catch {
-    return null;
-  }
-}
+export { parseFollowup };
 export function NewTask({
   client,
   householdId,
@@ -77,43 +73,23 @@ export function NewTask({
     [interval, setInterval] = useState("1"),
     [days, setDays] = useState<number[]>([]),
     [assignees, setAssignees] = useState<string[]>([]),
-    [reminder, setReminder] = useState("none");
+    [reminder, setReminder] = useState("none"),
+    [taskKind, setTaskKind] = useState<TaskKind>("GENERAL"),
+    [cleaningZone, setCleaningZone] = useState<CleaningZone>("KITCHEN"),
+    [checklistText, setChecklistText] = useState(""),
+    [checklist, setChecklist] = useState<CleaningChecklistItem[]>([]);
   const [cursor, setCursor] = useState(() => new Date()),
     [calendarOpen, setCalendarOpen] = useState(false),
     [busy, setBusy] = useState(false),
-    [message, setMessage] = useState(""),
-    [followup, setFollowup] = useState<Followup | null>(null),
-    [storageOK, setStorageOK] = useState(true),
-    [ready, setReady] = useState(false);
-  const key = `khoonemoon:task-reminder-followup:${userId}`;
-  useEffect(() => {
-    try {
-      const saved = parseFollowup(localStorage.getItem(key));
-      // Hydrate the durable follow-up after SSR.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (saved) setFollowup(saved);
-    } catch {
-      setStorageOK(false);
-    }
-    setReady(true);
-  }, [key]);
-  function persist(item: Followup) {
-    setFollowup(item);
-    try {
-      localStorage.setItem(key, JSON.stringify(item));
-    } catch {
-      setStorageOK(false);
-    }
-  }
-  function clearFollowup() {
-    setFollowup(null);
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      setStorageOK(false);
-    }
-  }
-  async function addReminder(item: Followup) {
+    [message, setMessage] = useState("");
+  const {
+    followup,
+    storageOK,
+    ready,
+    persist,
+    clear: clearFollowup,
+  } = useReminderFollowup(userId, "task");
+  async function addReminder(item: ReminderFollowup) {
     await directReminders(client).createTaskReminderOnce({
       targetId: item.id,
       baseDateTime: item.due,
@@ -167,6 +143,13 @@ export function NewTask({
             : {}),
           ...(frequency === "WEEKLY" ? { weekdays: days } : {}),
         },
+        ...(taskKind === "CLEANING"
+          ? {
+              taskKind: "CLEANING" as const,
+              cleaningZone,
+              cleaningChecklist: checklist,
+            }
+          : {}),
       };
       const id = await directTasks(client).create(payload);
       window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
@@ -269,6 +252,126 @@ export function NewTask({
           disabled={busy || !!followup || !ready}
           className="new-task-fields"
         >
+          <div className="new-task-card">
+            <span className="new-task-label">نوع تسک</span>
+            <div className="new-task-choices">
+              <button
+                type="button"
+                aria-pressed={taskKind === "GENERAL"}
+                onClick={() => setTaskKind("GENERAL")}
+              >
+                کار عمومی
+              </button>
+              <button
+                type="button"
+                aria-pressed={taskKind === "CLEANING"}
+                onClick={() => setTaskKind("CLEANING")}
+              >
+                نظافت خانه
+              </button>
+            </div>
+            {taskKind === "CLEANING" && (
+              <>
+                <label>
+                  منطقه خانه
+                  <select
+                    value={cleaningZone}
+                    onChange={(e) =>
+                      setCleaningZone(e.target.value as CleaningZone)
+                    }
+                  >
+                    {(
+                      Object.entries(CLEANING_ZONE_LABELS) as [
+                        CleaningZone,
+                        string,
+                      ][]
+                    ).map(([zKey, zLabel]) => (
+                      <option key={zKey} value={zKey}>
+                        {zLabel}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div>
+                  <span className="new-task-label">تناوب پیشنهادی نظافت</span>
+                  <div className="new-task-choices">
+                    {(
+                      Object.entries(CLEANING_CADENCE_LABELS) as [
+                        CleaningCadencePreset,
+                        string,
+                      ][]
+                    ).map(([pKey, pLabel]) => (
+                      <button
+                        key={pKey}
+                        type="button"
+                        onClick={() => {
+                          const rec = cadenceToRecurrence(
+                            pKey,
+                            chosen ? chosen.getDay() : 6,
+                          );
+                          setFrequency(rec.frequency);
+                          if (rec.intervalDays)
+                            setInterval(String(rec.intervalDays));
+                          if (rec.weekdays) setDays(rec.weekdays);
+                        }}
+                      >
+                        {pLabel}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="new-task-label">چک‌لیست نظافت</span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      maxLength={160}
+                      value={checklistText}
+                      onChange={(e) => setChecklistText(e.target.value)}
+                      placeholder="مثلاً: دستمال‌کشی کابینت‌ها"
+                    />
+                    <button
+                      type="button"
+                      disabled={!checklistText.trim() || checklist.length >= 30}
+                      onClick={() => {
+                        const text = checklistText.trim();
+                        if (!text) return;
+                        setChecklist((prev) => [
+                          ...prev,
+                          {
+                            id: `chk-${Date.now()}-${prev.length}`,
+                            title: text,
+                            done: false,
+                          },
+                        ]);
+                        setChecklistText("");
+                      }}
+                    >
+                      افزودن
+                    </button>
+                  </div>
+                  {checklist.length > 0 && (
+                    <ul>
+                      {checklist.map((item) => (
+                        <li key={item.id}>
+                          <span>{item.title}</span>{" "}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setChecklist((prev) =>
+                                prev.filter((x) => x.id !== item.id),
+                              )
+                            }
+                          >
+                            حذف
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
           <div className="new-task-card">
             <label>
               <span>

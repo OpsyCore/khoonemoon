@@ -25,12 +25,21 @@ export default async function ListsPage() {
     );
   }
 
-  const { data: membership } = await supabase
+  const { data: membership, error: membershipError } = await supabase
     .from("household_members")
     .select("household_id")
     .eq("user_id", user.id)
     .is("left_at", null)
     .maybeSingle();
+
+  if (membershipError) {
+    return (
+      <ErrorState
+        title="خطا در دریافت عضویت"
+        description="اطلاعات خانه قابل دریافت نیست. لطفاً دوباره تلاش کنید."
+      />
+    );
+  }
 
   const householdId = (membership?.household_id as string | undefined) ?? null;
 
@@ -125,6 +134,15 @@ export default async function ListsPage() {
   const membersResult = householdId
     ? await loadHouseholdMembers(supabase, householdId)
     : { data: [], error: null };
+
+  if (membersResult.error) {
+    return (
+      <ErrorState
+        title="خطا در دریافت اعضای خانه"
+        description="فهرست اعضا قابل دریافت نیست. لطفاً دوباره تلاش کنید."
+      />
+    );
+  }
 
   const members: TaskMember[] = (
     (membersResult.data ?? []) as {

@@ -80,8 +80,17 @@ export async function restoreMissing(
       "بازیابی یک‌مرحله‌ای حداکثر ۵۰٬۰۰۰ ردیف را می‌پذیرد؛ داده‌ای تغییر نکرد.",
     );
   const names = Object.keys(backup.tables);
+  const hasMeals = Object.hasOwn(backup.tables, "meal_plans");
+  const v3Tables = [
+    "document_renewals",
+    "home_appliances",
+    "appliance_maintenance_logs",
+  ] as const;
+  const hasHomeV3 = v3Tables.some((n) => Object.hasOwn(backup.tables, n));
   if (
-    names.length !== TABLES.length ||
+    (hasHomeV3 && !v3Tables.every((n) => Object.hasOwn(backup.tables, n))) ||
+    names.length !==
+      TABLES.length + (hasMeals ? 1 : 0) + (hasHomeV3 ? v3Tables.length : 0) ||
     TABLES.some((name) => !Object.hasOwn(backup.tables, name))
   )
     throw new Error("این نسخه همه بخش‌های لازم برای بازیابی را ندارد.");
@@ -107,6 +116,35 @@ export async function restoreMissing(
       "این خروجی متعلق به حساب واردشده نیست؛ داده‌ای تغییر نکرد.",
     );
   const signed = backup.signedSnapshot;
+  if ((hasMeals || hasHomeV3) && !signed)
+    throw new Error("بازیابی برنامه غذایی فقط با پشتیبان امضاشده ممکن است.");
+  if (hasHomeV3) {
+    for (const v3Name of v3Tables) {
+      if (
+        backup.tables[v3Name].some(
+          (row) =>
+            !row ||
+            typeof row !== "object" ||
+            Array.isArray(row) ||
+            typeof (row as Row).id !== "string" ||
+            !idPattern.test((row as Row).id as string),
+        )
+      )
+        throw new Error("ردیف نسخهٔ سوم پشتیبان معتبر نیست.");
+    }
+  }
+  if (
+    hasMeals &&
+    backup.tables.meal_plans.some(
+      (row) =>
+        !row ||
+        typeof row !== "object" ||
+        Array.isArray(row) ||
+        typeof (row as Row).id !== "string" ||
+        !idPattern.test((row as Row).id as string),
+    )
+  )
+    throw new Error("ردیف برنامه غذایی معتبر نیست.");
   const originalMembers = tables.household_members.map((row) => ({ ...row }));
   const sourceHouse =
     tables.households.length === 1 ? (tables.households[0].id as string) : null;
@@ -482,9 +520,16 @@ export async function restoreMissing(
     deferred += result.data.deferred;
   }
   await restoreShared("parents");
+  const v2ReminderTypes = new Set(["DOCUMENT", "APPLIANCE", "MEAL"]);
   const restoreTables = signed
     ? {
         ...tables,
+        reminders: tables.reminders.filter(
+          (r) => !v2ReminderTypes.has(String(r.target_type ?? "")),
+        ),
+        document_attachments: tables.document_attachments.filter(
+          (r) => r.entity_type !== "APPLIANCE",
+        ),
         household_members: [],
         task_recurrence_instances: [],
         finance_recurrence_instances: [],
@@ -527,9 +572,67 @@ export async function restoreMissing(
     historyInserted = history.data.inserted;
     historySkipped = history.data.skipped;
   }
+  let mealInserted = 0,
+    mealSkipped = 0;
+  if (hasMeals && backup.tables.meal_plans.length) {
+    if (!signed || !sourceHouse || (await currentUser(client)) !== user)
+      throw new Error(
+        "حساب یا خانه برای بازیابی برنامه غذایی معتبر نیست؛ داده‌های دیگر ممکن است ثبت شده باشند.",
+      );
+    const meals = await client.rpc("mobile_restore_signed_meals", {
+      p_payload: signed.payload,
+      p_signature: signed.signature,
+      p_source: sourceHouse,
+    });
+    if (
+      meals.error ||
+      !meals.data ||
+      !Number.isSafeInteger(meals.data.inserted) ||
+      !Number.isSafeInteger(meals.data.skipped) ||
+      !Number.isSafeInteger(meals.data.deferred)
+    )
+      throw new Error(
+        "بازیابی برنامه غذایی تأیید نشد؛ ممکن است بخشی از داده‌ها ثبت شده باشند. پیش از تلاش دوباره بررسی کنید.",
+      );
+    mealInserted = meals.data.inserted;
+    mealSkipped = meals.data.skipped;
+    deferred += meals.data.deferred;
+  }
+  let v3Inserted = 0,
+    v3Skipped = 0;
+  if (hasHomeV3) {
+    if (!signed || (await currentUser(client)) !== user)
+      throw new Error(
+        "حساب برای بازیابی نسخهٔ جدید معتبر نیست؛ داده‌های دیگر ممکن است ثبت شده باشند.",
+      );
+    const v3 = await client.rpc("mobile_restore_signed_home_v3", {
+      p_payload: signed.payload,
+      p_signature: signed.signature,
+      p_source: sourceHouse,
+    });
+    if (
+      v3.error ||
+      !v3.data ||
+      !Number.isSafeInteger(v3.data.inserted) ||
+      !Number.isSafeInteger(v3.data.skipped) ||
+      !Number.isSafeInteger(v3.data.deferred)
+    )
+      throw new Error(
+        "بازیابی داده‌های وسایل و تمدید مدارک تأیید نشد؛ پیش از تلاش دوباره فهرست‌ها را بررسی کنید.",
+      );
+    v3Inserted = v3.data.inserted;
+    v3Skipped = v3.data.skipped;
+    deferred += v3.data.deferred;
+  }
   return {
-    inserted: data.inserted + historyInserted + sharedInserted,
-    skipped: data.skipped + historySkipped + sharedSkipped,
+    inserted:
+      data.inserted +
+      historyInserted +
+      sharedInserted +
+      mealInserted +
+      v3Inserted,
+    skipped:
+      data.skipped + historySkipped + sharedSkipped + mealSkipped + v3Skipped,
     deferred,
     repairedFiles: uploads.filter((item) => item.repair).length,
     householdCopy,

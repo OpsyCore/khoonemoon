@@ -1,30 +1,39 @@
 import { effectiveReminderAt } from "@/features/reminders/dispatch";
-import type { ReminderRecord } from "@/features/reminders/types";
-
-/**
- * Reminder inbox ("صندوق یادآورها").
- *
- * Until now reminders were only visible as the next 72 hours on the dashboard,
- * and only while pending: a reminder that fired, was missed, or was cancelled
- * simply disappeared. This module turns the whole table into an inbox with an
- * explicit state per reminder, so "did anything get lost?" has an answer.
- */
+import type {
+  ReminderRecord,
+  ReminderSourceGroup,
+} from "@/features/reminders/types";
 
 export type ReminderState =
   "DUE" | "TODAY" | "UPCOMING" | "DELIVERED" | "CANCELED";
 
+export type ReminderHorizon =
+  | "DUE"
+  | "TODAY"
+  | "TOMORROW"
+  | "NEXT_7_DAYS"
+  | "LATER"
+  | "DELIVERED"
+  | "CANCELED";
+
 export type ReminderTarget = {
   id: string;
   title: string;
+  group?: ReminderSourceGroup;
+  assigneeLabel?: string | null;
+  recurrenceLabel?: string | null;
 };
 
 export type InboxEntry = {
   id: string;
+  targetId: string;
   state: ReminderState;
+  horizon: ReminderHorizon;
   targetType: ReminderRecord["target_type"];
-  /** Title of the task/event, with an honest fallback when it is gone. */
+  sourceGroup: ReminderSourceGroup;
   title: string;
-  /** The moment the reminder fires (snooze target when snoozed). */
+  assigneeLabel: string | null;
+  recurrenceLabel: string | null;
   effectiveAt: string;
   remindAt: string;
   status: ReminderRecord["status"];
@@ -38,9 +47,7 @@ export type InboxSection = {
 };
 
 export type ReminderInbox = {
-  /** Actionable reminders (due / today / upcoming), soonest first. */
   active: InboxEntry[];
-  /** Delivered + cancelled, newest first. */
   history: InboxEntry[];
   sections: InboxSection[];
   counts: {
@@ -49,15 +56,12 @@ export type ReminderInbox = {
     upcoming: number;
     delivered: number;
     canceled: number;
-    /** Everything that still needs attention. */
     open: number;
   };
-  /** The soonest open reminder, for a "next up" line. */
   nextAt: string | null;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
 const TERMINAL_STATES: ReminderState[] = ["DELIVERED", "CANCELED"];
 
 function startOfDay(date: Date): number {
@@ -68,13 +72,6 @@ function startOfDay(date: Date): number {
   ).getTime();
 }
 
-/**
- * Classifies one reminder.
- *
- * Delivered/cancelled reminders are history no matter what their timestamp says;
- * a pending reminder in the past is "due" (the dashboard already calls it
- * overdue), one later today is "today", and anything beyond is "upcoming".
- */
 export function classifyReminder({
   reminder,
   now,
@@ -87,47 +84,88 @@ export function classifyReminder({
   if (reminder.status === "CANCELED") return "CANCELED";
 
   const at = effectiveReminderAt(reminder as ReminderRecord).getTime();
-
-  // An unparseable timestamp must not crash the inbox; treat it as due so it is
-  // visible instead of silently vanishing.
-  if (Number.isNaN(at)) return "DUE";
-
-  if (at <= now.getTime()) return "DUE";
-
+  if (Number.isNaN(at) || at <= now.getTime()) return "DUE";
   return startOfDay(new Date(at)) === startOfDay(now) ? "TODAY" : "UPCOMING";
 }
 
-/**
- * Resolves the task/event a reminder points at.
- * The fallbacks are deliberately explicit: a deleted task should say so rather
- * than showing an empty title the user cannot act on.
- */
+export function classifyReminderHorizon({
+  reminder,
+  now,
+}: {
+  reminder: Pick<ReminderRecord, "status" | "remind_at"> &
+    Partial<Pick<ReminderRecord, "snoozed_until" | "delivered_at">>;
+  now: Date;
+}): ReminderHorizon {
+  if (reminder.status === "SENT" || reminder.delivered_at) return "DELIVERED";
+  if (reminder.status === "CANCELED") return "CANCELED";
+
+  const at = effectiveReminderAt(reminder as ReminderRecord).getTime();
+  if (Number.isNaN(at) || at <= now.getTime()) return "DUE";
+
+  const diffDays = Math.round(
+    (startOfDay(new Date(at)) - startOfDay(now)) / DAY_MS,
+  );
+  if (diffDays <= 0) return "TODAY";
+  if (diffDays === 1) return "TOMORROW";
+  if (diffDays <= 7) return "NEXT_7_DAYS";
+  return "LATER";
+}
+
+const DEFAULT_GROUP: Record<
+  ReminderRecord["target_type"],
+  ReminderSourceGroup
+> = {
+  TASK: "TASK",
+  EVENT: "EVENT",
+  CHORE: "CHORE",
+  BILL: "BILL",
+  DOCUMENT: "DOCUMENT",
+  APPLIANCE: "APPLIANCE",
+  MEAL: "MEAL",
+};
+
 export function resolveTargetTitle({
   reminder,
   tasks,
   events,
   chores = [],
   bills = [],
+  documents = [],
+  appliances = [],
+  meals = [],
 }: {
   reminder: Pick<ReminderRecord, "target_type" | "target_id">;
   tasks: ReminderTarget[];
   events: ReminderTarget[];
   chores?: ReminderTarget[];
   bills?: ReminderTarget[];
+  documents?: ReminderTarget[];
+  appliances?: ReminderTarget[];
+  meals?: ReminderTarget[];
 }): string {
-  const pool = { TASK: tasks, EVENT: events, CHORE: chores, BILL: bills }[
-    reminder.target_type
-  ];
-  const found = pool.find((item) => item.id === reminder.target_id);
-
+  const pool: ReminderTarget[] | undefined = {
+    TASK: tasks,
+    EVENT: events,
+    CHORE: chores,
+    BILL: bills,
+    DOCUMENT: documents,
+    APPLIANCE: appliances,
+    MEAL: meals,
+  }[reminder.target_type];
+  const found = pool?.find((item) => item.id === reminder.target_id);
   if (found) return found.title;
 
-  return {
-    TASK: "کار حذف‌شده یا غیرقابل دسترس",
-    EVENT: "رویداد حذف‌شده یا غیرقابل دسترس",
-    CHORE: "کار خانه حذف‌شده یا غیرقابل دسترس",
-    BILL: "قبض حذف‌شده یا غیرقابل دسترس",
-  }[reminder.target_type];
+  return (
+    {
+      TASK: "کار حذف‌شده یا غیرقابل دسترس",
+      EVENT: "رویداد حذف‌شده یا غیرقابل دسترس",
+      CHORE: "کار خانه حذف‌شده یا غیرقابل دسترس",
+      BILL: "قبض حذف‌شده یا غیرقابل دسترس",
+      DOCUMENT: "مدرک حذف‌شده یا غیرقابل دسترس",
+      APPLIANCE: "وسیله حذف‌شده یا غیرقابل دسترس",
+      MEAL: "برنامه غذایی حذف‌شده یا غیرقابل دسترس",
+    }[reminder.target_type] ?? "مورد حذف‌شده یا غیرقابل دسترس"
+  );
 }
 
 function toEntry({
@@ -136,6 +174,9 @@ function toEntry({
   events,
   chores,
   bills,
+  documents,
+  appliances,
+  meals,
   now,
 }: {
   reminder: ReminderRecord;
@@ -143,15 +184,42 @@ function toEntry({
   events: ReminderTarget[];
   chores: ReminderTarget[];
   bills: ReminderTarget[];
+  documents: ReminderTarget[];
+  appliances: ReminderTarget[];
+  meals: ReminderTarget[];
   now: Date;
 }): InboxEntry {
   const effective = effectiveReminderAt(reminder);
+  const pool: ReminderTarget[] | undefined = {
+    TASK: tasks,
+    EVENT: events,
+    CHORE: chores,
+    BILL: bills,
+    DOCUMENT: documents,
+    APPLIANCE: appliances,
+    MEAL: meals,
+  }[reminder.target_type];
+  const found = pool?.find((item) => item.id === reminder.target_id);
 
   return {
     id: reminder.id,
+    targetId: reminder.target_id,
     state: classifyReminder({ reminder, now }),
+    horizon: classifyReminderHorizon({ reminder, now }),
     targetType: reminder.target_type,
-    title: resolveTargetTitle({ reminder, tasks, events, chores, bills }),
+    sourceGroup: found?.group ?? DEFAULT_GROUP[reminder.target_type] ?? "TASK",
+    title: resolveTargetTitle({
+      reminder,
+      tasks,
+      events,
+      chores,
+      bills,
+      documents,
+      appliances,
+      meals,
+    }),
+    assigneeLabel: found?.assigneeLabel ?? null,
+    recurrenceLabel: found?.recurrenceLabel ?? null,
     effectiveAt: Number.isNaN(effective.getTime())
       ? reminder.remind_at
       : effective.toISOString(),
@@ -173,6 +241,9 @@ export function buildReminderInbox({
   events,
   chores = [],
   bills = [],
+  documents = [],
+  appliances = [],
+  meals = [],
   now,
 }: {
   reminders: ReminderRecord[];
@@ -180,10 +251,23 @@ export function buildReminderInbox({
   events: ReminderTarget[];
   chores?: ReminderTarget[];
   bills?: ReminderTarget[];
+  documents?: ReminderTarget[];
+  appliances?: ReminderTarget[];
+  meals?: ReminderTarget[];
   now: Date;
 }): ReminderInbox {
   const entries = reminders.map((reminder) =>
-    toEntry({ reminder, tasks, events, chores, bills, now }),
+    toEntry({
+      reminder,
+      tasks,
+      events,
+      chores,
+      bills,
+      documents,
+      appliances,
+      meals,
+      now,
+    }),
   );
 
   const isHistory = (entry: InboxEntry) =>
@@ -236,15 +320,17 @@ export function buildReminderInbox({
   };
 }
 
-/**
- * True when a reminder has been snoozed suspiciously often — a hint that it is
- * being avoided rather than handled.
- */
+export function countReminderHorizons(inbox: ReminderInbox) {
+  return {
+    tomorrow: inbox.active.filter((e) => e.horizon === "TOMORROW").length,
+    nextWeek: inbox.active.filter((e) => e.horizon === "NEXT_7_DAYS").length,
+  };
+}
+
 export function isRepeatedlySnoozed(entry: Pick<InboxEntry, "snoozeCount">) {
   return entry.snoozeCount >= 2;
 }
 
-/** Days between two dates, used for the "چند روز مانده" hint. */
 export function daysUntil({
   iso,
   now,
@@ -254,6 +340,5 @@ export function daysUntil({
 }): number | null {
   const target = new Date(iso).getTime();
   if (Number.isNaN(target)) return null;
-
   return Math.round((startOfDay(new Date(target)) - startOfDay(now)) / DAY_MS);
 }

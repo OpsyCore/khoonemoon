@@ -160,7 +160,6 @@ SQL خام ساخته می‌شوند، Supabase هیچ grant پیش‌فرضی 
 - Milestone 6 reminder/timezone/snooze tests in:
   - `src/features/reminders/calculations.test.ts`
 
-
 ## 12) RPC privilege hardening (M30)
 
 - Authenticated household/task/chore helper RPCs must not be callable by `anon`.
@@ -171,7 +170,6 @@ SQL خام ساخته می‌شوند، Supabase هیچ grant پیش‌فرضی 
   `pg_catalog, public, pg_temp` (or a narrower schema list) explicitly.
 - Migrations `0050`–`0053` contain the RPC, index, RLS-initplan and extension-schema
   hardening; verify effective privileges for both `anon` and `authenticated` after changes.
-
 
 ## 13) Database performance hardening (M30)
 
@@ -189,7 +187,6 @@ SQL خام ساخته می‌شوند، Supabase هیچ grant پیش‌فرضی 
   `drizzle/0053_move_pg_trgm_to_extensions_schema.sql`; existing trigram indexes remain
   attached to their operator class by object identity.
 
-
 ## 14) SECURITY DEFINER search path hardening
 
 - All 45 public SECURITY DEFINER functions now pin `pg_catalog` first and
@@ -197,7 +194,6 @@ SQL خام ساخته می‌شوند، Supabase هیچ grant پیش‌فرضی 
   schemas (such as `storage` and `backup_private`).
 - This prevents temporary objects from shadowing trusted relations during a
   SECURITY DEFINER call. The matching migration is `drizzle/0054_secure_definer_temp_search_path.sql`.
-
 
 ## 15) Supabase Auth password protection
 

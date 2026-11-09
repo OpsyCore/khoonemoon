@@ -23,7 +23,9 @@ if (!baseUrl) fail("APP_BASE_URL تنظیم نشده است.");
 if (!secret) fail("CRON_SECRET تنظیم نشده است.");
 
 if (!/^https?:\/\//.test(baseUrl)) {
-  fail(`APP_BASE_URL باید با http:// یا https:// شروع شود (مقدار: ${baseUrl}).`);
+  fail(
+    `APP_BASE_URL باید با http:// یا https:// شروع شود (مقدار: ${baseUrl}).`,
+  );
 }
 
 const url = `${baseUrl}/api/reminders/dispatch`;

@@ -6,25 +6,50 @@ import {
   snoozeReminderSchema,
   reminderPreferencesSchema,
 } from "./schemas";
-import type { ReminderRecord, ReminderPreferenceRecord } from "./types";
+import type {
+  ReminderRecord,
+  ReminderPreferenceRecord,
+  ReminderTargetType,
+} from "./types";
 import { z } from "zod";
+
+const V2_TARGET_TYPES = new Set<ReminderTargetType>([
+  "DOCUMENT",
+  "APPLIANCE",
+  "MEAL",
+]);
+
 const mobileCreateSchema = createRemindersSchema.extend({
-  targetType: z.enum(["TASK", "EVENT", "CHORE", "BILL"]),
+  targetType: z.enum([
+    "TASK",
+    "EVENT",
+    "CHORE",
+    "BILL",
+    "DOCUMENT",
+    "APPLIANCE",
+    "MEAL",
+  ]),
 });
-const targetTables = {
+
+const targetTables: Record<ReminderTargetType, string> = {
   TASK: "tasks",
   EVENT: "events",
   CHORE: "chores",
   BILL: "financial_records",
-} as const;
+  DOCUMENT: "documents",
+  APPLIANCE: "home_appliances",
+  MEAL: "meal_plans",
+};
 
 const COLUMNS =
   "id, target_type, target_id, user_id, household_id, remind_at, status, snoozed_until, snooze_count, delivered_at, created_at, updated_at";
+
 async function currentUser(client: SupabaseClient) {
   const { data, error } = await client.auth.getUser();
   if (error || !data.user) throw new Error("ابتدا وارد حساب خود شوید.");
   return data.user.id;
 }
+
 async function createInitialReminder(
   client: SupabaseClient,
   type: "TASK" | "EVENT",
@@ -84,10 +109,19 @@ async function createInitialReminder(
     "ثبت یادآوری تأیید نشد؛ فقط یادآوری را با همین اطلاعات دوباره امتحان کنید.",
   );
 }
+
 /** User JWT and RLS enforce both ownership and target access. */
 export function directReminders(client: SupabaseClient) {
   return {
     async list(): Promise<ReminderRecord[]> {
+      if (typeof client.rpc === "function") {
+        const v2 = await client.rpc("mobile_list_reminders_v2");
+        if (!v2.error && Array.isArray(v2.data)) {
+          if (v2.data.length > 10000)
+            throw new Error("تعداد یادآورها بیش از حد مجاز است.");
+          return v2.data as ReminderRecord[];
+        }
+      }
       const rows: ReminderRecord[] = [];
       for (let offset = 0; ; offset += 500) {
         const { data, error } = await client
@@ -102,6 +136,15 @@ export function directReminders(client: SupabaseClient) {
         if (rows.length >= 10000)
           throw new Error("تعداد یادآورها بیش از حد مجاز است.");
       }
+    },
+    /** Fail closed rather than schedule a partial or unauthorized snapshot. */
+    async authorizedSchedule(): Promise<ReminderRecord[]> {
+      const { data, error } = await client.rpc(
+        "mobile_authorized_reminder_schedule",
+      );
+      if (error || !Array.isArray(data) || data.length > 10000)
+        throw new Error("دریافت برنامه امن یادآورها ناموفق بود.");
+      return data as ReminderRecord[];
     },
     async preferences(): Promise<ReminderPreferenceRecord | null> {
       const user = await currentUser(client);
@@ -192,6 +235,7 @@ export function directReminders(client: SupabaseClient) {
         remind_at,
         status: "PENDING",
       }));
+      const isV2 = V2_TARGET_TYPES.has(parsed.targetType);
       await pendingRequest<true>({
         user,
         kind: "reminders",
@@ -200,10 +244,20 @@ export function directReminders(client: SupabaseClient) {
           const ids = await Promise.all(
             rows.map((_, index) => pendingChildId(requestId, index)),
           );
+          const withIds = rows.map((row, index) => ({
+            ...row,
+            id: ids[index],
+          }));
+          if (isV2) {
+            const rpc = await client.rpc("mobile_create_reminders_v2", {
+              p_rows: withIds,
+            });
+            return !rpc.error && Array.isArray(rpc.data)
+              ? { data: true, error: null }
+              : { data: null, error: rpc.error ?? "unknown" };
+          }
           try {
-            const result = await client
-              .from("reminders")
-              .insert(rows.map((row, index) => ({ ...row, id: ids[index] })));
+            const result = await client.from("reminders").insert(withIds);
             if (!result.error) return { data: true, error: null };
           } catch {
             /* The whole insert may still commit. */
@@ -223,7 +277,6 @@ export function directReminders(client: SupabaseClient) {
         valid: (value): value is true => value === true,
       });
     },
-    /** Stable IDs keep retries of the follow-up safe after reload or lost response. */
     async createTaskReminderOnce(input: {
       targetId: string;
       baseDateTime: string;
@@ -238,8 +291,24 @@ export function directReminders(client: SupabaseClient) {
     }): Promise<void> {
       return createInitialReminder(client, "EVENT", input);
     },
-    async snooze(id: string, minutes: number): Promise<void> {
+    async snooze(
+      id: string,
+      minutes: number,
+      targetType?: ReminderTargetType,
+    ): Promise<void> {
       snoozeReminderSchema.parse({ reminderId: id, minutes });
+      await currentUser(client);
+      if (targetType && V2_TARGET_TYPES.has(targetType)) {
+        const until = new Date(Date.now() + minutes * 60_000).toISOString();
+        const { data, error } = await client.rpc("mobile_mutate_reminder_v2", {
+          p_id: id,
+          p_action: "SNOOZE",
+          p_until: until,
+        });
+        if (error || !data)
+          throw new Error("تعویق یادآور ناموفق بود؛ دوباره تلاش کنید.");
+        return;
+      }
       const user = await currentUser(client);
       const { data, error } = await client
         .from("reminders")
@@ -265,8 +334,35 @@ export function directReminders(client: SupabaseClient) {
       if (result.error || !result.data)
         throw new Error("تعویق یادآور ناموفق بود؛ دوباره تلاش کنید.");
     },
-    async cancel(id: string, expectedUpdatedAt: string): Promise<void> {
+    async reschedule(id: string, remindAt: string): Promise<void> {
+      const iso = z.string().datetime().parse(remindAt);
+      await currentUser(client);
+      if (new Date(iso).getTime() <= Date.now()) {
+        throw new Error("زمان جدید یادآور باید در آینده باشد.");
+      }
+      const { data, error } = await client.rpc("mobile_mutate_reminder_v2", {
+        p_id: id,
+        p_action: "RESCHEDULE",
+        p_until: iso,
+      });
+      if (error || !data)
+        throw new Error("تغییر زمان یادآور ناموفق بود؛ فهرست را تازه کنید.");
+    },
+    async cancel(
+      id: string,
+      expectedUpdatedAt: string,
+      targetType?: ReminderTargetType,
+    ): Promise<void> {
       const user = await currentUser(client);
+      if (targetType && V2_TARGET_TYPES.has(targetType)) {
+        const { data, error } = await client.rpc("mobile_mutate_reminder_v2", {
+          p_id: id,
+          p_action: "CANCEL",
+        });
+        if (error || !data)
+          throw new Error("وضعیت یادآور تغییر کرده است؛ فهرست را تازه کنید.");
+        return;
+      }
       const { data, error } = await client
         .from("reminders")
         .update({ status: "CANCELED" })
@@ -280,8 +376,16 @@ export function directReminders(client: SupabaseClient) {
       if (error || !data)
         throw new Error("وضعیت یادآور تغییر کرده است؛ فهرست را تازه کنید.");
     },
-    async remove(id: string): Promise<void> {
+    async remove(id: string, targetType?: ReminderTargetType): Promise<void> {
       const user = await currentUser(client);
+      if (targetType && V2_TARGET_TYPES.has(targetType)) {
+        const { data, error } = await client.rpc("mobile_mutate_reminder_v2", {
+          p_id: id,
+          p_action: "REMOVE",
+        });
+        if (error || !data) throw new Error("حذف یادآور ناموفق بود.");
+        return;
+      }
       const { data, error } = await client
         .from("reminders")
         .delete()

@@ -1,0 +1,94 @@
+.appliances-screen {
+  min-height: 100dvh;
+  padding: 18px 16px 100px;
+  background: var(--paper-bg, #f5f2eb);
+  color: var(--ink, #49382b);
+}
+.appliances-hero {
+  background: var(--card-bg, #f9f6f0);
+  border: 1px solid rgba(105, 112, 77, 0.22);
+  border-radius: 22px;
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.appliances-hero h1 {
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+}
+.appliances-hero p {
+  margin: 0;
+  color: var(--muted-text, #6e6353);
+  font-size: 0.92rem;
+}
+.appliances-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.appliances-card,
+.appliances-panel {
+  background: var(--card-bg, #f9f6f0);
+  border: 1px solid rgba(105, 112, 77, 0.2);
+  border-radius: 20px;
+  padding: 15px;
+  margin-bottom: 12px;
+}
+.appliances-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.appliances-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+  font-size: 0.82rem;
+}
+.appliances-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--box-bg, #f8f6ef);
+  border: 1px solid rgba(105, 112, 77, 0.22);
+}
+.appliances-badge.due {
+  background: rgba(201, 130, 104, 0.18);
+  border-color: rgba(201, 130, 104, 0.45);
+}
+.appliances-meta {
+  display: grid;
+  gap: 4px;
+  font-size: 0.86rem;
+  color: var(--muted-text, #6e6353);
+  margin: 8px 0;
+}
+.appliances-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.appliances-logs {
+  margin: 10px 0 0;
+  padding: 10px 14px 0 0;
+  border-top: 1px dashed rgba(105, 112, 77, 0.25);
+  font-size: 0.85rem;
+}
+[data-theme="dark"] .appliances-screen {
+  background: #262119;
+  color: #f3ede2;
+}
+[data-theme="dark"] .appliances-hero,
+[data-theme="dark"] .appliances-card,
+[data-theme="dark"] .appliances-panel {
+  background: #302a21;
+  border-color: rgba(231, 230, 217, 0.14);
+}
+[data-theme="dark"] .appliances-badge {
+  background: #393228;
+}

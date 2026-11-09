@@ -2,8 +2,19 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { directProfile } from "@/features/profile/direct-client";
 import { ZodError } from "zod";
+import { FileText, House, Search, Settings } from "lucide-react";
+import type { MobilePage } from "./navigation";
+import "./profile.css";
 
-export function Profile({ client }: { client: SupabaseClient }) {
+export function Profile({
+  client,
+  email,
+  onNavigate,
+}: {
+  client: SupabaseClient;
+  email?: string;
+  onNavigate: (page: MobilePage) => void;
+}) {
   const api = useMemo(() => directProfile(client), [client]);
   const [name, setName] = useState("");
   const [timezone, setTimezone] = useState("");
@@ -53,8 +64,47 @@ export function Profile({ client }: { client: SupabaseClient }) {
       .finally(() => setBusy(false));
   }
   return (
-    <section>
-      <h2>پروفایل</h2>
+    <section className="profile-ref" dir="rtl">
+      <header className="profile-ref-header">
+        <div>
+          <h2>پروفایل</h2>
+          <p>حساب شما در دفترچه‌ی مشترک.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate("settings")}
+          aria-label="تنظیمات"
+        >
+          <Settings size={20} />
+        </button>
+      </header>
+      <div className="profile-ref-identity">
+        <span aria-hidden="true" className="profile-ref-avatar">
+          {(name.trim() || email || "؟").slice(0, 1)}
+        </span>
+        <strong>{ready ? name.trim() || "بدون نام" : "پروفایل"}</strong>
+        {email && <small dir="ltr">{email}</small>}
+      </div>
+      <h3>خانه و تنظیمات</h3>
+      <nav className="profile-ref-links" aria-label="خانه و تنظیمات">
+        {(
+          [
+            { page: "house", label: "خانه و اعضا", Icon: House },
+            { page: "documents", label: "مدارک خانه", Icon: FileText },
+            { page: "settings", label: "تنظیمات و اعلان‌ها", Icon: Settings },
+            { page: "search", label: "جستجو", Icon: Search },
+          ] as const
+        ).map(({ page, label, Icon }) => (
+          <button key={page} type="button" onClick={() => onNavigate(page)}>
+            <span>
+              <Icon size={18} />
+            </span>
+            {label}
+            <b aria-hidden="true">‹</b>
+          </button>
+        ))}
+      </nav>
+      <h3>ویرایش پروفایل</h3>
       {message && <p role="status">{message}</p>}
       {!ready && !loadFailed && <p role="status">در حال دریافت پروفایل…</p>}
       {!ready && loadFailed && (
@@ -71,7 +121,7 @@ export function Profile({ client }: { client: SupabaseClient }) {
         </button>
       )}
       {ready && (
-        <form onSubmit={save}>
+        <form onSubmit={save} className="profile-ref-form">
           <label>
             نام
             <input
@@ -106,7 +156,7 @@ export function Profile({ client }: { client: SupabaseClient }) {
               required
             />
           </label>
-          <button disabled={busy}>ذخیره پروفایل</button>
+          <button disabled={busy}>ذخیره تغییرات</button>
         </form>
       )}
     </section>

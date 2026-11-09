@@ -1,6 +1,6 @@
 .reminder-ref {
-  --rem-green: #737d51;
-  --rem-ink: #273023;
+  --rem-green: var(--olive-ink);
+  --rem-ink: var(--ink);
   max-width: 720px;
   margin: auto;
   color: var(--rem-ink);
@@ -17,12 +17,12 @@
   font-size: clamp(27px, 5vw, 40px);
   font-weight: 800;
   margin: 0 0 8px;
-  color: #252e21;
+  color: var(--ink);
 }
 .reminder-ref-header p {
   font-size: 16px;
   line-height: 1.9;
-  color: #63645b;
+  color: var(--muted-text);
   margin: 0;
 }
 .reminder-ref-branch {
@@ -72,8 +72,8 @@
 .reminder-ref-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  background: #fbfaf5;
-  border: 1px solid #e8e7dd;
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 20px;
   box-shadow: 0 3px 8px #54594212;
   padding: 12px 3px;
@@ -82,7 +82,7 @@
   border: 0;
   border-left: 1px solid #e4e4da;
   background: transparent;
-  color: #5e6159;
+  color: var(--muted-text);
   border-radius: 0;
   padding: 0 3px;
   box-shadow: none;
@@ -101,7 +101,7 @@
   gap: 8px;
   font-size: 22px;
   font-weight: 800;
-  color: #283024;
+  color: var(--ink);
 }
 .reminder-ref-stats svg {
   width: 20px;
@@ -124,9 +124,9 @@
 .reminder-ref .reminder-ref-filters button {
   white-space: nowrap;
   flex: none;
-  border: 1px solid #e7e6dd;
+  border: 1px solid var(--line);
   border-radius: 16px;
-  background: #f8f7f1;
+  background: var(--sunken);
   color: #5a5e54;
   padding: 8px 11px;
   display: flex;
@@ -136,7 +136,7 @@
   box-shadow: 0 2px 5px #4444110a;
 }
 .reminder-ref-filters b {
-  background: #eaeae4;
+  background: var(--line);
   border-radius: 50%;
   min-width: 24px;
   height: 24px;
@@ -144,12 +144,12 @@
   place-items: center;
 }
 .reminder-ref .reminder-ref-filters button[aria-pressed="true"] {
-  background: #727b50;
+  background: #626b43;
   color: #fff;
 }
 .reminder-ref-filters button[aria-pressed="true"] b {
-  background: #fff;
-  color: #30382a;
+  background: var(--paper);
+  color: var(--ink);
 }
 .reminder-ref-list {
   display: grid;
@@ -157,8 +157,8 @@
 }
 .reminder-ref-card {
   position: relative;
-  background: #fbfaf6;
-  border: 1px solid #e8e8df;
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 20px;
   padding: 15px 15px 14px;
   box-shadow: 0 3px 8px #50543d12;
@@ -194,12 +194,12 @@
   font-weight: 800;
   margin: 0 0 3px;
   line-height: 1.4;
-  color: #293126;
+  color: var(--ink);
 }
 .reminder-ref-card-head p {
   font-size: 13px;
   margin: 0;
-  color: #5a6058;
+  color: var(--muted-text);
 }
 .reminder-ref-icon {
   width: 54px;
@@ -243,7 +243,7 @@
   flex-wrap: wrap;
   gap: 16px;
   margin: 12px 65px 12px 0;
-  color: #62675e;
+  color: var(--muted-text);
   font-size: 12px;
 }
 .reminder-ref-time span {
@@ -258,7 +258,7 @@
 .reminder-ref-card small {
   display: block;
   margin: 4px 0;
-  color: #777;
+  color: var(--muted-text);
 }
 .reminder-ref-actions {
   display: flex;
@@ -267,7 +267,7 @@
 }
 .reminder-ref .reminder-ref-actions button.reminder-ref-done {
   flex: 1;
-  background: #798254;
+  background: #626b43;
   color: white;
   border: 0;
   border-radius: 13px;
@@ -319,7 +319,7 @@
   top: 100%;
   z-index: 3;
   min-width: 135px;
-  background: #fff;
+  background: var(--paper);
   border: 1px solid #ddd;
   border-radius: 10px;
   padding: 6px;
@@ -330,17 +330,17 @@
   display: block;
   width: 100%;
   background: transparent;
-  color: #30382a;
+  color: var(--ink);
   border: 0;
   white-space: nowrap;
   padding: 9px;
   box-shadow: none;
 }
 .reminder-ref-card.delivered {
-  background: #f3f4ed;
+  background: var(--olive-soft);
 }
 .reminder-ref-card.canceled {
-  background: #f7efed;
+  background: var(--clay-soft);
 }
 .reminder-ref-history {
   display: flex;
@@ -368,8 +368,8 @@
   box-shadow: none;
 }
 .reminder-ref-panel {
-  background: #fbfaf6;
-  border: 1px solid #e6e7dc;
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 16px;
   margin-top: 14px;
   padding: 13px;
@@ -410,7 +410,7 @@
 .reminder-ref-empty {
   padding: 25px;
   text-align: center;
-  background: #fbfaf6;
+  background: var(--card);
   border-radius: 18px;
 }
 @media (max-width: 380px) {
@@ -436,4 +436,56 @@
   .reminder-ref-snooze summary {
     font-size: 12px;
   }
+}
+
+/* Use readable semantic tokens in both Android and web dark themes. */
+:root[data-theme="dark"] .reminder-ref,
+.dark .reminder-ref {
+  --rem-green: var(--olive-ink);
+  --rem-ink: var(--ink);
+}
+:root[data-theme="dark"] .reminder-ref .reminder-ref-filters button,
+.dark .reminder-ref .reminder-ref-filters button {
+  background: var(--sunken);
+  border-color: var(--line);
+  color: var(--ink);
+}
+:root[data-theme="dark"]
+  .reminder-ref
+  .reminder-ref-filters
+  button[aria-pressed="true"],
+.dark .reminder-ref .reminder-ref-filters button[aria-pressed="true"] {
+  background: #626b43;
+  color: #fff;
+}
+:root[data-theme="dark"] .reminder-ref .reminder-ref-icon,
+.dark .reminder-ref .reminder-ref-icon {
+  background: var(--olive-soft);
+  color: var(--olive-ink);
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .reminder-ref .reminder-ref-error,
+.dark .reminder-ref .reminder-ref-error {
+  color: var(--danger-ink);
+}
+
+.reminder-ref .reminder-offsets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1rem;
+  border: 0;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+.reminder-ref .reminder-offsets legend {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+.reminder-ref .reminder-offsets label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.reminder-ref .reminder-offsets input {
+  width: auto;
 }

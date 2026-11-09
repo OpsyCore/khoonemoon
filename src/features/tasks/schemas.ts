@@ -10,6 +10,22 @@ const statusSchema = z.enum([
 
 const prioritySchema = z.enum(["LOW", "NORMAL", "HIGH", "CRITICAL"]);
 const visibilitySchema = z.enum(["PRIVATE", "HOUSEHOLD_SHARED"]);
+export const cleaningZoneSchema = z.enum([
+  "KITCHEN",
+  "BEDROOM",
+  "LIVING_ROOM",
+  "RESTROOM",
+  "BATHROOM",
+  "BALCONY",
+  "STORAGE",
+  "OTHER",
+]);
+
+export const cleaningChecklistItemSchema = z.object({
+  id: z.string().trim().min(1).max(64),
+  title: z.string().trim().min(1, "عنوان مورد چک‌لیست الزامی است.").max(160),
+  done: z.boolean(),
+});
 
 const recurrenceSchema = z.object({
   frequency: z.enum([
@@ -42,6 +58,17 @@ export const createTaskSchema = z
     dueAt: z.string().datetime().optional().nullable(),
     assigneeIds: z.array(z.string().uuid()),
     recurrence: recurrenceSchema,
+    taskKind: z.enum(["GENERAL", "CLEANING"]).optional(),
+    cleaningZone: cleaningZoneSchema.nullable().optional(),
+    cleaningChecklist: z.array(cleaningChecklistItemSchema).max(30).optional(),
+    sourceEventId: z.string().uuid().nullable().optional(),
+    sourceOccurrenceYear: z
+      .number()
+      .int()
+      .min(1200)
+      .max(1600)
+      .nullable()
+      .optional(),
   })
   .superRefine((value, ctx) => {
     if (value.visibility === "PRIVATE" && value.assigneeIds.length > 1) {

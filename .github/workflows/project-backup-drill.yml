@@ -48,3 +48,5 @@ jobs:
           BACKUP_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
           PROJECT_BACKUP_TEST_DATABASE_URL: postgres://postgres:fixture@127.0.0.1:5432/khoonemoon_backup_test
         run: npx vitest run scripts/lib/project-backup-integration.test.mjs
+
+# Run isolated regression fixture after Android parity changes.

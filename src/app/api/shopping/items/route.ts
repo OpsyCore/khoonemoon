@@ -17,7 +17,10 @@ export async function GET(request: Request) {
   const listId = new URL(request.url).searchParams.get("listId");
 
   if (!listId) {
-    return NextResponse.json({ message: "شناسه لیست لازم است." }, { status: 400 });
+    return NextResponse.json(
+      { message: "شناسه لیست لازم است." },
+      { status: 400 },
+    );
   }
 
   const { data, error } = await supabase

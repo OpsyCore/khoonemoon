@@ -248,6 +248,16 @@ try {
     status: [307, 302],
   });
   await expectStatus({
+    name: "قبوض بدون نشست → هدایت",
+    path: "/bills",
+    status: [307, 302],
+  });
+  await expectStatus({
+    name: "برنامه غذایی بدون نشست → هدایت",
+    path: "/meals",
+    status: [307, 302],
+  });
+  await expectStatus({
     name: "صندوق یادآورها بدون نشست → هدایت",
     path: "/reminders",
     status: [307, 302],
@@ -256,6 +266,11 @@ try {
   await expectStatus({
     name: "مدارک بدون نشست → هدایت",
     path: "/documents",
+    status: [307, 302],
+  });
+  await expectStatus({
+    name: "وسایل و تعمیرات بدون نشست → هدایت",
+    path: "/appliances",
     status: [307, 302],
   });
 

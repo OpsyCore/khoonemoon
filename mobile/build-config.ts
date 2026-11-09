@@ -42,6 +42,21 @@ export function validateMobileConfig(
   );
 }
 
+/** Safely place validated public client config in root HTML attributes. */
+export function mobileRuntimeAttributes(
+  url: string | undefined,
+  key: string | undefined,
+): string {
+  if (!url || !key) return "";
+  const escape = (value: string) =>
+    value.replace(
+      /[&"<>]/g,
+      (char) =>
+        ({ "&": "&amp;", '"': "&quot;", "<": "&lt;", ">": "&gt;" })[char]!,
+    );
+  return `data-supabase-url="${escape(url)}" data-supabase-anon-key="${escape(key)}"`;
+}
+
 /** Restrict connections to the configured HTTPS Supabase origin and its realtime socket. */
 export function mobileConnectSources(url: string | undefined): string {
   if (!url) return "";

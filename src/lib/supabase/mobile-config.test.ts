@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   mobileConnectSources,
+  mobileRuntimeAttributes,
   validateMobileConfig,
 } from "../../../mobile/build-config";
 
@@ -44,6 +45,17 @@ describe("mobile client build configuration", () => {
     expect(() =>
       validateMobileConfig("https://example.com", undefined),
     ).toThrow();
+  });
+  it("places public runtime configuration in escaped HTML attributes", () => {
+    expect(
+      mobileRuntimeAttributes(
+        "https://example.supabase.co",
+        'sb_publishable_test&"<>',
+      ),
+    ).toBe(
+      'data-supabase-url="https://example.supabase.co" data-supabase-anon-key="sb_publishable_test&amp;&quot;&lt;&gt;"',
+    );
+    expect(mobileRuntimeAttributes(undefined, undefined)).toBe("");
   });
   it("restricts CSP connections to the configured origin and secure websocket", () => {
     expect(mobileConnectSources("https://project.supabase.co")).toBe(

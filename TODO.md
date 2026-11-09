@@ -291,7 +291,6 @@
 - [x] tests
 - [x] build
 
-
 ## Milestone 30 - Stability, Security & Design Consistency 🚧
 
 - [x] بررسی مجدد مجوز RPCهای `SECURITY DEFINER` در پروژه واقعی
@@ -312,6 +311,5 @@
 - [ ] بررسی کامل RLS و Realtime دوکاربره
 - [x] اجرای کامل CI روی commit فعلی: migrations/RLS، typecheck، lint، تست‌ها، build، HTTP E2E و bundle budget همگی سبز
 - [ ] مرور نهایی Storage و سیاست‌های فایل
-
 
 - آخرین بازبینی: CI نهایی باید روی آخرین commit پس از تغییرات صفحات اجرا شود؛ تست دوحسابی و تنظیم Auth Dashboard به‌صورت دستی باقی می‌مانند.

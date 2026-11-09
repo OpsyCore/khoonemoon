@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { ReminderRecord } from "@/features/reminders/types";
+import {
+  REMINDER_TARGET_LABELS,
+  type ReminderRecord,
+} from "@/features/reminders/types";
 import { Button } from "@/shared/ui/button";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -75,14 +78,7 @@ export function UpcomingReminders({
                 className="rounded-2xl border border-line p-3"
               >
                 <p className="text-sm font-semibold">
-                  {
-                    {
-                      TASK: "یادآور تسک",
-                      EVENT: "یادآور رویداد",
-                      CHORE: "یادآور کار خانه",
-                      BILL: "یادآور قبض",
-                    }[reminder.target_type]
-                  }
+                  یادآور {REMINDER_TARGET_LABELS[reminder.target_type]}
                 </p>
                 <p className="text-xs text-muted">
                   {formatJalaliLongDate(d)} - {formatPersianTime(d)}

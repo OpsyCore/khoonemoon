@@ -32,16 +32,14 @@ describe("standalone search", () => {
 
 describe("filtered standalone search", () => {
   it("passes kind, time window and page to the RLS-aware RPC", async () => {
-    const rpc = vi
-      .fn()
-      .mockResolvedValue({
-        data: {
-          results: [{ kind: "task", entity_id: "a", title: "x" }],
-          counts: { task: 56 },
-          total: 56,
-        },
-        error: null,
-      });
+    const rpc = vi.fn().mockResolvedValue({
+      data: {
+        results: [{ kind: "task", entity_id: "a", title: "x" }],
+        counts: { task: 56 },
+        total: 56,
+      },
+      error: null,
+    });
     const result = await searchWorkspaceFiltered(
       { rpc } as unknown as SupabaseClient,
       " test ",

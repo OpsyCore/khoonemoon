@@ -20,8 +20,12 @@ const exportTables = [
   "shopping_lists",
   "shopping_items",
   "financial_records",
+  "meal_plans",
   "documents",
   "document_attachments",
+  "document_renewals",
+  "home_appliances",
+  "appliance_maintenance_logs",
 ];
 function snapshot(overrides: Record<string, unknown[]> = {}) {
   const tables = Object.fromEntries(
@@ -98,7 +102,7 @@ describe("mobile archive", () => {
     expect(archive.tables.documents).toEqual([]);
     expect(archive.note).toContain("فایل‌های مدارک");
     expect(ranges).toHaveLength(0);
-    expect(rpc).toHaveBeenCalledWith("mobile_export_snapshot");
+    expect(rpc).toHaveBeenCalledWith("mobile_export_snapshot_v3");
     expect(archive.tables.profiles).toEqual([]);
     expect(archive.tables.households).toEqual([]);
     expect(archive.tables.household_members).toEqual([]);

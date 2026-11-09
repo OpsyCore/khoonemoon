@@ -1,10 +1,10 @@
 .settings-ref {
-  --st-card: #faf8f2;
-  --st-line: #e4e1d6;
-  --st-text: #292e24;
-  --st-muted: #85867c;
-  --st-olive: #76805a;
-  --st-icon: #eeede3;
+  --st-card: var(--card);
+  --st-line: var(--line);
+  --st-text: var(--ink);
+  --st-muted: var(--muted-text);
+  --st-olive: var(--olive-ink);
+  --st-icon: var(--olive-soft);
   max-width: 720px;
   margin: auto;
   padding: 0 4px 32px;
@@ -22,13 +22,13 @@
 }
 .settings-ref-header h1 {
   font-size: clamp(30px, 6vw, 42px);
-  color: #44512d;
+  color: #414725;
   font-weight: 800;
   margin: 8px 0 4px;
   position: relative;
 }
 .settings-ref-header p {
-  color: #84867a;
+  color: var(--muted-text);
   font-size: 14px;
   margin: 0;
   position: relative;
@@ -38,8 +38,8 @@
   width: 170px;
   height: 170px;
   border-radius: 50%;
-  background: #ce907a;
-  opacity: 0.8;
+  background: var(--clay);
+  opacity: 1;
   left: 45px;
   top: 62px;
 }
@@ -348,4 +348,16 @@
   .settings-ref .settings-ref-themes button {
     font-size: 11px;
   }
+}
+
+/* The global button fill must not make the unselected themes look selected. */
+:root .settings-ref .settings-ref-themes button[aria-pressed="false"] {
+  background: var(--sunken);
+  border-color: var(--st-line);
+  color: var(--st-text);
+}
+:root .settings-ref .settings-ref-themes button[aria-pressed="true"] {
+  background: var(--olive-soft);
+  border-color: var(--olive-ink);
+  color: var(--olive-ink);
 }

@@ -99,3 +99,12 @@ describe("reminder calculations", () => {
     ).toBe(false);
   });
 });
+
+it("creates each distinct reminder offset once", () => {
+  expect(
+    buildReminderTimes({
+      baseDateTime: "2026-01-31T12:00:00Z",
+      offsetsMinutes: [10080, 1440, 10080],
+    }),
+  ).toEqual(["2026-01-24T12:00:00.000Z", "2026-01-30T12:00:00.000Z"]);
+});

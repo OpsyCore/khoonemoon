@@ -22,6 +22,11 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { directCalendar } from "@/features/calendar/direct-client";
 import { eventDays } from "@/features/calendar/event-days";
+import {
+  OCCASION_LABELS,
+  projectCalendarEvents,
+} from "@/features/calendar/occasions";
+import type { EventRecord } from "@/features/calendar/types";
 import { directTasks } from "@/features/tasks/direct-client";
 import { directChores } from "@/features/chores/direct-client";
 import {
@@ -30,7 +35,6 @@ import {
 } from "@/features/chores/calendar-projection";
 import type { TaskRecord } from "@/features/tasks/types";
 import type { ChoreRecord } from "@/features/chores/types";
-import type { EventRecord } from "@/features/calendar/types";
 import {
   formatJalaliDayNumber,
   formatJalaliLongDate,
@@ -75,11 +79,15 @@ export function CalendarEvents({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [calendarError, setCalendarError] = useState("");
+  const [completionNeedsRefresh, setCompletionNeedsRefresh] = useState(false);
+  const completionEpoch = useRef(0);
+  const completionInFlight = useRef(false);
   const [loading, setLoading] = useState(true);
   const [loadVersion, setLoadVersion] = useState(0);
 
   useEffect(() => {
     let active = true;
+    const epoch = completionEpoch.current;
     void Promise.all([
       api.list(),
       directTasks(client).list(),
@@ -95,6 +103,8 @@ export function CalendarEvents({
         setBills(financialRows);
         setChores(choreRows);
         setCalendarError("");
+        if (epoch === completionEpoch.current && !completionInFlight.current)
+          setCompletionNeedsRefresh(false);
         setLoading(false);
       })
       .catch(() => {
@@ -122,6 +132,41 @@ export function CalendarEvents({
       window.removeEventListener("khoonemoon:schedule-changed", refresh);
   }, []);
 
+  // Match the web calendar: invalidate the visible snapshot when any source
+  // changes. RLS still determines what the subsequent queries can read.
+  useEffect(() => {
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refresh = () => {
+      if (!active || timer) return;
+      timer = setTimeout(() => {
+        timer = undefined;
+        if (active) setLoadVersion((n) => n + 1);
+      }, 200);
+    };
+    const channel = client.channel(
+      `mobile-calendar-${householdId ?? "private"}`,
+    );
+    for (const table of ["events", "tasks", "chores", "financial_records"]) {
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table },
+        refresh,
+      );
+    }
+    channel.subscribe();
+    const foreground = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", foreground);
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", foreground);
+      void client.removeChannel(channel);
+    };
+  }, [client, householdId]);
+
   const calendarItems = useMemo(() => {
     const first =
       view === "month"
@@ -140,7 +185,7 @@ export function CalendarEvents({
       end.getDate() + (view === "month" ? 1 : view === "week" ? 7 : 90),
     );
     end.setHours(0, 0, 0, 0);
-    const eventItems = events.flatMap((e) =>
+    const eventItems = projectCalendarEvents(events, first, end).flatMap((e) =>
       eventDays(e.start_at, e.end_at, first, end).map((date) => ({
         key: `event-${e.id}-${date.toISOString()}`,
         id: e.id,
@@ -148,7 +193,13 @@ export function CalendarEvents({
         date,
         end: new Date(e.end_at),
         kind: "event" as const,
-        projected: false,
+        projected: Boolean(e.occurrenceYear),
+        occurrenceYear: e.occurrenceYear,
+        yearsElapsed: e.yearsElapsed,
+        leapAdjusted: e.leapAdjusted,
+        occasionType: e.occasion_type ?? null,
+        giftIdea: e.gift_idea ?? null,
+        occasionPlan: e.occasion_plan ?? null,
         location: e.location,
         shared: e.visibility === "HOUSEHOLD_SHARED",
         allDay: e.all_day,
@@ -164,6 +215,12 @@ export function CalendarEvents({
         end: null,
         kind: "task" as const,
         projected: false,
+        occurrenceYear: undefined,
+        yearsElapsed: undefined,
+        leapAdjusted: false,
+        occasionType: null,
+        giftIdea: null,
+        occasionPlan: null,
         location: null,
         shared: t.visibility === "HOUSEHOLD_SHARED",
         allDay: false,
@@ -180,6 +237,12 @@ export function CalendarEvents({
             end: null,
             kind: "chore" as const,
             projected: !current,
+            occurrenceYear: undefined,
+            yearsElapsed: undefined,
+            leapAdjusted: false,
+            occasionType: null,
+            giftIdea: null,
+            occasionPlan: null,
             location: null,
             shared: true,
             allDay: false,
@@ -202,6 +265,12 @@ export function CalendarEvents({
         end: null,
         kind: "bill" as const,
         projected: false,
+        occurrenceYear: undefined,
+        yearsElapsed: undefined,
+        leapAdjusted: false,
+        occasionType: null,
+        giftIdea: null,
+        occasionPlan: null,
         location: null,
         shared: record.visibility === "HOUSEHOLD_SHARED",
         allDay: false,
@@ -329,6 +398,35 @@ export function CalendarEvents({
     setShared(event.visibility === "HOUSEHOLD_SHARED");
     setMessage("");
     setFormOpen(true);
+  }
+  async function completeChore(id: string) {
+    if (busy || loading || completionNeedsRefresh) return;
+    const revision = chores.find(
+      (chore) => chore.id === id,
+    )?.completion_revision;
+    if (typeof revision !== "number") {
+      setMessage("نتیجه ثبت انجام مشخص نیست؛ تقویم را تازه کنید.");
+      setCompletionNeedsRefresh(true);
+      return;
+    }
+    if (!window.confirm("انجام این کار خانه ثبت شود؟")) return;
+    completionEpoch.current += 1;
+    completionInFlight.current = true;
+    setBusy(true);
+    setMessage("");
+    setCompletionNeedsRefresh(true);
+    try {
+      await directChores(client).completeVersion(id, revision);
+      completionInFlight.current = false;
+      setLoading(true);
+      setLoadVersion((n) => n + 1);
+      window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
+    } catch {
+      setMessage("نتیجه ثبت انجام مشخص نیست؛ تقویم را تازه کنید.");
+    } finally {
+      completionInFlight.current = false;
+      setBusy(false);
+    }
   }
   async function remove(id: string) {
     setBusy(true);
@@ -569,10 +667,25 @@ export function CalendarEvents({
                     <div className="calendar-item-text">
                       <strong>{item.title}</strong>
                       <span>
-                        {labels[item.kind]}
-                        {item.projected ? " · تخمینی" : ""} ·{" "}
-                        {item.shared ? "مشترک" : "شخصی"}
+                        {item.occasionType
+                          ? OCCASION_LABELS[item.occasionType]
+                          : labels[item.kind]}
+                        {item.yearsElapsed
+                          ? ` · ${item.yearsElapsed.toLocaleString("fa-IR")} سال`
+                          : item.projected
+                            ? item.kind === "chore"
+                              ? " · تخمینی"
+                              : " · سالانه"
+                            : ""}{" "}
+                        · {item.shared ? "مشترک" : "شخصی"}
                       </span>
+                      {item.leapAdjusted && (
+                        <small>تنظیم خودکار ۳۰ اسفند به ۲۹ اسفند</small>
+                      )}
+                      {item.giftIdea && <small>هدیه: {item.giftIdea}</small>}
+                      {item.occasionPlan && (
+                        <small>برنامه: {item.occasionPlan}</small>
+                      )}
                     </div>
                   </div>
                   <div className="calendar-agenda-meta">
@@ -610,8 +723,68 @@ export function CalendarEvents({
                         {item.location}
                       </small>
                     )}
+                    {item.kind === "chore" && !item.projected && (
+                      <button
+                        className="calendar-chore-complete"
+                        type="button"
+                        disabled={busy || loading || completionNeedsRefresh}
+                        onClick={() => void completeChore(item.id)}
+                      >
+                        ثبت انجام
+                      </button>
+                    )}
                     {event && (
                       <div className="calendar-item-actions">
+                        {event.occasion_type && (
+                          <button
+                            type="button"
+                            className="calendar-chore-complete"
+                            disabled={busy || loading}
+                            onClick={() => {
+                              setBusy(true);
+                              setMessage("");
+                              void directTasks(client)
+                                .create({
+                                  title: `تدارکات ${event.title}`,
+                                  description: [
+                                    event.gift_idea
+                                      ? `هدیه: ${event.gift_idea}`
+                                      : "",
+                                    event.occasion_plan
+                                      ? `برنامه: ${event.occasion_plan}`
+                                      : "",
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" | "),
+                                  visibility: event.visibility,
+                                  priority: "HIGH",
+                                  status: "PENDING",
+                                  dueAt: item.date.toISOString(),
+                                  assigneeIds: [],
+                                  recurrence: { frequency: "NONE" },
+                                  sourceEventId: event.id,
+                                  sourceOccurrenceYear:
+                                    item.occurrenceYear ?? null,
+                                })
+                                .then(() => {
+                                  window.dispatchEvent(
+                                    new Event("khoonemoon:schedule-changed"),
+                                  );
+                                  setMessage("تسک تدارکات مناسبت ثبت شد.");
+                                })
+                                .catch((err) =>
+                                  setMessage(
+                                    err instanceof Error
+                                      ? err.message
+                                      : "ثبت تسک از مناسبت ناموفق بود.",
+                                  ),
+                                )
+                                .finally(() => setBusy(false));
+                            }}
+                          >
+                            ساخت تسک
+                          </button>
+                        )}
                         <button
                           type="button"
                           aria-label={`ویرایش ${event.title}`}

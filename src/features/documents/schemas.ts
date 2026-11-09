@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  DOCUMENT_CATEGORIES,
   DOCUMENT_ENTITY_TYPES,
   DOCUMENT_MAX_BYTES,
   DOCUMENT_MIME_TYPES,
@@ -7,8 +8,13 @@ import {
 } from "@/features/documents/types";
 
 export const documentVisibilitySchema = z.enum(DOCUMENT_VISIBILITIES);
+export const documentCategorySchema = z.enum(DOCUMENT_CATEGORIES);
 export const documentEntityTypeSchema = z.enum(DOCUMENT_ENTITY_TYPES);
 export const documentMimeTypeSchema = z.enum(DOCUMENT_MIME_TYPES);
+
+const isoDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "تاریخ معتبر نیست.");
 
 export const documentTitleSchema = z
   .string()
@@ -21,6 +27,34 @@ export const documentDescriptionSchema = z
   .trim()
   .max(1000, "توضیحات نمی‌تواند بیشتر از ۱۰۰۰ کاراکتر باشد.")
   .nullable();
+
+export const documentExpiryMetaSchema = z
+  .object({
+    issuedAt: isoDateSchema.nullable().optional(),
+    expiresAt: isoDateSchema.nullable().optional(),
+    issuer: z
+      .string()
+      .trim()
+      .max(180, "نام مرجع صادرکننده بیش از حد طولانی است.")
+      .nullable()
+      .optional(),
+    referenceCode: z
+      .string()
+      .trim()
+      .max(120, "شماره مرجع بیش از حد طولانی است.")
+      .nullable()
+      .optional(),
+    renewalRequired: z.boolean().optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.issuedAt && v.expiresAt && v.expiresAt < v.issuedAt) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["expiresAt"],
+        message: "تاریخ انقضا نمی‌تواند قبل از تاریخ صدور باشد.",
+      });
+    }
+  });
 
 export const createDocumentMetaSchema = z
   .object({

@@ -26,9 +26,10 @@ describe("reminder dispatch concurrency", () => {
       created_at: "2020-01-01T00:00:00Z",
       updated_at: "2020-01-01T00:00:00Z",
     };
-    const comparisons: [string, unknown][] = [];
+    const claim = vi.fn(async () => ({ data: false, error: null }));
     let dueFilter = "";
     const supabase = {
+      rpc: claim,
       from(table: string) {
         let updating = false;
         const query = {
@@ -50,7 +51,9 @@ describe("reminder dispatch concurrency", () => {
             return query;
           },
           eq(key: string, value: unknown) {
-            if (updating) comparisons.push([key, value]);
+            void key;
+            void value;
+            void updating;
             return query;
           },
           in() {
@@ -82,8 +85,11 @@ describe("reminder dispatch concurrency", () => {
     expect(response.status).toBe(200);
     expect(body.dispatched).toBe(0);
     expect(body.notifications).toEqual([]);
-    expect(comparisons).toContainEqual(["updated_at", row.updated_at]);
-    expect(comparisons).toContainEqual(["status", "PENDING"]);
+    expect(claim).toHaveBeenCalledWith("claim_own_authorized_reminder", {
+      p_id: row.id,
+      p_status: "PENDING",
+      p_updated: row.updated_at,
+    });
     expect(dueFilter).toContain("snoozed_until.lte.");
   });
 });

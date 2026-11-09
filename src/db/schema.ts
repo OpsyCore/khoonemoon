@@ -1,12 +1,16 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
+  date,
   foreignKey,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgSchema,
   pgTable,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -59,6 +63,15 @@ export const eventVisibilityEnum = pgEnum("event_visibility", [
 export const reminderTargetTypeEnum = pgEnum("reminder_target_type", [
   "TASK",
   "EVENT",
+  "CHORE",
+  "BILL",
+  "DOCUMENT",
+  "APPLIANCE",
+  "MEAL",
+]);
+export const documentVisibilityEnum = pgEnum("document_visibility", [
+  "PRIVATE",
+  "HOUSEHOLD_SHARED",
 ]);
 export const reminderStatusEnum = pgEnum("reminder_status", [
   "PENDING",
@@ -205,6 +218,11 @@ export const tasks = pgTable(
     dueAt: timestamp("due_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    taskKind: text("task_kind").notNull().default("GENERAL"),
+    cleaningZone: text("cleaning_zone"),
+    cleaningChecklist: jsonb("cleaning_checklist").notNull().default([]),
+    sourceEventId: uuid("source_event_id"),
+    sourceOccurrenceYear: smallint("source_occurrence_year"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -313,6 +331,12 @@ export const events = pgTable(
     endAt: timestamp("end_at", { withTimezone: true }).notNull(),
     allDay: boolean("all_day").notNull().default(false),
     location: text("location"),
+    occasionType: text("occasion_type"),
+    recurrenceCalendar: text("recurrence_calendar"),
+    jalaliMonth: smallint("jalali_month"),
+    jalaliDay: smallint("jalali_day"),
+    giftIdea: text("gift_idea"),
+    occasionPlan: text("occasion_plan"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -405,6 +429,79 @@ export const notificationPreferences = pgTable(
       name: "notification_preferences_user_id_auth_users_fk",
     }).onDelete("cascade"),
     uniqueIndex("notification_preferences_user_uniq").on(table.userId),
+  ],
+);
+
+export const homeAppliances = pgTable(
+  "home_appliances",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    householdId: uuid("household_id"),
+    ownerId: uuid("owner_id").notNull(),
+    createdBy: uuid("created_by").notNull(),
+    visibility: documentVisibilityEnum("visibility")
+      .notNull()
+      .default("HOUSEHOLD_SHARED"),
+    name: text("name").notNull(),
+    applianceGroup: text("appliance_group").notNull().default("APPLIANCE"),
+    brand: text("brand"),
+    model: text("model"),
+    serialNumber: text("serial_number"),
+    purchasedOn: date("purchased_on"),
+    warrantyUntil: date("warranty_until"),
+    lastServiceOn: date("last_service_on"),
+    nextServiceAt: timestamp("next_service_at", { withTimezone: true }),
+    serviceIntervalDays: integer("service_interval_days"),
+    recurrenceTimezone: text("recurrence_timezone")
+      .notNull()
+      .default("Asia/Tehran"),
+    assigneeId: uuid("assignee_id"),
+    notes: text("notes"),
+    serviceRevision: integer("service_revision").notNull().default(0),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.householdId],
+      foreignColumns: [households.id],
+      name: "home_appliances_household_id_households_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const applianceMaintenanceLogs = pgTable(
+  "appliance_maintenance_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    applianceId: uuid("appliance_id").notNull(),
+    performedBy: uuid("performed_by").notNull(),
+    kind: text("kind").notNull().default("SERVICE"),
+    title: text("title").notNull(),
+    performedOn: date("performed_on").notNull(),
+    costAmount: bigint("cost_amount", { mode: "number" }),
+    technicianName: text("technician_name"),
+    technicianContact: text("technician_contact"),
+    financialRecordId: uuid("financial_record_id"),
+    documentId: uuid("document_id"),
+    notes: text("notes"),
+    nextServiceAt: timestamp("next_service_at", { withTimezone: true }),
+    requestId: uuid("request_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.applianceId],
+      foreignColumns: [homeAppliances.id],
+      name: "appliance_maintenance_logs_appliance_id_fk",
+    }).onDelete("cascade"),
   ],
 );
 

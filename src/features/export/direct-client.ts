@@ -16,12 +16,12 @@ const TABLES: Record<string, string> = {
   task_recurrence_instances: "completed_task_id,next_task_id,created_at",
   finance_recurrence_instances: "paid_record_id,next_record_id,created_at",
   tasks:
-    "id,title,description,creator_id,owner_id,household_id,visibility,status,priority,due_at,completed_at,archived_at,created_at,updated_at",
+    "id,title,description,creator_id,owner_id,household_id,visibility,status,priority,due_at,completed_at,archived_at,task_kind,cleaning_zone,cleaning_checklist,source_event_id,source_occurrence_year,created_at,updated_at",
   task_assignees: "id,task_id,assignee_id,created_at",
   task_recurrences:
     "id,task_id,frequency,interval_days,weekdays,next_occurrence_at,recurrence_timezone,created_at,updated_at",
   events:
-    "id,title,description,creator_id,owner_id,household_id,visibility,start_at,end_at,all_day,location,created_at,updated_at",
+    "id,title,description,creator_id,owner_id,household_id,visibility,start_at,end_at,all_day,location,occasion_type,recurrence_calendar,jalali_month,jalali_day,gift_idea,occasion_plan,created_at,updated_at",
   reminders:
     "id,target_type,target_id,user_id,household_id,remind_at,status,snoozed_until,snooze_count,delivered_at,created_at,updated_at",
   notification_preferences:
@@ -37,10 +37,18 @@ const TABLES: Record<string, string> = {
     "id,list_id,name,quantity,unit,category,note,added_by,purchased,purchased_by,purchased_at,position,created_at,updated_at",
   financial_records:
     "id,household_id,owner_id,created_by,visibility,record_type,title,amount,currency,category,note,occurred_at,due_at,bill_status,is_recurring,recurrence_rule,recurrence_timezone,paid_by,paid_at,archived_at,created_at,updated_at",
+  meal_plans:
+    "id,household_id,created_by,meal_date,meal_type,title,minutes,assignee,ingredients,image_choice,created_at,updated_at",
   documents:
-    "id,household_id,created_by,title,description,visibility,category,mime_type,file_size,storage_path,created_at,updated_at",
+    "id,household_id,created_by,title,description,visibility,category,mime_type,file_size,storage_path,issued_at,expires_at,issuer,reference_code,renewal_required,created_at,updated_at",
   document_attachments:
     "id,document_id,entity_type,entity_id,created_by,created_at",
+  document_renewals:
+    "id,document_id,renewed_by,previous_expires_at,new_expires_at,renewed_at,note,replacement_document_id,request_id,created_at",
+  home_appliances:
+    "id,household_id,owner_id,created_by,visibility,name,appliance_group,brand,model,serial_number,purchased_on,warranty_until,last_service_on,next_service_at,service_interval_days,recurrence_timezone,assignee_id,notes,service_revision,archived_at,created_at,updated_at",
+  appliance_maintenance_logs:
+    "id,appliance_id,performed_by,kind,title,performed_on,cost_amount,technician_name,technician_contact,financial_record_id,document_id,notes,next_service_at,request_id,created_at",
 };
 
 const SORT_KEYS: Record<string, string> = {
@@ -91,7 +99,7 @@ async function readSnapshot(
   };
 }> {
   const response = await client.rpc(
-    signed ? "mobile_signed_export_snapshot" : "mobile_export_snapshot",
+    signed ? "mobile_signed_export_snapshot_v3" : "mobile_export_snapshot_v3",
   );
   const error = response.error;
   const signedData = signed ? response.data : undefined;

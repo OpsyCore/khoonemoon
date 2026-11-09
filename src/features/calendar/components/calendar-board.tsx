@@ -28,6 +28,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { eventOverlaps } from "@/features/calendar/event-days";
+import { projectCalendarEvents } from "@/features/calendar/occasions";
+import {
+  OCCASION_LABELS,
+  type CalendarView,
+  type EventRecord,
+  type OccasionType,
+} from "@/features/calendar/types";
+import { directTasks } from "@/features/tasks/direct-client";
 import type { FinancialRecord } from "@/features/finance/types";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -38,7 +46,6 @@ import {
   createEventSchema,
   type CreateEventInput,
 } from "@/features/calendar/schemas";
-import type { CalendarView, EventRecord } from "@/features/calendar/types";
 import type { TaskRecord } from "@/features/tasks/types";
 import { Button } from "@/shared/ui/button";
 import { Card, CardTitle } from "@/shared/ui/card";
@@ -65,6 +72,11 @@ type CalendarItem = {
   allDay?: boolean;
   status?: string;
   projected?: boolean;
+  occasionType?: OccasionType | null;
+  occurrenceYear?: number;
+  leapAdjusted?: boolean;
+  giftIdea?: string | null;
+  occasionPlan?: string | null;
 };
 
 function toDateTimeLocal(iso: string) {
@@ -165,33 +177,6 @@ export function CalendarBoard({
         };
       });
 
-    const eventItems: CalendarItem[] = events.map((event) => ({
-      id: event.id,
-      title: event.title,
-      startAt: new Date(event.start_at),
-      endAt: new Date(event.end_at),
-      type: "EVENT",
-      location: event.location,
-      allDay: event.all_day,
-    }));
-    const billItems: CalendarItem[] = bills
-      .filter(
-        (bill) =>
-          bill.due_at &&
-          ["BILL", "SUBSCRIPTION", "INSTALLMENT", "DEBT"].includes(
-            bill.record_type,
-          ),
-      )
-      .map((bill) => ({
-        id: bill.id,
-        title: bill.title,
-        startAt: new Date(bill.due_at!),
-        endAt: new Date(bill.due_at!),
-        type: "BILL",
-      }));
-
-    // Limit projected occurrences to the displayed month/week, or 90 days in
-    // agenda. Future dates are estimates, never additional completed records.
     const grid = getMonthGrid(cursorDate);
     const from =
       view === "month"
@@ -208,6 +193,41 @@ export function CalendarBoard({
     if (view === "month") to.setDate(to.getDate() + 1);
     else to.setDate(to.getDate() + (view === "week" ? 7 : 91));
     to.setHours(0, 0, 0, 0);
+
+    const eventItems: CalendarItem[] = projectCalendarEvents(
+      events,
+      from,
+      to,
+    ).map((event) => ({
+      id: event.id,
+      title: event.title,
+      startAt: new Date(event.start_at),
+      endAt: new Date(event.end_at),
+      type: "EVENT",
+      location: event.location,
+      allDay: event.all_day,
+      projected: Boolean(event.occurrenceYear),
+      occasionType: event.occasion_type ?? null,
+      occurrenceYear: event.occurrenceYear,
+      leapAdjusted: event.leapAdjusted,
+      giftIdea: event.gift_idea ?? null,
+      occasionPlan: event.occasion_plan ?? null,
+    }));
+    const billItems: CalendarItem[] = bills
+      .filter(
+        (bill) =>
+          bill.due_at &&
+          ["BILL", "SUBSCRIPTION", "INSTALLMENT", "DEBT"].includes(
+            bill.record_type,
+          ),
+      )
+      .map((bill) => ({
+        id: bill.id,
+        title: bill.title,
+        startAt: new Date(bill.due_at!),
+        endAt: new Date(bill.due_at!),
+        type: "BILL",
+      }));
     const choreItems: CalendarItem[] = chores.flatMap((chore) =>
       projectChoreDates(chore, from, to).map(({ due, current }) => ({
         id: chore.id,
@@ -656,7 +676,26 @@ export function CalendarBoard({
                     </span>
                     <div>
                       <strong>{item.title}</strong>
-                      <p>{itemType(item)}</p>
+                      <p>
+                        {item.occasionType
+                          ? OCCASION_LABELS[item.occasionType]
+                          : itemType(item)}
+                      </p>
+                      {item.leapAdjusted && (
+                        <small className="block text-xs">
+                          تنظیم خودکار ۳۰ اسفند به ۲۹ اسفند
+                        </small>
+                      )}
+                      {item.giftIdea && (
+                        <small className="block text-xs">
+                          هدیه: {item.giftIdea}
+                        </small>
+                      )}
+                      {item.occasionPlan && (
+                        <small className="block text-xs">
+                          برنامه: {item.occasionPlan}
+                        </small>
+                      )}
                     </div>
                   </div>
                   <div className="web-calendar-item-meta">
@@ -689,6 +728,46 @@ export function CalendarBoard({
                     {choreButton(item)}
                     {event && (
                       <div className="web-calendar-actions">
+                        {event.occasion_type && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void directTasks(supabase)
+                                .create({
+                                  title: `تدارکات ${event.title}`,
+                                  description: [
+                                    event.gift_idea
+                                      ? `هدیه: ${event.gift_idea}`
+                                      : "",
+                                    event.occasion_plan
+                                      ? `برنامه: ${event.occasion_plan}`
+                                      : "",
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" | "),
+                                  visibility: event.visibility,
+                                  priority: "HIGH",
+                                  status: "PENDING",
+                                  dueAt: item.startAt.toISOString(),
+                                  assigneeIds: [],
+                                  recurrence: { frequency: "NONE" },
+                                  sourceEventId: event.id,
+                                  sourceOccurrenceYear:
+                                    item.occurrenceYear ?? null,
+                                })
+                                .then(() => router.refresh())
+                                .catch((err) =>
+                                  setErrorMessage(
+                                    err instanceof Error
+                                      ? err.message
+                                      : "ثبت تسک از مناسبت ناموفق بود.",
+                                  ),
+                                );
+                            }}
+                          >
+                            ساخت تسک
+                          </button>
+                        )}
                         <button
                           type="button"
                           aria-label={`ویرایش ${event.title}`}

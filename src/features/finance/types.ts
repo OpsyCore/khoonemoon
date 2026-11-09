@@ -1,10 +1,5 @@
 export type FinancialRecordType =
-  | "EXPENSE"
-  | "INCOME"
-  | "BILL"
-  | "SUBSCRIPTION"
-  | "INSTALLMENT"
-  | "DEBT";
+  "EXPENSE" | "INCOME" | "BILL" | "SUBSCRIPTION" | "INSTALLMENT" | "DEBT";
 
 export type BillStatus = "UPCOMING" | "DUE" | "PAID" | "OVERDUE";
 export type FinancialVisibility = "PRIVATE" | "HOUSEHOLD_SHARED";

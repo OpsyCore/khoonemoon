@@ -100,7 +100,9 @@ describe("toSearchParams", () => {
 
 describe("matchesFilters", () => {
   it("accepts everything when no filters are set", () => {
-    expect(matchesFilters({ result: result(), filters: ALL, now: NOW })).toBe(true);
+    expect(matchesFilters({ result: result(), filters: ALL, now: NOW })).toBe(
+      true,
+    );
   });
 
   it("filters by kind", () => {
@@ -110,7 +112,11 @@ describe("matchesFilters", () => {
       matchesFilters({ result: result({ kind: "task" }), filters, now: NOW }),
     ).toBe(false);
     expect(
-      matchesFilters({ result: result({ kind: "finance" }), filters, now: NOW }),
+      matchesFilters({
+        result: result({ kind: "finance" }),
+        filters,
+        now: NOW,
+      }),
     ).toBe(true);
   });
 
@@ -138,7 +144,11 @@ describe("matchesFilters", () => {
     const year: SearchFilters = { kinds: [], range: "YEAR" };
 
     expect(
-      matchesFilters({ result: result({ happened_at: null }), filters: year, now: NOW }),
+      matchesFilters({
+        result: result({ happened_at: null }),
+        filters: year,
+        now: NOW,
+      }),
     ).toBe(true);
     expect(
       matchesFilters({
@@ -166,14 +176,20 @@ describe("matchesFilters", () => {
 
     expect(
       matchesFilters({
-        result: result({ kind: "finance", happened_at: "2026-09-01T09:00:00.000Z" }),
+        result: result({
+          kind: "finance",
+          happened_at: "2026-09-01T09:00:00.000Z",
+        }),
         filters,
         now: NOW,
       }),
     ).toBe(false);
     expect(
       matchesFilters({
-        result: result({ kind: "finance", happened_at: "2026-10-28T09:00:00.000Z" }),
+        result: result({
+          kind: "finance",
+          happened_at: "2026-10-28T09:00:00.000Z",
+        }),
         filters,
         now: NOW,
       }),
@@ -274,7 +290,10 @@ describe("toggleKind", () => {
 
   it("removes a kind", () => {
     expect(
-      toggleKind({ filters: { kinds: ["task", "finance"], range: "ANY" }, kind: "task" }),
+      toggleKind({
+        filters: { kinds: ["task", "finance"], range: "ANY" },
+        kind: "task",
+      }),
     ).toEqual({ kinds: ["finance"], range: "ANY" });
   });
 

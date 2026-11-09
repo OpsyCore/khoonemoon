@@ -24,7 +24,8 @@ export async function PATCH(
   if (parsed.data.title !== undefined) patch.title = parsed.data.title;
   if (parsed.data.description !== undefined)
     patch.description = parsed.data.description;
-  if (parsed.data.isActive !== undefined) patch.is_active = parsed.data.isActive;
+  if (parsed.data.isActive !== undefined)
+    patch.is_active = parsed.data.isActive;
   if (parsed.data.frequency !== undefined)
     patch.frequency = parsed.data.frequency;
   if (parsed.data.intervalDays !== undefined)
@@ -40,10 +41,7 @@ export async function PATCH(
   }
 
   if (Object.keys(patch).length > 0) {
-    const { error } = await supabase
-      .from("chores")
-      .update(patch)
-      .eq("id", id);
+    const { error } = await supabase.from("chores").update(patch).eq("id", id);
 
     if (error) return serverError("به‌روزرسانی کار خانه ناموفق بود.");
   }

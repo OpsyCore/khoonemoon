@@ -16,7 +16,9 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("shopping_lists")
-    .select("id, household_id, name, created_by, archived_at, created_at, updated_at")
+    .select(
+      "id, household_id, name, created_by, archived_at, created_at, updated_at",
+    )
     .eq("household_id", householdId)
     .is("archived_at", null)
     .order("created_at", { ascending: true });
@@ -45,7 +47,9 @@ export async function POST(request: Request) {
       name: parsed.data.name,
       created_by: userId,
     })
-    .select("id, household_id, name, created_by, archived_at, created_at, updated_at")
+    .select(
+      "id, household_id, name, created_by, archived_at, created_at, updated_at",
+    )
     .single();
 
   if (error || !data) return serverError("ایجاد لیست خرید ناموفق بود.");

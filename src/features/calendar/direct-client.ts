@@ -4,7 +4,7 @@ import { createEventSchema } from "./schemas";
 import type { EventRecord } from "./types";
 
 const COLUMNS =
-  "id, title, description, creator_id, owner_id, household_id, visibility, start_at, end_at, all_day, location, created_at, updated_at";
+  "id, title, description, creator_id, owner_id, household_id, visibility, start_at, end_at, all_day, location, occasion_type, recurrence_calendar, jalali_month, jalali_day, gift_idea, occasion_plan, created_at, updated_at";
 
 /** Direct user-scoped transport; RLS on events enforces access. */
 export function directCalendar(client: SupabaseClient) {
@@ -45,6 +45,7 @@ export function directCalendar(client: SupabaseClient) {
           throw new Error("برای رویداد اشتراکی باید عضو خانه باشید.");
         householdId = membership.household_id;
       }
+      const yearly = event.recurrenceCalendar === "JALALI_YEARLY";
       return pendingCreate<EventRecord>({
         user: auth.user.id,
         kind: "calendar",
@@ -65,6 +66,19 @@ export function directCalendar(client: SupabaseClient) {
               end_at: event.endAt,
               all_day: event.allDay,
               location: event.location || null,
+              ...(event.occasionType !== undefined ||
+              yearly ||
+              event.giftIdea ||
+              event.occasionPlan
+                ? {
+                    occasion_type: event.occasionType ?? null,
+                    recurrence_calendar: yearly ? "JALALI_YEARLY" : null,
+                    jalali_month: yearly ? (event.jalaliMonth ?? null) : null,
+                    jalali_day: yearly ? (event.jalaliDay ?? null) : null,
+                    gift_idea: event.giftIdea || null,
+                    occasion_plan: event.occasionPlan || null,
+                  }
+                : {}),
             })
             .select(COLUMNS)
             .single(),
@@ -88,6 +102,7 @@ export function directCalendar(client: SupabaseClient) {
           throw new Error("برای رویداد اشتراکی باید عضو خانه باشید.");
         householdId = data.household_id;
       }
+      const yearly = event.recurrenceCalendar === "JALALI_YEARLY";
       const { data, error } = await client
         .from("events")
         .update({
@@ -99,6 +114,19 @@ export function directCalendar(client: SupabaseClient) {
           end_at: event.endAt,
           all_day: event.allDay,
           location: event.location || null,
+          ...(event.occasionType !== undefined ||
+          event.recurrenceCalendar !== undefined ||
+          event.giftIdea !== undefined ||
+          event.occasionPlan !== undefined
+            ? {
+                occasion_type: event.occasionType ?? null,
+                recurrence_calendar: yearly ? "JALALI_YEARLY" : null,
+                jalali_month: yearly ? (event.jalaliMonth ?? null) : null,
+                jalali_day: yearly ? (event.jalaliDay ?? null) : null,
+                gift_idea: event.giftIdea || null,
+                occasion_plan: event.occasionPlan || null,
+              }
+            : {}),
         })
         .eq("id", id)
         .select(COLUMNS)

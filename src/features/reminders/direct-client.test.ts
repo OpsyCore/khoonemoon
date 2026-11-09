@@ -257,3 +257,33 @@ describe("task reminder creation retry", () => {
     expect(second.id).toBe(first.id);
   });
 });
+
+describe("authorized foreground reminder schedule", () => {
+  it("uses the server filtered snapshot and fails closed on errors or truncation", async () => {
+    const { api, fetcher } = setup();
+    fetcher.mockResolvedValueOnce(
+      new Response(JSON.stringify([{ id: targetId }]), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    expect(await api.authorizedSchedule()).toEqual([{ id: targetId }]);
+    expect(String(fetcher.mock.calls[0][0])).toContain(
+      "/rpc/mobile_authorized_reminder_schedule",
+    );
+    fetcher.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify(Array.from({ length: 10001 }, () => ({ id: targetId }))),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    await expect(api.authorizedSchedule()).rejects.toThrow("برنامه امن");
+    fetcher.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: "missing" }), {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await expect(api.authorizedSchedule()).rejects.toThrow("برنامه امن");
+  });
+});

@@ -7,6 +7,7 @@ const ENTITY_TABLE: Record<DocumentEntityType, string> = {
   CHORE: "chores",
   SHOPPING_LIST: "shopping_lists",
   FINANCE_RECORD: "financial_records",
+  APPLIANCE: "home_appliances",
 };
 
 export async function getCurrentDocumentMembership(userId: string) {

@@ -1,10 +1,10 @@
 .home-ref {
-  --home-ink: #33382a;
-  --home-muted: #68685e;
-  --home-paper: #faf8f1;
-  --home-line: #e4ded1;
-  --home-olive: #647251;
-  --home-clay: #b27655;
+  --home-ink: var(--ink);
+  --home-muted: var(--muted-text);
+  --home-paper: var(--card);
+  --home-line: var(--line);
+  --home-olive: var(--olive-ink);
+  --home-clay: var(--clay);
   color: var(--home-ink);
   padding-bottom: 5rem;
 }

@@ -24,7 +24,9 @@ export function selectDueReminders({
       (reminder) =>
         reminder.status === "PENDING" || reminder.status === "SNOOZED",
     )
-    .filter((reminder) => effectiveReminderAt(reminder).getTime() <= now.getTime())
+    .filter(
+      (reminder) => effectiveReminderAt(reminder).getTime() <= now.getTime(),
+    )
     .sort(
       (a, b) =>
         effectiveReminderAt(a).getTime() - effectiveReminderAt(b).getTime(),

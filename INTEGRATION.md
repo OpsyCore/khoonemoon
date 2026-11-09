@@ -51,7 +51,6 @@ Standalone mobile now includes RLS-scoped search, a weekly recap separated by cu
 
 A standalone Today overview (due/overdue counts) and quick-add forms for task, event, shopping item, expense and weekly chore are now implemented. These use the user's existing Supabase transports. They and the Android picker have automated unit/compile coverage only; no real-device or two-account tests have been performed. Full theme and feature parity remain open.
 
-
 The standalone ZIP export bundles visible document files and JSON metadata, with
 limits of 200 files, 12 MiB file content, and 4 MiB JSON; failures downloading
 any file fail the export. It is not a transactional snapshot or an unlimited
@@ -72,14 +71,12 @@ schedules inherit the creator profile timezone (UTC fallback), their current due
 dates are preserved and only the derived next task occurrence is recalculated.
 Real two-device testing is still required. Recurring bills with a configured period generate one successor on payment, not merely on reaching a due date; legacy records without a rule remain unchanged.
 
-
 Migration 0023 adds recurring bill, subscription and installment successors.
 A successful payment atomically creates one next record in the original time
 zone; no automatic creation occurs while unpaid. Undo is blocked once a
 successor exists, and archiving the successor stops the chain. RLS assertions
 and idempotency checks ran locally and the migration was applied to the active
 Supabase project. Actual Android and two-account tests remain outstanding.
-
 
 The standalone client now offers light/dark/system appearance with local-only
 persistence and system preference tracking; the dark palette keeps the journal

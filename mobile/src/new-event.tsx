@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   Bell,
@@ -14,10 +14,16 @@ import {
 } from "lucide-react";
 import { ZodError } from "zod";
 import { directCalendar } from "@/features/calendar/direct-client";
+import {
+  nextOccasionBaseAt,
+  OCCASION_LABELS,
+} from "@/features/calendar/occasions";
+import type { OccasionType } from "@/features/calendar/types";
 import { directReminders } from "@/features/reminders/direct-client";
 import {
   formatJalaliDayNumber,
   formatJalaliMonthYear,
+  getJalaliParts,
   getMonthGrid,
   getPersianWeekdayLabels,
   isSameDay,
@@ -25,26 +31,13 @@ import {
 } from "@/shared/utils/jalali";
 import { toDateTimeLocal } from "@/features/quick-add/payload";
 import { taskEditTime } from "./task-edit-time";
+import { useReminderFollowup } from "./reminder-followup";
+import type { ReminderFollowup } from "./reminder-followup";
+import { parseReminderFollowup as parseEventFollowup } from "./reminder-followup";
 import "./new-task.css";
 import "./new-event.css";
 
-type Followup = { id: string; due: string; minutes: number };
-export function parseEventFollowup(raw: string | null): Followup | null {
-  try {
-    const x = JSON.parse(raw ?? "null");
-    return x &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        x.id,
-      ) &&
-      typeof x.due === "string" &&
-      Number.isFinite(Date.parse(x.due)) &&
-      [0, 10, 15, 30, 60, 1440].includes(x.minutes)
-      ? x
-      : null;
-  } catch {
-    return null;
-  }
-}
+export { parseEventFollowup };
 /** All-day ranges use local midnights and an exclusive end, even across DST. */
 export function eventTimes(
   startDate: string,
@@ -186,52 +179,29 @@ export function NewEvent({
     [allDay, setAllDay] = useState(false),
     [location, setLocation] = useState(""),
     [shared, setShared] = useState(!!householdId),
-    [reminder, setReminder] = useState("none");
+    [reminder, setReminder] = useState("none"),
+    [occasionType, setOccasionType] = useState<OccasionType | null>(null),
+    [yearlyJalali, setYearlyJalali] = useState(false),
+    [giftIdea, setGiftIdea] = useState(""),
+    [occasionPlan, setOccasionPlan] = useState(""),
+    [extraOffsets, setExtraOffsets] = useState<number[]>([]);
   const [busy, setBusy] = useState(false),
-    [ready, setReady] = useState(false),
-    [message, setMessage] = useState(""),
-    [followup, setFollowup] = useState<Followup | null>(null),
-    [storageOK, setStorageOK] = useState(true);
-  const key = `khoonemoon:event-reminder-followup:${userId}`;
-  useEffect(() => {
-    try {
-      const item = parseEventFollowup(localStorage.getItem(key));
-      // Hydrate the account-scoped follow-up after SSR.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (item) setFollowup(item);
-    } catch {
-      setStorageOK(false);
-    }
-    setReady(true);
-  }, [key]);
-  function persist(item: Followup) {
-    setFollowup(item);
-    try {
-      localStorage.setItem(key, JSON.stringify(item));
-      if (!localStorage.getItem(key)) throw new Error();
-    } catch {
-      setStorageOK(false);
-      throw new Error(
-        "ذخیره پیگیری روی دستگاه ممکن نیست؛ این صفحه را باز نگه دارید.",
-      );
-    }
-  }
-  function clear() {
-    setFollowup(null);
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      setStorageOK(false);
-    }
-  }
-  async function addReminder(item: Followup) {
+    [message, setMessage] = useState("");
+  const {
+    followup,
+    storageOK,
+    ready,
+    persist,
+    clear: clearFollowup,
+  } = useReminderFollowup(userId, "event", true);
+  async function addReminder(item: ReminderFollowup) {
     await directReminders(client).createEventReminderOnce({
       targetId: item.id,
       baseDateTime: item.due,
       minutesBefore: item.minutes,
     });
     window.dispatchEvent(new Event("khoonemoon:reminders-changed"));
-    clear();
+    clearFollowup();
   }
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -245,13 +215,30 @@ export function NewEvent({
         return;
       }
       const times = eventTimes(startDate, endDate, startTime, endTime, allDay);
+      const startParts = getJalaliParts(new Date(`${startDate}T12:00:00`));
+      const reminderBase = yearlyJalali
+        ? nextOccasionBaseAt(
+            startParts.month,
+            startParts.day,
+            allDay ? 9 : Number(startTime.slice(0, 2) || 9),
+            allDay ? 0 : Number(startTime.slice(3, 5) || 0),
+          ).iso
+        : times.startAt;
       if (
         reminder !== "none" &&
-        new Date(times.startAt).getTime() - Number(reminder) * 60000 <=
+        new Date(reminderBase).getTime() - Number(reminder) * 60000 <=
           Date.now()
       )
         throw new Error(
           "زمان یادآوری گذشته است؛ زمان رویداد یا یادآوری را تغییر دهید.",
+        );
+      if (
+        extraOffsets.some(
+          (m) => new Date(reminderBase).getTime() - m * 60000 <= Date.now(),
+        )
+      )
+        throw new Error(
+          "یکی از هشدارهای چندمرحله‌ای در گذشته است؛ گزینه مناسب‌تر انتخاب کنید.",
         );
       const item = await directCalendar(client).create(
         {
@@ -261,12 +248,22 @@ export function NewEvent({
           visibility: shared ? "HOUSEHOLD_SHARED" : "PRIVATE",
           ...times,
           allDay,
+          ...(occasionType || yearlyJalali || giftIdea || occasionPlan
+            ? {
+                occasionType,
+                recurrenceCalendar: yearlyJalali ? "JALALI_YEARLY" : null,
+                jalaliMonth: yearlyJalali ? startParts.month : null,
+                jalaliDay: yearlyJalali ? startParts.day : null,
+                giftIdea: giftIdea || null,
+                occasionPlan: occasionPlan || null,
+              }
+            : {}),
         },
         reminder !== "none"
           ? (row) =>
               persist({
                 id: row.id,
-                due: times.startAt,
+                due: reminderBase,
                 minutes: Number(reminder),
               })
           : undefined,
@@ -276,7 +273,7 @@ export function NewEvent({
         try {
           await addReminder({
             id: item.id,
-            due: times.startAt,
+            due: reminderBase,
             minutes: Number(reminder),
           });
         } catch {
@@ -285,6 +282,15 @@ export function NewEvent({
           );
           return;
         }
+      }
+      if (extraOffsets.length > 0) {
+        await directReminders(client).create({
+          targetType: "EVENT",
+          targetId: item.id,
+          baseDateTime: reminderBase,
+          offsets: extraOffsets.map((minutesBefore) => ({ minutesBefore })),
+        });
+        window.dispatchEvent(new Event("khoonemoon:reminders-changed"));
       }
       onDone();
     } catch (error) {
@@ -355,7 +361,7 @@ export function NewEvent({
                   "از تلاش برای ثبت یادآوری صرف‌نظر شود؟ وضعیت آن را در یادآورها بررسی کنید.",
                 )
               ) {
-                clear();
+                clearFollowup();
                 onDone();
               }
             }}
@@ -488,6 +494,85 @@ export function NewEvent({
               <small>برای اشتراک ابتدا به یک خانه بپیوندید.</small>
             )}
           </div>
+          <div>
+            <span className="event-label">نوع رویداد یا مناسبت</span>
+            <div className="event-pair event-choice">
+              <button
+                type="button"
+                aria-pressed={occasionType === null}
+                onClick={() => {
+                  setOccasionType(null);
+                  setYearlyJalali(false);
+                }}
+              >
+                <span>رویداد عادی</span>
+              </button>
+              {(
+                Object.entries(OCCASION_LABELS) as [OccasionType, string][]
+              ).map(([kindKey, kindLabel]) => (
+                <button
+                  key={kindKey}
+                  type="button"
+                  aria-pressed={occasionType === kindKey}
+                  onClick={() => {
+                    setOccasionType(kindKey);
+                    setYearlyJalali(true);
+                    setAllDay(true);
+                    setEndDate(startDate);
+                  }}
+                >
+                  <span>{kindLabel}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          {(occasionType !== null || yearlyJalali) && (
+            <>
+              <label className="event-all-day">
+                <span>تکرار خودکار هر سال در تقویم شمسی</span>
+                <strong>تکرار سالانه شمسی</strong>
+                <input
+                  type="checkbox"
+                  checked={yearlyJalali}
+                  onChange={(e) => setYearlyJalali(e.target.checked)}
+                />
+              </label>
+              {yearlyJalali &&
+                (() => {
+                  const p = getJalaliParts(new Date(`${startDate}T12:00:00`));
+                  return p.month === 12 && p.day === 30 ? (
+                    <small>
+                      توجه: ۳۰ اسفند در سال‌های غیرکبیسه به‌طور خودکار در ۲۹
+                      اسفند یادآوری و نمایش داده می‌شود.
+                    </small>
+                  ) : null;
+                })()}
+              <label>
+                <span className="event-label">ایده هدیه (اختیاری)</span>
+                <div className="event-control">
+                  <Pencil />
+                  <input
+                    maxLength={500}
+                    value={giftIdea}
+                    onChange={(e) => setGiftIdea(e.target.value)}
+                    placeholder="مثلاً: کتاب، گل، کارت هدیه..."
+                  />
+                </div>
+              </label>
+              <label>
+                <span className="event-label">برنامه یا تدارکات مناسبت</span>
+                <div className="event-control">
+                  <FileText />
+                  <input
+                    maxLength={1000}
+                    value={occasionPlan}
+                    onChange={(e) => setOccasionPlan(e.target.value)}
+                    placeholder="مثلاً: رزرو رستوران یا سفارش کیک..."
+                  />
+                </div>
+              </label>
+            </>
+          )}
           <label>
             <span className="event-label">یادآوری</span>
             <div className="event-control">
@@ -506,6 +591,33 @@ export function NewEvent({
               </select>
             </div>
           </label>
+          {occasionType !== null && (
+            <fieldset className="reminder-offsets">
+              <legend>هشدار چندمرحله‌ای مناسبت (اختیاری)</legend>
+              {(
+                [
+                  [1440, "۱ روز قبل"],
+                  [10080, "۷ روز قبل"],
+                  [43200, "۳۰ روز قبل"],
+                ] as const
+              ).map(([mins, label]) => (
+                <label key={mins}>
+                  <input
+                    type="checkbox"
+                    checked={extraOffsets.includes(mins)}
+                    onChange={(e) =>
+                      setExtraOffsets((prev) =>
+                        e.target.checked
+                          ? [...prev, mins]
+                          : prev.filter((x) => x !== mins),
+                      )
+                    }
+                  />{" "}
+                  {label}
+                </label>
+              ))}
+            </fieldset>
+          )}
         </fieldset>
         <button
           className="event-submit"

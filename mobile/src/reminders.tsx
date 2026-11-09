@@ -1,13 +1,17 @@
-import { filterReminderInbox } from "@/features/reminders/reference-filter";
+import {
+  filterReminderInbox,
+  type ReminderHubFilter,
+} from "@/features/reminders/reference-filter";
 import {
   AlarmClock,
   CalendarDays,
   Check,
-  CircleAlert,
+  TriangleAlert,
   Clock,
   FileText,
   List,
   MoreHorizontal,
+  Settings,
   Sprout,
   X,
   Bell,
@@ -27,46 +31,76 @@ import {
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { directReminders } from "@/features/reminders/direct-client";
 import { directTasks } from "@/features/tasks/direct-client";
+import { describeTaskCadence } from "@/features/tasks/cleaning";
 import { directCalendar } from "@/features/calendar/direct-client";
+import { nextOccasionBaseAt } from "@/features/calendar/occasions";
 import { directChores } from "@/features/chores/direct-client";
 import { directFinance } from "@/features/finance/direct-client";
+import { loadHouseholdMembers } from "@/features/households/members";
 import {
   buildReminderInbox,
-  type ReminderState,
+  countReminderHorizons,
 } from "@/features/reminders/inbox";
-import type {
-  ReminderRecord,
-  ReminderPreferenceRecord,
+import {
+  REMINDER_GROUP_LABELS,
+  type ReminderRecord,
+  type ReminderPreferenceRecord,
+  type ReminderSourceGroup,
+  type ReminderTargetType,
 } from "@/features/reminders/types";
+import type { MobilePage } from "./navigation";
 
-const labels: Record<ReminderState, string> = {
+const filterLabels: Record<Exclude<ReminderHubFilter, "ALL">, string> = {
   DUE: "سررسیده",
   TODAY: "امروز",
+  TOMORROW: "فردا",
+  NEXT_7_DAYS: "هفته آینده",
   UPCOMING: "پیش‌رو",
   DELIVERED: "ارسال‌شده",
   CANCELED: "لغوشده",
 };
+
 type Target = {
   id: string;
   title: string;
   date: string | null;
   selectable?: boolean;
   priority?: "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
+  group?: ReminderSourceGroup;
+  assigneeLabel?: string | null;
+  recurrenceLabel?: string | null;
 };
+
+const TARGET_PAGE: Record<ReminderTargetType, MobilePage> = {
+  TASK: "tasks",
+  EVENT: "calendar",
+  CHORE: "chores",
+  BILL: "bills",
+  DOCUMENT: "documents",
+  APPLIANCE: "appliances",
+  MEAL: "meals",
+};
+
 export function Reminders({
   client,
   notificationStatus,
   householdId,
+  onNavigate,
 }: {
   client: SupabaseClient;
   notificationStatus: string;
   householdId: string | null;
+  onNavigate?: (page: MobilePage) => void;
 }) {
   const api = useMemo(() => directReminders(client), [client]);
-  const [filter, setFilter] = useState<ReminderState | "ALL">("ALL");
+  const [filter, setFilter] = useState<ReminderHubFilter>("ALL");
+  const [groupFilter, setGroupFilter] = useState<ReminderSourceGroup | "ALL">(
+    "ALL",
+  );
+  const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
   const [native, setNative] = useState(false);
   useEffect(() => {
-    // The native bridge is available only after hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNative(!!window.KhoonemoonNotifications);
   }, []);
@@ -75,10 +109,13 @@ export function Reminders({
   const [events, setEvents] = useState<Target[]>([]);
   const [chores, setChores] = useState<Target[]>([]);
   const [bills, setBills] = useState<Target[]>([]);
-  const [type, setType] = useState<"TASK" | "EVENT" | "CHORE" | "BILL">("TASK");
+  const [documents, setDocuments] = useState<Target[]>([]);
+  const [appliances, setAppliances] = useState<Target[]>([]);
+  const [meals, setMeals] = useState<Target[]>([]);
+  const [type, setType] = useState<ReminderTargetType>("TASK");
   const [target, setTarget] = useState("");
   const [date, setDate] = useState("");
-  const [offset, setOffset] = useState("0");
+  const [offsets, setOffsets] = useState<number[]>([0]);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [prefs, setPrefs] = useState<ReminderPreferenceRecord | null>(null);
@@ -89,8 +126,17 @@ export function Reminders({
   const [quiet, setQuiet] = useState(false);
   const [quietStart, setQuietStart] = useState("22:00");
   const [quietEnd, setQuietEnd] = useState("08:00");
+
   const load = useCallback(async () => {
-    const [r, t, e, c, f] = await Promise.all([
+    const safeSelect = async <T,>(
+      table: string,
+      cols: string,
+    ): Promise<T[]> => {
+      if (typeof client.from !== "function") return [];
+      const res = await client.from(table).select(cols).limit(1000);
+      return res.error || !Array.isArray(res.data) ? [] : (res.data as T[]);
+    };
+    const [r, t, e, c, f, d, a, m, members] = await Promise.all([
       api.list(),
       directTasks(client).list(),
       directCalendar(client).list(),
@@ -98,7 +144,43 @@ export function Reminders({
         ? directChores(client).list(householdId)
         : Promise.resolve([]),
       directFinance(client).list(),
+      safeSelect<{ id: string; title: string; expires_at: string | null }>(
+        "documents",
+        "id,title,expires_at",
+      ),
+      safeSelect<{
+        id: string;
+        name: string;
+        next_service_at: string | null;
+        service_interval_days: number | null;
+        assignee_id: string | null;
+        archived_at: string | null;
+      }>(
+        "home_appliances",
+        "id,name,next_service_at,service_interval_days,assignee_id,archived_at",
+      ),
+      householdId
+        ? safeSelect<{
+            id: string;
+            title: string;
+            meal_date: string;
+            assignee: string | null;
+          }>("meal_plans", "id,title,meal_date,assignee")
+        : Promise.resolve([]),
+      householdId
+        ? loadHouseholdMembers(client, householdId)
+            .then(({ data }) =>
+              data.map((member) => ({
+                user_id: member.user_id,
+                full_name: member.profiles?.[0]?.full_name ?? "کاربر",
+              })),
+            )
+            .catch(() => [])
+        : Promise.resolve([]),
     ]);
+    const memberMap = Object.fromEntries(
+      members.map((x) => [x.user_id, x.full_name]),
+    );
     setRows(r);
     setLoaded(true);
     setTasks(
@@ -110,15 +192,41 @@ export function Reminders({
           date: x.due_at,
           priority: x.priority,
           selectable: x.status !== "COMPLETED" && x.status !== "SKIPPED",
+          group: x.task_kind === "CLEANING" ? "CLEANING" : "TASK",
+          assigneeLabel:
+            x.task_assignees
+              ?.map((asg) => memberMap[asg.assignee_id])
+              .filter(Boolean)
+              .join("، ") || null,
+          recurrenceLabel: describeTaskCadence(x.task_recurrences?.[0]),
         })),
     );
-    setEvents(e.map((x) => ({ id: x.id, title: x.title, date: x.start_at })));
+    setEvents(
+      e.map((x) => ({
+        id: x.id,
+        title: x.title,
+        date:
+          x.recurrence_calendar === "JALALI_YEARLY" &&
+          x.jalali_month &&
+          x.jalali_day
+            ? nextOccasionBaseAt(x.jalali_month, x.jalali_day).iso
+            : x.start_at,
+        group: x.occasion_type ? "OCCASION" : "EVENT",
+        recurrenceLabel:
+          x.recurrence_calendar === "JALALI_YEARLY" ? "سالانه شمسی" : null,
+      })),
+    );
     setChores(
       c.map((x) => ({
         id: x.id,
         title: x.title,
         date: x.next_due_at,
         selectable: x.is_active,
+        group: "CHORE",
+        recurrenceLabel: describeTaskCadence({
+          frequency: x.frequency,
+          interval_days: x.interval_days,
+        }),
       })),
     );
     setBills(
@@ -131,12 +239,48 @@ export function Reminders({
           title: x.title,
           date: x.due_at,
           selectable: !x.paid_at,
+          group: x.record_type === "BILL" ? "BILL" : "SUBSCRIPTION",
+          recurrenceLabel: x.is_recurring ? "تکراری" : null,
         })),
     );
+    setDocuments(
+      d.map((x) => ({
+        id: x.id,
+        title: x.title,
+        date: x.expires_at ? `${x.expires_at}T09:00:00` : null,
+        selectable: true,
+        group: "DOCUMENT",
+      })),
+    );
+    setAppliances(
+      a.map((x) => ({
+        id: x.id,
+        title: x.name,
+        date: x.next_service_at,
+        selectable: !x.archived_at,
+        group: "APPLIANCE",
+        assigneeLabel: x.assignee_id
+          ? (memberMap[x.assignee_id] ?? null)
+          : null,
+        recurrenceLabel: x.service_interval_days
+          ? `هر ${x.service_interval_days.toLocaleString("fa-IR")} روز`
+          : null,
+      })),
+    );
+    setMeals(
+      m.map((x) => ({
+        id: x.id,
+        title: x.title,
+        date: `${x.meal_date}T09:00:00`,
+        selectable: true,
+        group: "MEAL",
+        assigneeLabel: x.assignee ?? null,
+      })),
+    );
   }, [api, client, householdId]);
+
   useEffect(() => {
     let active = true;
-    // Initial load reads remote state; updates happen after the request resolves.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load().catch(() => {
       if (active) setMessage("دریافت یادآورها و هدف‌ها ناموفق بود.");
@@ -153,6 +297,7 @@ export function Reminders({
       document.removeEventListener("visibilitychange", visible);
     };
   }, [load]);
+
   useEffect(() => {
     let active = true;
     void api
@@ -173,14 +318,21 @@ export function Reminders({
       active = false;
     };
   }, [api, prefsVersion]);
+
+  const now = new Date();
   const inbox = buildReminderInbox({
     reminders: rows,
     tasks,
     events,
     chores,
     bills,
-    now: new Date(),
+    documents,
+    appliances,
+    meals,
+    now,
   });
+  const horizons = countReminderHorizons(inbox);
+
   async function action(fn: () => Promise<void>) {
     setBusy(true);
     setMessage("");
@@ -194,14 +346,25 @@ export function Reminders({
       setBusy(false);
     }
   }
+
   function save(e: FormEvent) {
     e.preventDefault();
+    const base = new Date(date).getTime();
+    if (
+      !Number.isFinite(base) ||
+      offsets.some((minutes) => base - minutes * 60_000 <= Date.now())
+    ) {
+      setMessage(
+        "یک یا چند زمان یادآوری گذشته است؛ تاریخ یا گزینه‌ها را تغییر دهید.",
+      );
+      return;
+    }
     void action(async () => {
       await api.create({
         targetType: type,
         targetId: target,
         baseDateTime: new Date(date).toISOString(),
-        offsets: [{ minutesBefore: Number(offset) }],
+        offsets: offsets.map((minutesBefore) => ({ minutesBefore })),
       });
       setTarget("");
       setDate("");
@@ -213,28 +376,36 @@ export function Reminders({
       }
     });
   }
-  const now = new Date();
-  const visible = filterReminderInbox(inbox, filter, now);
+
+  const visible = filterReminderInbox(inbox, filter, now, groupFilter);
   const todayCount = filterReminderInbox(inbox, "TODAY", now).length;
-  const countByState = {
+  const countByState: Record<Exclude<ReminderHubFilter, "ALL">, number> = {
     DUE: inbox.counts.due,
     TODAY: todayCount,
+    TOMORROW: horizons.tomorrow,
+    NEXT_7_DAYS: horizons.nextWeek,
     UPCOMING: inbox.counts.upcoming,
     DELIVERED: inbox.counts.delivered,
     CANCELED: inbox.counts.canceled,
   };
-  const categories = {
-    TASK: "کارها",
-    EVENT: "رویدادها",
-    CHORE: "کارهای خانه",
-    BILL: "قبوض و پرداخت‌ها",
-  };
+
   const priorityLabels = {
     LOW: "اولویت کم",
     NORMAL: "اولویت متوسط",
     HIGH: "با اولویت بالا",
     CRITICAL: "اولویت فوری",
   };
+
+  const pools: Record<ReminderTargetType, Target[]> = {
+    TASK: tasks,
+    EVENT: events,
+    CHORE: chores,
+    BILL: bills,
+    DOCUMENT: documents,
+    APPLIANCE: appliances,
+    MEAL: meals,
+  };
+
   async function refreshAfterMutation() {
     window.dispatchEvent(new Event("khoonemoon:reminders-changed"));
     window.dispatchEvent(new Event("khoonemoon:schedule-changed"));
@@ -248,6 +419,7 @@ export function Reminders({
       );
     }
   }
+
   return (
     <section className="reminder-ref" dir="rtl">
       <header className="reminder-ref-header">
@@ -286,7 +458,7 @@ export function Reminders({
         </button>
         <button type="button" onClick={() => setFilter("DUE")}>
           <span>
-            <CircleAlert />{" "}
+            <TriangleAlert />{" "}
             {loaded ? inbox.counts.due.toLocaleString("fa-IR") : "–"}
           </span>
           نیاز به توجه
@@ -297,10 +469,12 @@ export function Reminders({
           [
             "DUE",
             "TODAY",
+            "TOMORROW",
+            "NEXT_7_DAYS",
             "UPCOMING",
             "DELIVERED",
             "CANCELED",
-          ] as ReminderState[]
+          ] as Exclude<ReminderHubFilter, "ALL">[]
         ).map((state) => (
           <button
             key={state}
@@ -309,15 +483,46 @@ export function Reminders({
             onClick={() => setFilter(state)}
           >
             <b>{loaded ? countByState[state].toLocaleString("fa-IR") : "–"}</b>
-            {labels[state]}
+            {filterLabels[state]}
           </button>
         ))}
       </nav>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          margin: "8px 0 12px",
+        }}
+      >
+        <label style={{ flex: 1 }}>
+          گروه‌بندی منبع:{" "}
+          <select
+            aria-label="فیلتر منبع یادآور"
+            value={groupFilter}
+            onChange={(e) =>
+              setGroupFilter(e.target.value as ReminderSourceGroup | "ALL")
+            }
+          >
+            <option value="ALL">همه منابع خانه</option>
+            {(
+              Object.entries(REMINDER_GROUP_LABELS) as [
+                ReminderSourceGroup,
+                string,
+              ][]
+            ).map(([gKey, gLabel]) => (
+              <option key={gKey} value={gKey}>
+                {gLabel}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       {!loaded ? (
         <p role="status">فهرست یادآورها هنوز دریافت نشده است.</p>
       ) : visible.length === 0 ? (
         <p className="reminder-ref-empty">
-          {filter === "ALL"
+          {filter === "ALL" && groupFilter === "ALL"
             ? "یادآوری ثبت نشده است."
             : "یادآوری در این دسته نیست."}
         </p>
@@ -325,31 +530,32 @@ export function Reminders({
         <div className="reminder-ref-list">
           {visible.map((entry) => {
             const row = rows.find((r) => r.id === entry.id)!;
-            const target = {
-              TASK: tasks,
-              EVENT: events,
-              CHORE: chores,
-              BILL: bills,
-            }[entry.targetType].find((t) => t.id === row.target_id);
+            const targetItem = pools[entry.targetType]?.find(
+              (t) => t.id === row.target_id,
+            );
             const active = ["DUE", "TODAY", "UPCOMING"].includes(entry.state);
             const canComplete =
               active &&
-              !!target &&
-              target.selectable !== false &&
+              !!targetItem &&
+              targetItem.selectable !== false &&
               (entry.targetType === "TASK" ||
                 entry.targetType === "BILL" ||
-                (entry.targetType === "CHORE" && !!target.date));
+                entry.targetType === "APPLIANCE" ||
+                (entry.targetType === "CHORE" && !!targetItem.date));
             const Icon = {
               TASK: List,
               EVENT: CalendarDays,
               CHORE: Sprout,
               BILL: FileText,
+              DOCUMENT: FileText,
+              APPLIANCE: Settings,
+              MEAL: CalendarDays,
             }[entry.targetType];
             const at = new Date(entry.effectiveAt);
             return (
               <article
                 key={entry.id}
-                className={`reminder-ref-card ${entry.state.toLowerCase()} ${target?.priority?.toLowerCase() ?? ""}`}
+                className={`reminder-ref-card ${entry.state.toLowerCase()} ${targetItem?.priority?.toLowerCase() ?? ""}`}
               >
                 <div className="reminder-ref-card-head">
                   <span className="reminder-ref-icon">
@@ -357,11 +563,19 @@ export function Reminders({
                   </span>
                   <div>
                     <h2>{entry.title}</h2>
-                    <p>{categories[entry.targetType]}</p>
+                    <p>
+                      {REMINDER_GROUP_LABELS[entry.sourceGroup]}
+                      {entry.recurrenceLabel
+                        ? ` · ${entry.recurrenceLabel}`
+                        : ""}
+                      {entry.assigneeLabel
+                        ? ` · مسئول: ${entry.assigneeLabel}`
+                        : ""}
+                    </p>
                   </div>
-                  {target?.priority && active && (
+                  {targetItem?.priority && active && (
                     <span className="reminder-ref-priority">
-                      ● {priorityLabels[target.priority]}
+                      ● {priorityLabels[targetItem.priority]}
                     </span>
                   )}
                 </div>
@@ -387,6 +601,45 @@ export function Reminders({
                     تعداد تعویق: {entry.snoozeCount.toLocaleString("fa-IR")}
                   </small>
                 )}
+                {rescheduleId === entry.id && active && (
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 6,
+                      margin: "8px 0",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <input
+                      type="datetime-local"
+                      value={rescheduleDate}
+                      onChange={(e) => setRescheduleDate(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      disabled={busy || !rescheduleDate}
+                      onClick={() =>
+                        void action(async () => {
+                          await api.reschedule(
+                            entry.id,
+                            new Date(rescheduleDate).toISOString(),
+                          );
+                          setRescheduleId(null);
+                          await refreshAfterMutation();
+                        })
+                      }
+                    >
+                      ذخیره زمان جدید
+                    </button>
+                    <button
+                      type="button"
+                      className="minor"
+                      onClick={() => setRescheduleId(null)}
+                    >
+                      انصراف
+                    </button>
+                  </div>
+                )}
                 {active ? (
                   <div className="reminder-ref-actions">
                     {canComplete && (
@@ -397,7 +650,7 @@ export function Reminders({
                         onClick={() => {
                           if (
                             !window.confirm(
-                              `${entry.targetType === "CHORE" && target?.date ? `نوبت فعلی کار خانه (${formatPersianDate(target.date)})` : entry.targetType === "BILL" ? "پرداخت قبض" : "این کار"} انجام شده است؟ با تأیید، همین یادآور فعال نیز لغو می‌شود.`,
+                              `${entry.targetType === "CHORE" && targetItem?.date ? `نوبت فعلی کار خانه (${formatPersianDate(targetItem.date)})` : entry.targetType === "BILL" ? "پرداخت قبض" : entry.targetType === "APPLIANCE" ? "سرویس وسیله" : "این کار"} انجام شده است؟ با تأیید، همین یادآور فعال نیز لغو می‌شود.`,
                             )
                           )
                             return;
@@ -405,8 +658,13 @@ export function Reminders({
                             const result = await completeReminderTarget(
                               client,
                               row,
-                              target?.date ?? null,
-                              () => api.cancel(entry.id, row.updated_at),
+                              targetItem?.date ?? null,
+                              () =>
+                                api.cancel(
+                                  entry.id,
+                                  row.updated_at,
+                                  entry.targetType,
+                                ),
                             );
                             await refreshAfterMutation();
                             if (result === "cancel-unconfirmed")
@@ -419,24 +677,46 @@ export function Reminders({
                         <Check /> انجام شد
                       </button>
                     )}
+                    {onNavigate && (
+                      <button
+                        type="button"
+                        className="minor"
+                        disabled={busy}
+                        onClick={() =>
+                          onNavigate(TARGET_PAGE[entry.targetType])
+                        }
+                      >
+                        مشاهده منبع
+                      </button>
+                    )}
                     <details className="reminder-ref-snooze">
                       <summary>
                         <AlarmClock /> یادآوری بعداً
                       </summary>
                       <div>
-                        {[10, 60].map((minutes) => (
+                        {(
+                          [
+                            [10, "۱۰ دقیقه بعد"],
+                            [60, "یک ساعت بعد"],
+                            [720, "۱۲ ساعت بعد"],
+                          ] as const
+                        ).map(([minutes, lbl]) => (
                           <button
                             key={minutes}
                             type="button"
                             disabled={busy}
                             onClick={() =>
                               void action(async () => {
-                                await api.snooze(entry.id, minutes);
+                                await api.snooze(
+                                  entry.id,
+                                  minutes,
+                                  entry.targetType,
+                                );
                                 await refreshAfterMutation();
                               })
                             }
                           >
-                            {minutes === 10 ? "۱۰ دقیقه بعد" : "یک ساعت بعد"}
+                            {lbl}
                           </button>
                         ))}
                       </div>
@@ -450,9 +730,32 @@ export function Reminders({
                           type="button"
                           disabled={busy}
                           onClick={() => {
+                            const d = new Date(entry.effectiveAt);
+                            setRescheduleDate(
+                              Number.isFinite(d.getTime())
+                                ? new Date(
+                                    d.getTime() - d.getTimezoneOffset() * 60000,
+                                  )
+                                    .toISOString()
+                                    .slice(0, 16)
+                                : "",
+                            );
+                            setRescheduleId(entry.id);
+                          }}
+                        >
+                          تغییر موعد / ساعت
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => {
                             if (window.confirm("این یادآور لغو شود؟"))
                               void action(async () => {
-                                await api.cancel(entry.id, row.updated_at);
+                                await api.cancel(
+                                  entry.id,
+                                  row.updated_at,
+                                  entry.targetType,
+                                );
                                 await refreshAfterMutation();
                               });
                           }}
@@ -465,7 +768,7 @@ export function Reminders({
                           onClick={() => {
                             if (window.confirm("این یادآور حذف شود؟"))
                               void action(async () => {
-                                await api.remove(entry.id);
+                                await api.remove(entry.id, entry.targetType);
                                 await refreshAfterMutation();
                               });
                           }}
@@ -479,7 +782,7 @@ export function Reminders({
                   <div className="reminder-ref-history">
                     <span>
                       {entry.state === "DELIVERED" ? <Check /> : <X />}
-                      {labels[entry.state]}
+                      {filterLabels[entry.state]}
                     </span>
                     <button
                       type="button"
@@ -487,7 +790,7 @@ export function Reminders({
                       onClick={() => {
                         if (window.confirm("این یادآور حذف شود؟"))
                           void action(async () => {
-                            await api.remove(entry.id);
+                            await api.remove(entry.id, entry.targetType);
                             await refreshAfterMutation();
                           });
                       }}
@@ -508,19 +811,22 @@ export function Reminders({
         <form onSubmit={save}>
           <h3>یادآور جدید</h3>
           <label>
-            نوع
+            نوع منبع
             <select
               value={type}
               onChange={(e) => {
-                setType(e.target.value as "TASK" | "EVENT" | "CHORE" | "BILL");
+                setType(e.target.value as ReminderTargetType);
                 setTarget("");
                 setDate("");
               }}
             >
-              <option value="TASK">تسک</option>
-              <option value="EVENT">رویداد</option>
-              <option value="CHORE">کار خانه</option>
-              <option value="BILL">قبض یا قسط</option>
+              <option value="TASK">تسک / نظافت</option>
+              <option value="EVENT">رویداد / مناسبت</option>
+              <option value="CHORE">تقسیم وظایف</option>
+              <option value="BILL">قبض / اشتراک / قسط</option>
+              <option value="DOCUMENT">انقضای مدرک</option>
+              <option value="APPLIANCE">سرویس وسیله</option>
+              <option value="MEAL">برنامه غذایی</option>
             </select>
           </label>
           <label>
@@ -530,26 +836,21 @@ export function Reminders({
               value={target}
               onChange={(e) => {
                 setTarget(e.target.value);
-                const item = {
-                  TASK: tasks,
-                  EVENT: events,
-                  CHORE: chores,
-                  BILL: bills,
-                }[type].find((x) => x.id === e.target.value);
+                const item = pools[type].find((x) => x.id === e.target.value);
                 if (item?.date) {
                   const d = new Date(item.date);
-                  setDate(
-                    new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-                      .toISOString()
-                      .slice(0, 16),
-                  );
+                  if (Number.isFinite(d.getTime())) {
+                    setDate(
+                      new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+                        .toISOString()
+                        .slice(0, 16),
+                    );
+                  } else setDate("");
                 } else setDate("");
               }}
             >
               <option value="">انتخاب کنید</option>
-              {{ TASK: tasks, EVENT: events, CHORE: chores, BILL: bills }[
-                type
-              ].map((x) => (
+              {pools[type].map((x) => (
                 <option
                   key={x.id}
                   value={x.id}
@@ -570,16 +871,39 @@ export function Reminders({
               onChange={(e) => setDate(e.target.value)}
             />
           </label>
-          <label>
-            چه زمانی یادآوری شود؟
-            <select value={offset} onChange={(e) => setOffset(e.target.value)}>
-              <option value="0">در زمان تعیین‌شده</option>
-              <option value="15">۱۵ دقیقه قبل</option>
-              <option value="60">یک ساعت قبل</option>
-              <option value="1440">یک روز قبل</option>
-            </select>
-          </label>
-          <button disabled={busy || !loaded}>ثبت یادآور</button>
+          <fieldset className="reminder-offsets">
+            <legend>
+              چه زمانی یادآوری شود؟ (می‌توانید چند زمان انتخاب کنید)
+            </legend>
+            {(
+              [
+                [0, "در زمان تعیین‌شده"],
+                [15, "۱۵ دقیقه قبل"],
+                [60, "یک ساعت قبل"],
+                [1440, "یک روز قبل"],
+                [10080, "۷ روز قبل"],
+                [43200, "۳۰ روز قبل"],
+              ] as const
+            ).map(([minutes, label]) => (
+              <label key={minutes}>
+                <input
+                  type="checkbox"
+                  checked={offsets.includes(minutes)}
+                  onChange={(e) =>
+                    setOffsets((values) =>
+                      e.target.checked
+                        ? [...values, minutes]
+                        : values.filter((value) => value !== minutes),
+                    )
+                  }
+                />
+                {label}
+              </label>
+            ))}
+          </fieldset>
+          <button disabled={busy || !loaded || offsets.length === 0}>
+            ثبت یادآور
+          </button>
         </form>
       </details>
       <details className="reminder-ref-panel">

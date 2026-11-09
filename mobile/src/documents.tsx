@@ -21,14 +21,27 @@ import {
   type MobileDocument,
 } from "@/features/documents/direct-client";
 import {
+  describeDocumentExpiry,
+  documentExpiryReminderBase,
+  documentNeedsRenewal,
+} from "@/features/documents/expiry";
+import {
   DOCUMENT_ENTITY_LABELS,
+  type DocumentCategory,
   type DocumentEntityType,
   type DocumentAttachment,
+  type DocumentRenewalRecord,
 } from "@/features/documents/types";
+import { directReminders } from "@/features/reminders/direct-client";
 import { formatPersianDate } from "@/shared/utils/locale";
 const cats = {
   ALL: "همه",
+  NEEDS_RENEWAL: "فهرست تمدید",
   IDENTITY: "شناسنامه‌ای",
+  INSURANCE: "بیمه",
+  CONTRACT: "قرارداد",
+  WARRANTY: "گارانتی",
+  VEHICLE: "خودرو",
   FINANCE: "مالی",
   HOME: "خانه",
   TRAVEL: "سفر",
@@ -57,7 +70,20 @@ export function Documents({
   const [editing, setEditing] = useState<MobileDocument | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [kind, setKind] = useState<Exclude<Category, "ALL">>("OTHER");
+  const [kind, setKind] = useState<DocumentCategory>("OTHER");
+  const [issuedAt, setIssuedAt] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [issuer, setIssuer] = useState("");
+  const [referenceCode, setReferenceCode] = useState("");
+  const [renewalRequired, setRenewalRequired] = useState(false);
+  const [expiryReminders, setExpiryReminders] = useState<number[]>([
+    43200, 10080, 1440,
+  ]);
+  const [renewing, setRenewing] = useState<MobileDocument | null>(null);
+  const [renewalList, setRenewalList] = useState<DocumentRenewalRecord[]>([]);
+  const [newExpiry, setNewExpiry] = useState("");
+  const [renewNote, setRenewNote] = useState("");
+  const [replaceDocId, setReplaceDocId] = useState("");
   const [shared, setShared] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
@@ -162,6 +188,11 @@ export function Documents({
     setTitle("");
     setDescription("");
     setKind("OTHER");
+    setIssuedAt("");
+    setExpiresAt("");
+    setIssuer("");
+    setReferenceCode("");
+    setRenewalRequired(false);
     setShared(false);
     setFile(null);
   }
@@ -170,15 +201,50 @@ export function Documents({
     setTitle(row.title);
     setDescription(row.description ?? "");
     setKind(row.category);
+    setIssuedAt(row.issued_at ?? "");
+    setExpiresAt(row.expires_at ?? "");
+    setIssuer(row.issuer ?? "");
+    setReferenceCode(row.reference_code ?? "");
+    setRenewalRequired(Boolean(row.renewal_required));
     setShared(row.visibility === "HOUSEHOLD_SHARED");
     setForm(true);
+  }
+  async function openRenewals(row: MobileDocument) {
+    setBusy(true);
+    setError("");
+    setNewExpiry(row.expires_at ?? "");
+    setRenewNote("");
+    setReplaceDocId("");
+    try {
+      setRenewalList(await api.renewals(row.id));
+      setRenewing(row);
+    } catch {
+      setError("دریافت سابقه تمدید ناموفق بود.");
+    } finally {
+      setBusy(false);
+    }
   }
   async function save(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
-      if (editing) await api.update(editing.id, title, description, kind);
+      const hasExtra = Boolean(
+        issuedAt || expiresAt || issuer || referenceCode || renewalRequired,
+      );
+      const extra =
+        editing || hasExtra
+          ? {
+              issuedAt: issuedAt || null,
+              expiresAt: expiresAt || null,
+              issuer: issuer || null,
+              referenceCode: referenceCode || null,
+              renewalRequired,
+            }
+          : undefined;
+      let targetDocId = editing?.id ?? "";
+      if (editing)
+        await api.update(editing.id, title, description, kind, extra);
       else {
         if (!file) throw new Error("فایل را انتخاب کنید.");
         await api.create({
@@ -187,7 +253,28 @@ export function Documents({
           description,
           visibility: shared ? "HOUSEHOLD_SHARED" : "PRIVATE",
           category: kind,
+          extra,
+          onCreated: (id) => {
+            targetDocId = id;
+          },
         });
+      }
+      if (expiresAt && targetDocId && expiryReminders.length > 0) {
+        const base = documentExpiryReminderBase(expiresAt);
+        const validOffsets = expiryReminders.filter(
+          (m) => new Date(base).getTime() - m * 60_000 > Date.now(),
+        );
+        if (validOffsets.length > 0) {
+          await directReminders(client)
+            .create({
+              targetType: "DOCUMENT",
+              targetId: targetDocId,
+              baseDateTime: base,
+              offsets: validOffsets.map((minutesBefore) => ({ minutesBefore })),
+            })
+            .catch(() => {});
+          window.dispatchEvent(new Event("khoonemoon:reminders-changed"));
+        }
       }
       reset();
       try {
@@ -255,11 +342,20 @@ export function Documents({
       setBusy(false);
     }
   }
-  const visible = items.filter(
-    (x) =>
-      (category === "ALL" || x.category === category) &&
-      `${x.title} ${x.description ?? ""}`.includes(query.trim()),
-  );
+  const visible = items.filter((x) => {
+    const matchCat =
+      category === "ALL"
+        ? true
+        : category === "NEEDS_RENEWAL"
+          ? documentNeedsRenewal(x)
+          : x.category === category;
+    return (
+      matchCat &&
+      `${x.title} ${x.description ?? ""} ${x.issuer ?? ""} ${x.reference_code ?? ""}`.includes(
+        query.trim(),
+      )
+    );
+  });
   return (
     <div className="docs-ref" dir="rtl">
       <div className="docs-hero">
@@ -324,12 +420,10 @@ export function Documents({
               دسته
               <select
                 value={kind}
-                onChange={(e) =>
-                  setKind(e.target.value as Exclude<Category, "ALL">)
-                }
+                onChange={(e) => setKind(e.target.value as DocumentCategory)}
               >
                 {Object.entries(cats)
-                  .filter(([k]) => k !== "ALL")
+                  .filter(([k]) => k !== "ALL" && k !== "NEEDS_RENEWAL")
                   .map(([k, v]) => (
                     <option key={k} value={k}>
                       {v}
@@ -345,6 +439,74 @@ export function Documents({
                 onChange={(e) => setDescription(e.target.value)}
               />
             </label>
+            <label>
+              مرجع صادرکننده (اختیاری)
+              <input
+                maxLength={180}
+                value={issuer}
+                onChange={(e) => setIssuer(e.target.value)}
+                placeholder="مثلاً: بیمه ایران، ثبت اسناد..."
+              />
+            </label>
+            <label>
+              شماره مرجع / قرارداد (اختیاری)
+              <input
+                maxLength={120}
+                value={referenceCode}
+                onChange={(e) => setReferenceCode(e.target.value)}
+              />
+            </label>
+            <label>
+              تاریخ صدور (اختیاری)
+              <input
+                type="date"
+                value={issuedAt}
+                onChange={(e) => setIssuedAt(e.target.value)}
+              />
+            </label>
+            <label>
+              تاریخ انقضا (اختیاری)
+              <input
+                type="date"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+              />
+            </label>
+            <label className="item">
+              <input
+                type="checkbox"
+                checked={renewalRequired}
+                onChange={(e) => setRenewalRequired(e.target.checked)}
+              />{" "}
+              در فهرست نیازمند تمدید قرار بگیرد
+            </label>
+            {expiresAt && (
+              <fieldset className="reminder-offsets">
+                <legend>یادآوری انقضا (ساعت ۹ صبح)</legend>
+                {(
+                  [
+                    [43200, "۳۰ روز قبل"],
+                    [10080, "۷ روز قبل"],
+                    [1440, "۱ روز قبل"],
+                  ] as const
+                ).map(([mins, lbl]) => (
+                  <label key={mins}>
+                    <input
+                      type="checkbox"
+                      checked={expiryReminders.includes(mins)}
+                      onChange={(e) =>
+                        setExpiryReminders((prev) =>
+                          e.target.checked
+                            ? [...prev, mins]
+                            : prev.filter((x) => x !== mins),
+                        )
+                      }
+                    />{" "}
+                    {lbl}
+                  </label>
+                ))}
+              </fieldset>
+            )}
             {!editing && (
               <>
                 <label>
@@ -373,6 +535,116 @@ export function Documents({
               انصراف
             </button>
           </form>
+        </section>
+      )}
+      {renewing && (
+        <section className="docs-form">
+          <h3>تمدید و سابقه — {renewing.title}</h3>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!newExpiry) return;
+              setBusy(true);
+              setError("");
+              void api
+                .renew({
+                  documentId: renewing.id,
+                  newExpiresAt: newExpiry,
+                  note: renewNote,
+                  replacementDocumentId: replaceDocId || null,
+                })
+                .then(async () => {
+                  const base = documentExpiryReminderBase(newExpiry);
+                  const validOffsets = [43200, 10080, 1440].filter(
+                    (m) => new Date(base).getTime() - m * 60_000 > Date.now(),
+                  );
+                  if (validOffsets.length > 0) {
+                    await directReminders(client)
+                      .create({
+                        targetType: "DOCUMENT",
+                        targetId: renewing.id,
+                        baseDateTime: base,
+                        offsets: validOffsets.map((minutesBefore) => ({
+                          minutesBefore,
+                        })),
+                      })
+                      .catch(() => {});
+                  }
+                  window.dispatchEvent(
+                    new Event("khoonemoon:reminders-changed"),
+                  );
+                  await load();
+                  setRenewalList(await api.renewals(renewing.id));
+                  setRenewNote("");
+                })
+                .catch((err) =>
+                  setError(
+                    err instanceof Error
+                      ? err.message
+                      : "ثبت تمدید ناموفق بود.",
+                  ),
+                )
+                .finally(() => setBusy(false));
+            }}
+          >
+            <label>
+              تاریخ انقضای جدید
+              <input
+                type="date"
+                required
+                value={newExpiry}
+                onChange={(e) => setNewExpiry(e.target.value)}
+              />
+            </label>
+            <label>
+              مدرک جایگزین / فایل نسخه جدید (اختیاری)
+              <select
+                value={replaceDocId}
+                onChange={(e) => setReplaceDocId(e.target.value)}
+              >
+                <option value="">بدون فایل جایگزین</option>
+                {items
+                  .filter((d) => d.id !== renewing.id)
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.title}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label>
+              یادداشت تمدید
+              <input
+                maxLength={500}
+                value={renewNote}
+                onChange={(e) => setRenewNote(e.target.value)}
+                placeholder="مثلاً: تمدید سالانه بیمه‌نامه"
+              />
+            </label>
+            <button disabled={busy || !newExpiry}>ثبت تمدید</button>
+            <button
+              type="button"
+              className="minor"
+              onClick={() => setRenewing(null)}
+            >
+              بستن
+            </button>
+          </form>
+          {renewalList.length > 0 && (
+            <ul>
+              {renewalList.map((r) => (
+                <li key={r.id}>
+                  <span>
+                    تمدید تا {formatPersianDate(r.new_expires_at)}
+                    {r.previous_expires_at
+                      ? ` (قبلی: ${formatPersianDate(r.previous_expires_at)})`
+                      : ""}
+                    {r.note ? ` — ${r.note}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
       {linking && (
@@ -504,6 +776,12 @@ export function Documents({
                   <button disabled={busy} onClick={() => edit(row)}>
                     ویرایش
                   </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => void openRenewals(row)}
+                  >
+                    تمدید و سابقه
+                  </button>
                   <button disabled={busy} onClick={() => void manageLinks(row)}>
                     پیوندها
                   </button>
@@ -528,6 +806,18 @@ export function Documents({
               <div className="docs-copy">
                 <strong>{row.title}</strong>
                 <span>{cats[row.category] ?? "سایر"}</span>
+                {(row.expires_at || row.renewal_required) && (
+                  <small>
+                    وضعیت انقضا: {describeDocumentExpiry(row).label}
+                  </small>
+                )}
+                {(row.issuer || row.reference_code) && (
+                  <small>
+                    {[row.issuer, row.reference_code]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </small>
+                )}
                 <small>
                   {formatPersianDate(row.created_at)} ·{" "}
                   {(row.file_size / 1048576).toLocaleString("fa-IR", {

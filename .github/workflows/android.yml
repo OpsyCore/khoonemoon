@@ -1,15 +1,36 @@
 name: Android APK
 on:
   workflow_dispatch:
+  # A test APK is built only for an explicitly tagged commit on this session's branch.
+  push:
+    branches: ["arena/62660bb1-khoonemoon"]
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   apk:
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[test-apk]') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
+      - name: Wait for successful CI on this exact commit
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in $(seq 1 90); do
+            state=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
+              -f "head_sha=$GITHUB_SHA" -f event=push \
+              --jq '.workflow_runs[0] | if . then .status + ":" + (.conclusion // "") else "pending:" end')
+            case "$state" in
+              completed:success) echo "CI succeeded for $GITHUB_SHA"; exit 0 ;;
+              completed:*) echo "CI did not succeed for $GITHUB_SHA: $state"; exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "Timed out waiting for CI on $GITHUB_SHA"; exit 1
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -45,6 +66,7 @@ jobs:
           unzip -l "$APK" | grep -E 'assets/index.html$'
           unzip -l "$APK" | grep -E 'assets/assets/index-.*\.js$'
           unzip -p "$APK" assets/index.html | grep -F 'Content-Security-Policy'
+          node scripts/verify-android-assets.mjs "$APK"
       - uses: actions/upload-artifact@v4
         with:
           name: khoonemoon-test-apk
@@ -52,6 +74,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Prepare release signing (when configured)
+        if: github.event_name == 'workflow_dispatch'
         id: signing
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -68,7 +91,7 @@ jobs:
             echo '::notice::Release signing not configured; only the test APK was produced.'
           fi
       - name: Build signed release APK
-        if: steps.signing.outputs.ready == 'true'
+        if: github.event_name == 'workflow_dispatch' && steps.signing.outputs.ready == 'true'
         working-directory: android
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/khoonemoon-release.jks
@@ -77,11 +100,11 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: gradle --no-daemon :app:assembleRelease
       - name: Verify release signature
-        if: steps.signing.outputs.ready == 'true'
+        if: github.event_name == 'workflow_dispatch' && steps.signing.outputs.ready == 'true'
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk
       - name: Upload signed release
-        if: steps.signing.outputs.ready == 'true'
+        if: github.event_name == 'workflow_dispatch' && steps.signing.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: khoonemoon-signed-release-apk

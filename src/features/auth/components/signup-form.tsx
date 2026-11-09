@@ -115,10 +115,7 @@ export function SignupForm() {
 
       <p className="text-sm">
         حساب دارید؟{" "}
-        <Link
-          href="/auth/login"
-          className="text-olive-ink underline"
-        >
+        <Link href="/auth/login" className="text-olive-ink underline">
           ورود
         </Link>
       </p>

@@ -46,7 +46,8 @@ export async function PATCH(
     .select(RECORD_SELECT)
     .single();
 
-  if (error || !data) return serverError("به‌روزرسانی اطلاعات مالی ناموفق بود.");
+  if (error || !data)
+    return serverError("به‌روزرسانی اطلاعات مالی ناموفق بود.");
 
   return NextResponse.json({ record: data });
 }

@@ -1,4 +1,7 @@
-import type { ChoreRotationMode, ChoreRotationStep } from "@/features/chores/types";
+import type {
+  ChoreRotationMode,
+  ChoreRotationStep,
+} from "@/features/chores/types";
 
 /**
  * Picks who is responsible for a chore right now.
@@ -28,12 +31,14 @@ export function resolveCurrentAssignee({
     ((currentRotationIndex % sorted.length) + sorted.length) % sorted.length;
 
   return sorted.reduce(
-    (found, step) => found ?? (step.position === safeIndex ? step.assignee_id : null),
+    (found, step) =>
+      found ?? (step.position === safeIndex ? step.assignee_id : null),
     null as string | null,
   );
 }
 
-export type ChoreState = "OVERDUE" | "DUE_TODAY" | "UPCOMING" | "PAUSED" | "UNSCHEDULED";
+export type ChoreState =
+  "OVERDUE" | "DUE_TODAY" | "UPCOMING" | "PAUSED" | "UNSCHEDULED";
 
 export function getChoreState({
   nextDueAt,

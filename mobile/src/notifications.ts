@@ -161,7 +161,7 @@ export function useMobileNotifications(
       try {
         const api = directReminders(client);
         const [rows, preferences] = await Promise.all([
-          api.list(),
+          api.authorizedSchedule(),
           api.preferences(),
         ]);
         if (!alive || serial !== sequence) return;

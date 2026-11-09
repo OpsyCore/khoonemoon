@@ -116,10 +116,7 @@ const toggleRes = await call(sessionA, `/api/shopping/items/${item.id}`, {
   body: JSON.stringify({ purchased: true }),
 });
 const toggled = await toggleRes.json();
-log(
-  "toggle item purchased",
-  toggleRes.ok && toggled.item?.purchased === true,
-);
+log("toggle item purchased", toggleRes.ok && toggled.item?.purchased === true);
 
 // Chores: create + complete (rotation + reschedule).
 const choreRes = await call(sessionA, "/api/chores", {
@@ -162,7 +159,11 @@ log("bill auto-marked overdue", bill.record?.bill_status === "OVERDUE");
 // Search finds the household data for a member...
 const searchRes = await call(sessionA, "/api/search?q=%D8%B4%DB%8C%D8%B1");
 const { results } = await searchRes.json();
-log("search finds own shopping item", results.length > 0, `(${results.length})`);
+log(
+  "search finds own shopping item",
+  results.length > 0,
+  `(${results.length})`,
+);
 
 // ...and returns nothing for an outsider.
 const outsiderSearch = await call(sessionB, "/api/search?q=%D8%B4%DB%8C%D8%B1");
@@ -171,10 +172,7 @@ log("outsider search is empty (RLS)", outsider.results.length === 0);
 
 const outsiderChores = await call(sessionB, "/api/chores");
 const outsiderChoresBody = await outsiderChores.json();
-log(
-  "outsider list API is empty (RLS)",
-  outsiderChoresBody.chores.length === 0,
-);
+log("outsider list API is empty (RLS)", outsiderChoresBody.chores.length === 0);
 
 // Cleanup test accounts so the project stays tidy.
 await admin.auth.admin.deleteUser(sessionA.user.id);

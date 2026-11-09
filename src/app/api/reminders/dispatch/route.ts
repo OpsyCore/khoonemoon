@@ -148,20 +148,22 @@ export async function POST(request: Request) {
   const claimed: ReminderRecord[] = [];
   let claimErrors = 0;
   for (const reminder of toSend) {
-    const { data, error } = await client
-      .from("reminders")
-      .update({ status: "SENT", delivered_at: now.toISOString() })
-      .eq("id", reminder.id)
-      .eq("user_id", reminder.user_id)
-      .eq("status", reminder.status)
-      .eq("updated_at", reminder.updated_at)
-      .select("id")
-      .maybeSingle();
+    const params = {
+      p_id: reminder.id,
+      p_status: reminder.status,
+      p_updated: reminder.updated_at,
+    };
+    const { data, error } = cron
+      ? await client.rpc("claim_service_authorized_reminder", {
+          ...params,
+          p_user: reminder.user_id,
+        })
+      : await client.rpc("claim_own_authorized_reminder", params);
     if (error) {
       claimErrors += 1;
       continue;
     }
-    if (data) claimed.push(reminder);
+    if (data === true) claimed.push(reminder);
   }
 
   // Web Push delivery for users who enabled it on at least one device.

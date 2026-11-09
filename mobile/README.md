@@ -21,7 +21,6 @@ successful build does not establish that login, data access, Android WebView,
 or mobile device behavior has been tested. Android WebView uses an HTTPS asset origin with a CSP; session persistence,
 file handling, and recovery/deep-link flows still require real-device testing.
 
-
 The web build includes an install manifest and a service worker for the static app
 shell only. It does not cache Supabase or API data, and application functions
 still need network access. HTTPS hosting and browser installation/offline behavior

@@ -132,9 +132,39 @@ describe("real ZIP through recovery against isolated PGlite", () => {
               result = await db.query(
                 "select public.mobile_export_snapshot() as value",
               );
-            else if (name === "mobile_signed_export_snapshot")
+            else if (name === "mobile_export_snapshot_v2")
               result = await db.query(
-                "select public.mobile_signed_export_snapshot() as value",
+                "select public.mobile_export_snapshot_v2() as value",
+              );
+            else if (name === "mobile_signed_export_snapshot_v2")
+              result = await db.query(
+                "select public.mobile_signed_export_snapshot_v2() as value",
+              );
+            else if (name === "mobile_export_snapshot_v3")
+              result = await db.query(
+                "select public.mobile_export_snapshot_v3() as value",
+              );
+            else if (name === "mobile_signed_export_snapshot_v3")
+              result = await db.query(
+                "select public.mobile_signed_export_snapshot_v3() as value",
+              );
+            else if (name === "mobile_restore_signed_home_v3")
+              result = await db.query(
+                "select public.mobile_restore_signed_home_v3($1::jsonb,$2,$3::uuid) as value",
+                [
+                  JSON.stringify(args?.p_payload),
+                  args?.p_signature,
+                  args?.p_source ?? null,
+                ],
+              );
+            else if (name === "mobile_restore_signed_meals")
+              result = await db.query(
+                "select public.mobile_restore_signed_meals($1::jsonb,$2,$3::uuid) as value",
+                [
+                  JSON.stringify(args?.p_payload),
+                  args?.p_signature,
+                  args?.p_source,
+                ],
               );
             else if (name === "mobile_verify_snapshot_signature")
               result = await db.query(
@@ -182,6 +212,51 @@ describe("real ZIP through recovery against isolated PGlite", () => {
       const zip = await exportMobileBackup(
         client,
         new Date("2026-01-01T00:00:00Z"),
+      );
+      // A real legacy 19-table signed archive remains readable and restorable.
+      const oldSnapshot = (
+        await db.query("select public.mobile_signed_export_snapshot() as value")
+      ).rows[0] as {
+        value: {
+          payload: {
+            account_id: string;
+            snapshot: {
+              exported_at: string;
+              tables: Record<string, unknown[]>;
+              counts: Record<string, number>;
+            };
+          };
+          signature: string;
+        };
+      };
+      const oldFiles = unzipSync(zip);
+      const oldArchive = JSON.parse(strFromU8(oldFiles["archive.json"]));
+      oldArchive.tables = oldSnapshot.value.payload.snapshot.tables;
+      oldArchive.counts = oldSnapshot.value.payload.snapshot.counts;
+      oldArchive.snapshot_at = oldSnapshot.value.payload.snapshot.exported_at;
+      const paths: Record<string, string> = {};
+      oldArchive.tables.documents = (
+        oldArchive.tables.documents as Record<string, unknown>[]
+      ).map((row) => {
+        paths[row.id as string] = row.storage_path as string;
+        const { storage_path: _path, ...rest } = row;
+        void _path;
+        return { ...rest, archive_file: `documents/${row.id}.pdf` };
+      });
+      oldArchive.signed_snapshot = {
+        version: 1,
+        account_id: oldSnapshot.value.payload.account_id,
+        signature: oldSnapshot.value.signature,
+        paths,
+      };
+      oldFiles["archive.json"] = strToU8(JSON.stringify(oldArchive));
+      delete oldFiles["checksums.json"];
+      oldFiles["checksums.json"] = new Uint8Array(
+        await buildChecksums(oldFiles),
+      );
+      const legacyZip = zipSync(oldFiles, { level: 0 });
+      expect(Object.keys((await readBackup(legacyZip)).tables)).toHaveLength(
+        19,
       );
       // A modified archive with a recomputed checksum must still fail the
       // server signature, before any file or row is touched.
@@ -232,6 +307,7 @@ describe("real ZIP through recovery against isolated PGlite", () => {
         new Uint8Array([1, 2, 3]),
       );
       expect((await restoreMissing(client, zip)).inserted).toBe(0);
+      expect((await restoreMissing(client, legacyZip)).inserted).toBe(0);
       const restoredPath = `user/${user}/${doc}/restore.pdf`;
       await db.query("delete from storage.objects where name=$1", [
         restoredPath,
@@ -245,6 +321,46 @@ describe("real ZIP through recovery against isolated PGlite", () => {
         (await db.query("select public.create_household('خانهٔ آزمون') as id"))
           .rows[0] as { id: string }
       ).id;
+      const transferList = (
+        await db.query(
+          "insert into public.shopping_lists(household_id,name,created_by) values ($1,'meal list',$2) returning id",
+          [oldHome, user],
+        )
+      ).rows[0] as { id: string };
+      const transfer = await db.query(
+        "select public.mobile_add_meal_ingredients($1::uuid,$2::text[]) as result",
+        [transferList.id, ["bread", "rice", "bread"]],
+      );
+      expect(transfer.rows[0]).toEqual({ result: { inserted: 2, skipped: 0 } });
+      const transferRetry = await db.query(
+        "select public.mobile_add_meal_ingredients($1::uuid,$2::text[]) as result",
+        [transferList.id, ["bread", "rice"]],
+      );
+      expect(transferRetry.rows[0]).toEqual({
+        result: { inserted: 0, skipped: 2 },
+      });
+      await db.exec("reset role");
+      const outsider = "dddddddd-dddd-4ddd-8ddd-ddddddddddde";
+      await db.query(
+        "insert into auth.users(id,email) values ($1,'outsider@example.com')",
+        [outsider],
+      );
+      await db.query("select set_config('request.jwt.claims',$1,false)", [
+        JSON.stringify({ sub: outsider, role: "authenticated" }),
+      ]);
+      await db.exec("set role authenticated");
+      await expect(
+        db.query(
+          "select public.mobile_add_meal_ingredients($1::uuid,$2::text[])",
+          [transferList.id, ["unauthorized"]],
+        ),
+      ).rejects.toThrow("LIST_NOT_AVAILABLE");
+      await db.query("select set_config('request.jwt.claims',$1,false)", [
+        JSON.stringify({ sub: user, role: "authenticated" }),
+      ]);
+      await db.query("delete from public.shopping_lists where id=$1", [
+        transferList.id,
+      ]);
       const sharedId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
       const sharedPath = `household/${oldHome}/${sharedId}/original.pdf`;
       await db.query(
@@ -316,7 +432,43 @@ describe("real ZIP through recovery against isolated PGlite", () => {
         "insert into public.document_attachments(document_id,entity_type,entity_id,created_by) select $1,'TASK',id,$2 from public.tasks where title='other task'",
         [otherDoc, other],
       );
+      await db.query(
+        "insert into public.meal_plans(id,household_id,created_by,meal_date,meal_type,title,ingredients) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',$1,$2,'2026-01-02','breakfast','owner meal','bread'),('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',$1,$3,'2026-01-02','lunch','member meal','rice')",
+        [oldHome, user, other],
+      );
       await db.exec("set role authenticated");
+      // A member's signed snapshot cannot restore someone else's authored row,
+      // and the same signed payload is unusable by a different account.
+      await db.query("select set_config('request.jwt.claims',$1,false)", [
+        JSON.stringify({ sub: other, role: "authenticated" }),
+      ]);
+      const memberSigned = (
+        await db.query("select public.mobile_signed_export_snapshot_v2() as v")
+      ).rows[0] as { v: { payload: unknown; signature: string } };
+      const memberResult = await db.query(
+        "select public.mobile_restore_signed_meals($1::jsonb,$2,$3::uuid) as result",
+        [
+          JSON.stringify(memberSigned.v.payload),
+          memberSigned.v.signature,
+          oldHome,
+        ],
+      );
+      expect(memberResult.rows[0]).toEqual({
+        result: { inserted: 0, skipped: 1, deferred: 1 },
+      });
+      await db.query("select set_config('request.jwt.claims',$1,false)", [
+        JSON.stringify({ sub: user, role: "authenticated" }),
+      ]);
+      await expect(
+        db.query(
+          "select public.mobile_restore_signed_meals($1::jsonb,$2,$3::uuid)",
+          [
+            JSON.stringify(memberSigned.v.payload),
+            memberSigned.v.signature,
+            oldHome,
+          ],
+        ),
+      ).rejects.toThrow("INVALID_BACKUP_SIGNATURE");
       const otherZip = await exportMobileBackup(
         client,
         new Date("2026-01-02T00:00:00Z"),
@@ -329,7 +481,7 @@ describe("real ZIP through recovery against isolated PGlite", () => {
       );
       const recovered = await restoreMissing(client, otherZip, true);
       expect(recovered.householdCopy).toBe(true);
-      expect(recovered.inserted).toBe(8);
+      expect(recovered.inserted).toBe(10);
       expect(recovered.deferred).toBe(4);
       const home = await db.query(
         "select household_id from public.household_members where user_id=$1 and left_at is null",
@@ -337,6 +489,41 @@ describe("real ZIP through recovery against isolated PGlite", () => {
       );
       const newHome = (home.rows[0] as { household_id: string }).household_id;
       expect(newHome).not.toBe(oldHome);
+      expect(
+        (
+          await db.query(
+            "select count(*)::int as n from public.meal_plans where household_id=$1",
+            [newHome],
+          )
+        ).rows,
+      ).toEqual([{ n: 2 }]);
+      const signedMeals = (await readBackup(otherZip)).signedSnapshot!;
+      await expect(
+        db.query(
+          "select public.mobile_restore_signed_meals($1::jsonb,$2,$3::uuid)",
+          [JSON.stringify(signedMeals.payload), "0".repeat(64), oldHome],
+        ),
+      ).rejects.toThrow("INVALID_BACKUP_SIGNATURE");
+      // Existing date/type wins over a restored row, and retry cannot overwrite it.
+      await db.query("delete from public.meal_plans where title='owner meal'");
+      await db.query(
+        "insert into public.meal_plans(household_id,created_by,meal_date,meal_type,title) values ($1,$2,'2026-01-02','breakfast','newer meal')",
+        [newHome, user],
+      );
+      const collision = await db.query(
+        "select public.mobile_restore_signed_meals($1::jsonb,$2,$3::uuid) as result",
+        [JSON.stringify(signedMeals.payload), signedMeals.signature, oldHome],
+      );
+      expect(collision.rows[0]).toEqual({
+        result: { inserted: 0, skipped: 2, deferred: 0 },
+      });
+      expect(
+        (
+          await db.query(
+            "select title from public.meal_plans where meal_type='breakfast'",
+          )
+        ).rows,
+      ).toEqual([{ title: "newer meal" }]);
       expect(
         (
           await db.query(

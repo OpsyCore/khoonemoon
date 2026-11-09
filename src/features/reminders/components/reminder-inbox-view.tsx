@@ -6,6 +6,7 @@ import {
   type ReminderInbox as ReminderInboxModel,
   type ReminderState,
 } from "@/features/reminders/inbox";
+import { REMINDER_TARGET_LABELS } from "@/features/reminders/types";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card";
@@ -150,14 +151,7 @@ export function ReminderInboxView({
                           {entry.title}
                         </p>
                         <p className="text-xs text-muted">
-                          {
-                            {
-                              TASK: "تسک",
-                              EVENT: "رویداد",
-                              CHORE: "کار خانه",
-                              BILL: "قبض",
-                            }[entry.targetType]
-                          }
+                          {REMINDER_TARGET_LABELS[entry.targetType]}
                           {" · "}
                           {formatJalaliLongDate(date)} —{" "}
                           {formatPersianTime(date)}
