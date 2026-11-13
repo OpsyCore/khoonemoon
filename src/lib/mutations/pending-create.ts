@@ -57,25 +57,35 @@ async function journalKey(user: string, kind: string, input: unknown) {
 }
 
 type Result<T> = { data: T | null; error: unknown };
-async function acquire(user: string, kind: string, input: unknown) {
+async function acquire(
+  user: string,
+  kind: string,
+  input: unknown,
+  requestId?: string,
+) {
   const key = await journalKey(user, kind, input);
-  const run = () => acquireFromJournal(key, user, kind);
+  const run = () => acquireFromJournal(key, user, kind, requestId);
   if (typeof navigator !== "undefined" && navigator.locks)
     return navigator.locks.request(key, run);
   return run();
 }
-function acquireFromJournal(key: string, user: string, kind: string) {
+function acquireFromJournal(
+  key: string,
+  user: string,
+  kind: string,
+  requestId?: string,
+) {
   const storage = journal();
   let id: string;
   try {
+    if (requestId && !uuidPattern.test(requestId))
+      throw new Error("invalid request id");
     const previous = storage.getItem(key);
+    if (requestId && previous && previous !== requestId)
+      throw new Error("request id conflict");
     id =
-      previous &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        previous,
-      )
-        ? previous
-        : crypto.randomUUID();
+      requestId ??
+      (previous && uuidPattern.test(previous) ? previous : crypto.randomUUID());
     storage.setItem(key, id);
     if (storage.getItem(key) !== id) throw new Error("journal unavailable");
     // Metadata contains no form values. It makes an uncertain operation
@@ -107,14 +117,16 @@ export async function pendingRequest<T>({
   input,
   submit,
   valid,
+  requestId,
 }: {
   user: string;
   kind: string;
   input: unknown;
   submit: (id: string) => PromiseLike<Result<T>>;
   valid: (data: unknown) => data is T;
+  requestId?: string;
 }): Promise<T> {
-  const { id, clear } = await acquire(user, kind, input);
+  const { id, clear } = await acquire(user, kind, input, requestId);
   try {
     const result = await submit(id);
     if (!result.error && valid(result.data)) {
@@ -135,6 +147,7 @@ export async function pendingCreate<T>({
   submit,
   find,
   onConfirmed,
+  requestId,
 }: {
   user: string;
   kind: string;
@@ -142,8 +155,9 @@ export async function pendingCreate<T>({
   submit: (id: string) => PromiseLike<Result<T>>;
   find: (id: string) => PromiseLike<Result<T>>;
   onConfirmed?: (data: T) => void;
+  requestId?: string;
 }): Promise<T> {
-  const { id, clear } = await acquire(user, kind, input);
+  const { id, clear } = await acquire(user, kind, input, requestId);
   const done = (data: T) => {
     onConfirmed?.(data);
     clear();

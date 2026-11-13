@@ -11,7 +11,7 @@ const COLUMNS =
 /** User-scoped task operations. Completion atomically creates a successor when recurring. */
 export function directTasks(client: SupabaseClient) {
   return {
-    async create(input: unknown): Promise<string> {
+    async create(input: unknown, requestId?: string): Promise<string> {
       const task = createTaskSchema.parse(input);
       const { data: auth, error: authError } = await client.auth.getUser();
       if (authError || !auth.user) throw new Error("ابتدا وارد حساب خود شوید.");
@@ -31,6 +31,7 @@ export function directTasks(client: SupabaseClient) {
           }),
         valid: (value): value is string =>
           typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value),
+        requestId,
       });
     },
     async update(

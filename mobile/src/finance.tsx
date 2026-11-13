@@ -1,8 +1,7 @@
-import { ArrowLeft, Settings } from "lucide-react";
 import { FinanceOverview } from "./finance-overview";
+import { FinanceLedger, type FinanceAccountScope } from "./finance-ledger";
 import { ledgerCurrency, ledgerFromUrl, ledgerUrl } from "./ledger-url";
 import { financeCorrection, financePatchLabels } from "./finance-correction";
-import { FinanceChart } from "./finance-chart";
 import { taskEditTime } from "./task-edit-time";
 import {
   useCallback,
@@ -21,7 +20,6 @@ import type {
 import {
   isBillRecord,
   getBillStatus,
-  formatAmount,
   summarizeFinance,
 } from "@/features/finance/bills";
 import { buildFinanceAnalytics } from "@/features/finance/analytics";
@@ -30,7 +28,7 @@ import {
   TYPE_LABELS,
   type LedgerType,
   type PaidFilter,
-  type LedgerDays,
+  ledgerDate,
 } from "@/features/finance/ledger";
 import {
   settleHousehold,
@@ -38,21 +36,21 @@ import {
 } from "@/features/finance/settlement";
 import { ZodError } from "zod";
 import { parseAmount } from "@/shared/utils/amount";
-import { formatPersianDate } from "@/shared/utils/locale";
-
 const billTypes = new Set(["BILL", "SUBSCRIPTION", "INSTALLMENT"]);
-const statusLabel = {
-  PAID: "پرداخت‌شده",
-  UPCOMING: "پیش‌رو",
-  DUE: "نزدیک سررسید",
-  OVERDUE: "معوق",
-} as const;
 function localInput(value: string | null) {
   if (!value) return "";
   const date = new Date(value);
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 16);
+}
+function dateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+function validDateFilter(value: string | null) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
+  const date = new Date(`${value}T12:00:00`);
+  return Number.isNaN(date.getTime()) || dateKey(date) !== value ? "" : value;
 }
 export function Finance({
   client,
@@ -79,23 +77,25 @@ export function Finance({
   const [message, setMessage] = useState("");
   const [editing, setEditing] = useState<FinancialRecord | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [ledgerOpen, setLedgerOpen] = useState(() => {
-    const url = new URL(
+  const initialFinanceUrl = () =>
+    new URL(
       initialUrl ??
         (typeof window === "undefined"
           ? "https://local.invalid"
           : window.location.href),
     );
-    return [
-      "ledger_category",
-      "ledger_type",
-      "ledger_paid",
-      "ledger_days",
-      "ledger_q",
-    ].some((key) => url.searchParams.has(key));
+  const [accountScope, setAccountScope] = useState<FinanceAccountScope>(() => {
+    const account = initialFinanceUrl().searchParams.get("ledger_account");
+    return account === "PRIVATE" || account === "SHARED" ? account : "ALL";
   });
+  const [dateFrom, setDateFrom] = useState(() =>
+    validDateFilter(initialFinanceUrl().searchParams.get("ledger_from")),
+  );
+  const [dateTo, setDateTo] = useState(() =>
+    validDateFilter(initialFinanceUrl().searchParams.get("ledger_to")),
+  );
   const formRef = useRef<HTMLDivElement>(null);
-  const ledgerRef = useRef<HTMLDetailsElement>(null);
+  const ledgerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (formOpen)
       formRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
@@ -157,6 +157,40 @@ export function Finance({
       window.history.replaceState(window.history.state, "", url);
     } catch {
       /* link persistence is optional */
+    }
+  }
+  function updateAccountScope(scope: FinanceAccountScope) {
+    setAccountScope(scope);
+    try {
+      const url = new URL(window.location.href);
+      if (scope === "ALL") url.searchParams.delete("ledger_account");
+      else url.searchParams.set("ledger_account", scope);
+      window.history.replaceState(window.history.state, "", url);
+    } catch {
+      /* optional */
+    }
+  }
+  function updateDateRange(field: "from" | "to", value: string) {
+    const valid = validDateFilter(value);
+    const nextFrom = field === "from" ? valid : dateFrom;
+    const nextTo = field === "to" ? valid : dateTo;
+    setDateFrom(nextFrom);
+    setDateTo(nextTo);
+    const nextFilters = { ...filters, days: "ALL" as const };
+    setFilters(nextFilters);
+    try {
+      const url = ledgerUrl(
+        new URL(window.location.href),
+        nextFilters,
+        currency,
+      );
+      if (nextFrom) url.searchParams.set("ledger_from", nextFrom);
+      else url.searchParams.delete("ledger_from");
+      if (nextTo) url.searchParams.set("ledger_to", nextTo);
+      else url.searchParams.delete("ledger_to");
+      window.history.replaceState(window.history.state, "", url);
+    } catch {
+      /* optional */
     }
   }
   const load = useCallback(async () => {
@@ -286,28 +320,49 @@ export function Finance({
     () => records.filter((record) => record.currency === currency),
     [records, currency],
   );
-  const summary = summarizeFinance(money, now);
-  const analytics = buildFinanceAnalytics({ records: money, now });
+  const viewMoney = useMemo(
+    () =>
+      money.filter((record) => {
+        if (accountScope === "PRIVATE") return record.visibility === "PRIVATE";
+        if (accountScope === "SHARED")
+          return record.visibility === "HOUSEHOLD_SHARED";
+        return true;
+      }),
+    [money, accountScope],
+  );
+  const dateFilteredMoney = useMemo(
+    () =>
+      viewMoney.filter((record) => {
+        if (!dateFrom && !dateTo) return true;
+        const date = ledgerDate(record);
+        if (!date) return false;
+        const key = dateKey(date);
+        return (!dateFrom || key >= dateFrom) && (!dateTo || key <= dateTo);
+      }),
+    [viewMoney, dateFrom, dateTo],
+  );
+  const summary = summarizeFinance(viewMoney, now);
+  const analytics = buildFinanceAnalytics({ records: viewMoney, now });
   const ledger = filterLedger({
     records: categoryFilter
-      ? money.filter(
+      ? dateFilteredMoney.filter(
           (record) => (record.category ?? "").trim() === categoryFilter,
         )
-      : money,
+      : dateFilteredMoney,
     filters,
     now,
   });
   const settlement = useMemo(
     () =>
       settleHousehold({
-        records: money.filter(
+        records: viewMoney.filter(
           (record) =>
             record.household_id === householdId &&
             record.record_type !== "DEBT",
         ),
         members,
       }),
-    [money, members, householdId],
+    [viewMoney, members, householdId],
   );
   let correctionPreview: string[] = [];
   if (editing) {
@@ -463,44 +518,46 @@ export function Finance({
       setBusy(false);
     }
   }
+  function clearLedgerFilters() {
+    setDateFrom("");
+    setDateTo("");
+    setAccountScope("ALL");
+    updateFilters({ type: "ALL", paid: "ALL", days: "ALL", query: "" }, "");
+    try {
+      const url = new URL(window.location.href);
+      for (const key of ["ledger_from", "ledger_to", "ledger_account"])
+        url.searchParams.delete(key);
+      window.history.replaceState(window.history.state, "", url);
+    } catch {
+      /* optional */
+    }
+  }
+  const currencyOptions = Array.from(
+    new Set(["IRR", currency, ...records.map((record) => record.currency)]),
+  );
   return (
     <div className="finance-page" dir="rtl">
-      <div className="fin-heading">
-        {onBack && (
+      {!loaded && (
+        <div className="fin-ledger-loading">
+          <h2>دفتر مالی</h2>
+          <p className="finance-sync" aria-live="polite">
+            {sync}
+          </p>
           <button
-            className="fin-heading-back"
-            onClick={onBack}
-            aria-label="بازگشت به خانه"
+            type="button"
+            className="minor"
+            onClick={() =>
+              void load().catch(() => {
+                setRecords([]);
+                setLoaded(false);
+                setMessage("تازه‌سازی ناموفق بود.");
+              })
+            }
           >
-            <ArrowLeft size={22} />
+            تازه‌سازی
           </button>
-        )}
-        {onSettings && (
-          <button
-            className="fin-heading-settings"
-            onClick={onSettings}
-            aria-label="حساب و تنظیمات"
-          >
-            <Settings size={22} />
-          </button>
-        )}
-        <h2>مالی خونه</h2>
-        <p>با هم، شفاف‌تر و آرام‌تر</p>
-      </div>
-      <p className="finance-sync">{sync}</p>
-      <button
-        type="button"
-        className="minor finance-refresh"
-        onClick={() =>
-          void load().catch(() => {
-            setRecords([]);
-            setLoaded(false);
-            setMessage("تازه‌سازی ناموفق بود.");
-          })
-        }
-      >
-        تازه‌سازی مالی
-      </button>
+        </div>
+      )}
       {message && (
         <p role="alert" className="error">
           {message}
@@ -508,12 +565,29 @@ export function Finance({
       )}
       {loaded && (
         <>
-          <label className="fin-currency">
-            ارز گزارش{" "}
-            <select
-              value={currency}
-              onChange={(e) => {
-                const value = e.target.value;
+          <div ref={ledgerRef}>
+            <FinanceLedger
+              records={ledger.records}
+              summary={summary}
+              resultCount={ledger.summary.count}
+              unpaidBillsCount={
+                viewMoney.filter(
+                  (record) => isBillRecord(record) && !record.paid_at,
+                ).length
+              }
+              analytics={analytics}
+              filters={filters}
+              accountScope={accountScope}
+              currency={currency}
+              currencies={currencyOptions}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              now={now}
+              busy={busy}
+              sync={sync}
+              categoryFilter={categoryFilter}
+              onAccountScope={updateAccountScope}
+              onCurrency={(value) => {
                 setCurrency(value);
                 try {
                   window.history.replaceState(
@@ -525,60 +599,75 @@ export function Finance({
                   /* optional */
                 }
               }}
-            >
-              {Array.from(
-                new Set([
-                  "IRR",
-                  currency,
-                  ...records.map((record) => record.currency),
-                ]),
-              ).map((code) => (
-                <option key={code} value={code}>
-                  {code === "IRR" ? "تومان" : code}
-                </option>
-              ))}
-            </select>
-          </label>
-          <FinanceOverview
-            records={money}
-            now={now}
-            currency={currency}
-            settlement={settlement}
-            householdId={householdId}
-            membersReady={membersReady}
-            excluded={excludedSettlementRecords(
-              money.filter(
-                (record) =>
-                  record.household_id === householdId &&
-                  record.record_type !== "DEBT",
-              ),
-              members,
-            )}
-            onAdd={() => {
-              reset();
-              setFormOpen(true);
-            }}
-            onRecord={beginEdit}
-            onCategory={(category, income) => {
-              updateFilters(
-                {
-                  ...filters,
-                  query: "",
-                  type: income ? "INCOME" : "ALL",
-                },
-                income ? "" : category,
-              );
-              setLedgerOpen(true);
-              window.setTimeout(
-                () =>
-                  ledgerRef.current?.scrollIntoView?.({
-                    behavior: "smooth",
-                    block: "start",
-                  }),
-                0,
-              );
-            }}
-          />
+              onRefresh={() =>
+                void load().catch(() => {
+                  setRecords([]);
+                  setLoaded(false);
+                  setMessage("تازه‌سازی ناموفق بود.");
+                })
+              }
+              onDateFrom={(value) => updateDateRange("from", value)}
+              onDateTo={(value) => updateDateRange("to", value)}
+              onType={(type) => updateFilters({ ...filters, type })}
+              onPaid={(paid) => updateFilters({ ...filters, paid })}
+              onQuery={(query) => updateFilters({ ...filters, query })}
+              onResetFilters={clearLedgerFilters}
+              onClearCategory={() => updateFilters(filters, "")}
+              onBack={onBack}
+              onSettings={onSettings}
+              onRecord={beginEdit}
+              onPaidRecord={(record) => void paid(record)}
+              onArchive={(record) => void archive(record)}
+              onAdd={() => {
+                reset();
+                setFormOpen(true);
+              }}
+            />
+          </div>
+          <details className="finance-more-dashboard">
+            <summary>گزارش‌ها، دسته‌بندی‌ها و تسویه</summary>
+            <FinanceOverview
+              records={viewMoney}
+              now={now}
+              currency={currency}
+              settlement={settlement}
+              householdId={householdId}
+              membersReady={membersReady}
+              excluded={excludedSettlementRecords(
+                viewMoney.filter(
+                  (record) =>
+                    record.household_id === householdId &&
+                    record.record_type !== "DEBT",
+                ),
+                members,
+              )}
+              onAdd={() => {
+                reset();
+                setFormOpen(true);
+              }}
+              onRecord={beginEdit}
+              onCategory={(category, income) => {
+                updateFilters(
+                  {
+                    ...filters,
+                    query: "",
+                    type: income ? "INCOME" : "ALL",
+                  },
+                  income ? "" : category,
+                );
+                window.setTimeout(
+                  () =>
+                    ledgerRef.current
+                      ?.querySelector(".fin-ledger-filters")
+                      ?.scrollIntoView?.({
+                        behavior: "smooth",
+                        block: "start",
+                      }),
+                  0,
+                );
+              }}
+            />
+          </details>
         </>
       )}
       {formOpen && (
@@ -761,249 +850,6 @@ export function Finance({
             </button>
           </form>
         </div>
-      )}
-      {loaded && (
-        <details
-          className="finance-details"
-          ref={ledgerRef}
-          open={ledgerOpen}
-          onToggle={(event) => setLedgerOpen(event.currentTarget.open)}
-        >
-          <summary>دفتر مالی، گزارش‌ها و فیلترها</summary>
-          <h3>خلاصه مالی</h3>
-          <p>
-            درآمد: {formatAmount(summary.income, currency)} · هزینه:{" "}
-            {formatAmount(summary.expense, currency)} · قبض‌های پرداخت‌نشده:{" "}
-            {formatAmount(summary.outstanding, currency)}
-          </p>
-          <p>
-            معوق: {summary.overdueCount} · نزدیک سررسید: {summary.dueSoonCount}
-          </p>
-          <h3>گزارش شش‌ماهه</h3>
-          <p>
-            گزارش شامل قبض‌های پرداخت‌نشده هم هست و تاریخ پرداخت، سپس سررسید و
-            در نهایت تاریخ ثبت را ملاک می‌گیرد.
-          </p>
-          <FinanceChart analytics={analytics} currency={currency} />
-          <ul>
-            {analytics.months.map((month) => (
-              <li key={month.key}>
-                {month.label} — درآمد {formatAmount(month.income, currency)} ·
-                هزینه {formatAmount(month.expense, currency)}
-              </li>
-            ))}
-          </ul>
-          <h3>دسته‌بندی هزینه‌ها</h3>
-          {analytics.categories.length ? (
-            <ul>
-              {analytics.categories.map((item) => (
-                <li key={item.category}>
-                  {item.category} — {formatAmount(item.total, currency)} (
-                  {item.share}٪)
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>اطلاعاتی در این بازه وجود ندارد.</p>
-          )}
-          {householdId && membersReady && (
-            <>
-              <h3>برآورد تسویه مشترک</h3>
-              <p>
-                تقسیم برابر هزینه‌های مشترک بین اعضای فعلی، بدون بدهی‌های
-                ثبت‌شده؛ نه ثبت پرداخت واقعی.
-              </p>
-              <p>
-                مجموع هزینه‌های قابل تسویه:{" "}
-                {formatAmount(settlement.total, currency)}
-              </p>
-              {members.length === 0 ? (
-                <p>برای محاسبه، فهرست اعضای فعلی لازم است.</p>
-              ) : (
-                <ul>
-                  {settlement.balances.map((member) => (
-                    <li key={member.memberId}>
-                      <strong>{member.name}</strong>
-                      <span>
-                        پرداخت: {formatAmount(member.paid, currency)} · سهم:{" "}
-                        {formatAmount(member.share, currency)} ·{" "}
-                        {member.balance > 0
-                          ? "طلبکار"
-                          : member.balance < 0
-                            ? "بدهکار"
-                            : "تسویه"}
-                        : {formatAmount(Math.abs(member.balance), currency)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {excludedSettlementRecords(
-                money.filter(
-                  (record) =>
-                    record.household_id === householdId &&
-                    record.record_type !== "DEBT",
-                ),
-                members,
-              ) > 0 && (
-                <p>
-                  برخی پرداخت‌ها به‌دلیل نبود پرداخت‌کننده در اعضای فعلی در
-                  برآورد لحاظ نشده‌اند.
-                </p>
-              )}
-              {settlement.transfers.length ? (
-                <ul>
-                  {settlement.transfers.map((transfer) => (
-                    <li key={`${transfer.fromId}-${transfer.toId}`}>
-                      {transfer.fromName} به {transfer.toName}:{" "}
-                      {formatAmount(transfer.amount, currency)}
-                    </li>
-                  ))}
-                </ul>
-              ) : members.length > 0 ? (
-                <p>انتقالی میان اعضای فعلی پیشنهاد نمی‌شود.</p>
-              ) : null}
-            </>
-          )}
-          <h3>دفتر مالی</h3>
-          {categoryFilter && (
-            <p>
-              دسته انتخاب‌شده: {categoryFilter}{" "}
-              <button
-                type="button"
-                className="minor"
-                onClick={() => updateFilters(filters, "")}
-              >
-                حذف فیلتر دسته
-              </button>
-            </p>
-          )}
-          <label>
-            جست‌وجو
-            <input
-              value={filters.query}
-              onChange={(e) =>
-                updateFilters({ ...filters, query: e.target.value })
-              }
-            />
-          </label>
-          <label>
-            نوع
-            <select
-              value={filters.type}
-              onChange={(e) =>
-                updateFilters({
-                  ...filters,
-                  type: e.target.value as LedgerType,
-                })
-              }
-            >
-              {Object.entries(TYPE_LABELS).map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            پرداخت
-            <select
-              value={filters.paid}
-              onChange={(e) =>
-                updateFilters({
-                  ...filters,
-                  paid: e.target.value as PaidFilter,
-                })
-              }
-            >
-              <option value="ALL">همه</option>
-              <option value="PAID">پرداخت‌شده</option>
-              <option value="UNPAID">پرداخت‌نشده</option>
-            </select>
-          </label>
-          <label>
-            بازه
-            <select
-              value={filters.days}
-              onChange={(e) =>
-                updateFilters({
-                  ...filters,
-                  days: e.target.value as LedgerDays,
-                })
-              }
-            >
-              <option value="ALL">همه</option>
-              <option value="30">۳۰ روز</option>
-              <option value="90">۹۰ روز</option>
-              <option value="365">یک سال</option>
-            </select>
-          </label>
-          <p>
-            {ledger.summary.count} مورد · درآمد:{" "}
-            {formatAmount(ledger.summary.income, currency)} · هزینه:{" "}
-            {formatAmount(ledger.summary.expense, currency)} · قبض پرداخت‌نشده:{" "}
-            {formatAmount(ledger.summary.outstanding, currency)}
-          </p>
-          <ul>
-            {ledger.records.map((record) => (
-              <li key={record.id}>
-                <div>
-                  <strong>{record.title}</strong>
-                  <p>
-                    {TYPE_LABELS[record.record_type]} ·{" "}
-                    {formatAmount(record.amount, record.currency)}{" "}
-                    {isBillRecord(record) &&
-                      `· ${statusLabel[getBillStatus({ dueAt: record.due_at, paidAt: record.paid_at, now })]}`}
-                  </p>
-                  <small>
-                    {record.visibility === "PRIVATE" ? "شخصی" : "مشترک"}
-                    {record.category && ` · ${record.category}`}
-                    {record.due_at &&
-                      ` · سررسید: ${formatPersianDate(record.due_at)}`}
-                    {record.paid_at &&
-                      ` · پرداخت: ${formatPersianDate(record.paid_at)}`}
-                  </small>
-                  {record.is_recurring && record.recurrence_rule && (
-                    <small>قبض تکراری · {record.recurrence_rule}</small>
-                  )}
-                  {record.note && <p>{record.note}</p>}
-                </div>
-                <div>
-                  <button
-                    className="minor"
-                    disabled={busy}
-                    onClick={() => beginEdit(record)}
-                  >
-                    ویرایش
-                  </button>
-                  {(isBillRecord(record) ||
-                    (record.record_type === "EXPENSE" &&
-                      Boolean(record.due_at))) &&
-                    !(
-                      record.paid_at &&
-                      record.is_recurring &&
-                      record.recurrence_rule
-                    ) && (
-                      <button
-                        className="minor"
-                        disabled={busy}
-                        onClick={() => void paid(record)}
-                      >
-                        {record.paid_at ? "بازگرداندن پرداخت" : "پرداخت شد"}
-                      </button>
-                    )}
-                  <button
-                    className="minor"
-                    disabled={busy}
-                    onClick={() => void archive(record)}
-                  >
-                    بایگانی
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </details>
       )}
     </div>
   );

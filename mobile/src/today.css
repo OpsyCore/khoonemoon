@@ -184,32 +184,25 @@
 }
 .today-ref-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-areas:
-    "tasks events"
-    "chores bills"
-    "reminders reminders";
   gap: 0.65rem;
+}
+.today-ref-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 0.65rem;
+}
+.today-ref-column {
+  display: flex;
+  flex-direction: column;
   align-items: stretch;
-}
-.today-ref-tasks {
-  grid-area: tasks;
-}
-.today-ref-chores {
-  grid-area: chores;
-}
-.today-ref-events {
-  grid-area: events;
-}
-.today-ref-bills {
-  grid-area: bills;
-}
-.today-ref-reminders {
-  grid-area: reminders;
+  gap: 0.65rem;
+  min-width: 0;
 }
 .today-ref-card {
   display: flex;
   flex-direction: column;
+  align-self: start;
   min-width: 0;
   padding: 0.8rem;
 }
@@ -441,14 +434,8 @@
   color: #d4c9b2;
 }
 @media (max-width: 350px) {
-  .today-ref-grid {
+  .today-ref-columns {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "tasks"
-      "events"
-      "chores"
-      "bills"
-      "reminders";
   }
   .today-ref-greeting small {
     display: none;

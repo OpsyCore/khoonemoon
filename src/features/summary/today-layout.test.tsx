@@ -15,7 +15,7 @@ afterEach(() => {
   document.body.innerHTML = "";
   vi.clearAllMocks();
 });
-it("renders cards in visual and keyboard order, even with unequal content", async () => {
+it("keeps unequal dashboard cards in independent columns and visual order", async () => {
   const date = "2026-11-03T09:00:00.000Z";
   mocks.today.mockResolvedValue({
     tasks: [],
@@ -38,35 +38,44 @@ it("renders cards in visual and keyboard order, even with unequal content", asyn
       />,
     ),
   );
-  const cards = [
-    ...host.querySelectorAll<HTMLElement>(".today-ref-grid > .today-ref-card"),
-  ];
+  const cards = [...host.querySelectorAll<HTMLElement>(".today-ref-card")];
   expect(
     cards.map((card) =>
       [...card.classList].find((name) => name !== "today-ref-card"),
     ),
   ).toEqual([
     "today-ref-tasks",
-    "today-ref-events",
     "today-ref-chores",
+    "today-ref-events",
     "today-ref-bills",
     "today-ref-reminders",
   ]);
-  expect(cards[2].textContent).toContain("کار خانه");
+  expect(cards[0].closest(".today-ref-column")).toBe(
+    cards[1].closest(".today-ref-column"),
+  );
+  expect(cards[2].closest(".today-ref-column")).toBe(
+    cards[3].closest(".today-ref-column"),
+  );
+  expect(cards[4].parentElement?.classList.contains("today-ref-grid")).toBe(
+    true,
+  );
+  expect(cards[1].textContent).toContain("کار خانه");
   expect(cards[3].textContent).toContain("قبض");
   await act(async () =>
-    cards[2].querySelector<HTMLButtonElement>(".today-ref-more")!.click(),
+    cards[1].querySelector<HTMLButtonElement>(".today-ref-more")!.click(),
   );
   expect(navigate).toHaveBeenCalledWith("tasks", "chore-list");
   await act(async () => root.unmount());
 });
-it("uses shared stretched grid rows and switches to one column on narrow screens", () => {
+it("sizes cards to their own content and stacks columns on narrow screens", () => {
   const css = readFileSync("mobile/src/today.css", "utf8");
   expect(css).toMatch(
-    /grid-template-areas:\s*"tasks events"\s*"chores bills"\s*"reminders reminders"/,
+    /\.today-ref-columns\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/,
   );
-  expect(css).toContain("align-items: stretch");
+  expect(css).toMatch(/\.today-ref-column\s*\{[^}]*flex-direction:\s*column/);
+  expect(css).toMatch(/\.today-ref-columns\s*\{[^}]*align-items:\s*start/);
+  expect(css).toMatch(/\.today-ref-card\s*\{[^}]*align-self:\s*start/);
   expect(css).toMatch(
-    /@media \(max-width: 350px\)[\s\S]*grid-template-areas:\s*"tasks"\s*"events"\s*"chores"\s*"bills"\s*"reminders"/,
+    /@media \(max-width: 350px\)[\s\S]*\.today-ref-columns\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/,
   );
 });

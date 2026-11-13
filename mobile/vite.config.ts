@@ -54,6 +54,7 @@ export default defineConfig(({ command, mode }) => {
       manifest: true,
       rolldownOptions: {
         output: {
+          minify: { compress: { dropConsole: true } },
           codeSplitting: {
             groups: [
               {

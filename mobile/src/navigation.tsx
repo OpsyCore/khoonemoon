@@ -22,7 +22,8 @@ export type MobilePage =
   | "settings"
   | "reminders"
   | "documents"
-  | "search";
+  | "search"
+  | "assistant";
 export function MobileNavigation({
   page,
   onNavigate,

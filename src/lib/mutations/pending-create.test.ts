@@ -2,6 +2,24 @@ import { describe, it, expect, vi } from "vitest";
 import { pendingCreate } from "./pending-create";
 
 describe("pending create journal", () => {
+  it("reuses a caller-bound idempotency UUID after success", async () => {
+    const calls: string[] = [];
+    const request = {
+      user: "confirmed-user",
+      kind: "confirmed-write",
+      requestId: "60000000-0000-4000-8000-000000000001",
+      input: { title: "fixed" },
+      submit: async (id: string) => {
+        calls.push(id);
+        return { data: { id }, error: null };
+      },
+      find: async (id: string) => ({ data: { id }, error: null }),
+    };
+    await pendingCreate(request);
+    await pendingCreate(request);
+    expect(calls).toEqual([request.requestId, request.requestId]);
+  });
+
   it("reuses the same UUID when an earlier commit has an ambiguous response", async () => {
     const ids: string[] = [];
     let phase = 0;

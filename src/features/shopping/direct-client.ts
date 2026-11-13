@@ -102,7 +102,7 @@ export function directShopping(client: SupabaseClient) {
           throw new Error("تعداد اقلام بیش از حد مجاز است.");
       }
     },
-    async addItem(input: unknown): Promise<ShoppingItem> {
+    async addItem(input: unknown, requestId?: string): Promise<ShoppingItem> {
       const item = createShoppingItemSchema.parse(input);
       const userId = await currentUserId(client);
       return pendingCreate<ShoppingItem>({
@@ -130,6 +130,7 @@ export function directShopping(client: SupabaseClient) {
             .select(ITEM_COLUMNS)
             .eq("id", id)
             .maybeSingle(),
+        requestId,
       });
     },
     async updateItem(

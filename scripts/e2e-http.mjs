@@ -253,6 +253,11 @@ try {
     status: [307, 302],
   });
   await expectStatus({
+    name: "دستیار بدون نشست → هدایت",
+    path: "/assistant",
+    status: [307, 302],
+  });
+  await expectStatus({
     name: "برنامه غذایی بدون نشست → هدایت",
     path: "/meals",
     status: [307, 302],

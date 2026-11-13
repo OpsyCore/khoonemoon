@@ -2,6 +2,7 @@ import type {
   FinancialRecord,
   FinancialRecordType,
 } from "@/features/finance/types";
+import { getBillStatus } from "@/features/finance/bills";
 
 /**
  * Financial ledger ("دفتر تراکنش‌ها").
@@ -34,12 +35,13 @@ export const TYPE_LABELS: Record<LedgerType, string> = {
   DEBT: "بدهی",
 };
 
-export type PaidFilter = "ALL" | "PAID" | "UNPAID";
+export type PaidFilter = "ALL" | "PAID" | "UNPAID" | "WAITING";
 
 export const PAID_LABELS: Record<PaidFilter, string> = {
   ALL: "همه",
   PAID: "پرداخت‌شده",
   UNPAID: "پرداخت‌نشده",
+  WAITING: "در انتظار",
 };
 
 export type LedgerDays = "ALL" | "30" | "90" | "365";
@@ -164,6 +166,15 @@ export function matchesLedgerFilters({
 
   if (filters.paid === "PAID" && !record.paid_at) return false;
   if (filters.paid === "UNPAID" && record.paid_at) return false;
+  if (filters.paid === "WAITING") {
+    if (record.paid_at) return false;
+    if (record.record_type !== "DEBT" && !record.due_at) return false;
+    if (
+      record.due_at &&
+      getBillStatus({ dueAt: record.due_at, paidAt: null, now }) === "OVERDUE"
+    )
+      return false;
+  }
 
   if (filters.days !== "ALL") {
     const date = ledgerDate(record);

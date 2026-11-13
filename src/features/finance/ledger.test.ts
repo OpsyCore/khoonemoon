@@ -187,6 +187,33 @@ describe("matchesLedgerFilters", () => {
     ).toBe(true);
   });
 
+  it("supports waiting payment state without including paid or overdue records", () => {
+    const waiting = record({
+      record_type: "BILL",
+      due_at: "2026-11-02T09:00:00.000Z",
+    });
+    const overdue = record({
+      record_type: "BILL",
+      due_at: "2026-10-20T09:00:00.000Z",
+    });
+    const paid = record({
+      record_type: "BILL",
+      due_at: "2026-11-02T09:00:00.000Z",
+      paid_at: "2026-10-28T09:00:00.000Z",
+    });
+    const filters = { ...ALL, paid: "WAITING" as const };
+
+    expect(matchesLedgerFilters({ record: waiting, filters, now: NOW })).toBe(
+      true,
+    );
+    expect(matchesLedgerFilters({ record: overdue, filters, now: NOW })).toBe(
+      false,
+    );
+    expect(matchesLedgerFilters({ record: paid, filters, now: NOW })).toBe(
+      false,
+    );
+  });
+
   it("filters by day range using the ledger date", () => {
     const old = record({ occurred_at: "2026-01-01T00:00:00.000Z" });
 

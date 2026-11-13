@@ -214,7 +214,7 @@ export function directReminders(client: SupabaseClient) {
       );
       if (error) throw new Error("ذخیره ساعات سکوت ناموفق بود.");
     },
-    async create(input: unknown): Promise<void> {
+    async create(input: unknown, requestId?: string): Promise<void> {
       const parsed = mobileCreateSchema.parse(input);
       const user = await currentUser(client);
       const { data: target, error: targetError } = await client
@@ -275,6 +275,7 @@ export function directReminders(client: SupabaseClient) {
             : { data: null, error: existing.error ?? "unknown" };
         },
         valid: (value): value is true => value === true,
+        requestId,
       });
     },
     async createTaskReminderOnce(input: {

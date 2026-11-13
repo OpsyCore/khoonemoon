@@ -54,6 +54,9 @@ import "./style.css";
 const Documents = lazy(() =>
   import("./documents").then((m) => ({ default: m.Documents })),
 );
+const Assistant = lazy(() =>
+  import("./assistant").then((m) => ({ default: m.Assistant })),
+);
 const Reminders = lazy(() =>
   import("./reminders").then((m) => ({ default: m.Reminders })),
 );
@@ -444,6 +447,7 @@ function App() {
               page === "tasks" ||
               page === "chores" ||
               page === "search" ||
+              page === "assistant" ||
               page === "settings" ||
               page === "task-new" ||
               page === "event-new") &&
@@ -465,6 +469,7 @@ function App() {
               page === "tasks" ||
               page === "chores" ||
               page === "search" ||
+              page === "assistant" ||
               page === "settings" ||
               page === "task-new" ||
               page === "event-new") &&
@@ -709,6 +714,7 @@ function App() {
               page !== "meals" &&
               page !== "appliances" &&
               page !== "search" &&
+              page !== "assistant" &&
               page !== "settings" &&
               page !== "task-new" &&
               page !== "event-new" &&
@@ -951,6 +957,16 @@ function App() {
                         } as const
                       )[kind],
                     );
+                }}
+              />
+            )}
+            {page === "assistant" && (
+              <Assistant
+                key={`${session.user.id}:${household ?? "none"}`}
+                client={client}
+                onNavigate={(target) => {
+                  setPage(target);
+                  window.scrollTo(0, 0);
                 }}
               />
             )}

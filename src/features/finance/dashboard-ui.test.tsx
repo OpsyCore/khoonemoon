@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -61,6 +62,23 @@ it("renders real unpaid bills, opens the form and filters categories without inv
       />,
     );
   });
+  expect(host.querySelector(".fin-ledger-header")?.textContent).toContain(
+    "دفتر مالی",
+  );
+  expect(host.querySelectorAll(".fin-ledger-stat")).toHaveLength(3);
+  expect(host.querySelectorAll(".fin-ledger-type-filters button")).toHaveLength(
+    7,
+  );
+  expect(
+    host.querySelectorAll(".fin-ledger-status-filters button"),
+  ).toHaveLength(4);
+  expect(host.querySelector(".fin-ledger-table")?.textContent).toContain(
+    "قبض واقعی",
+  );
+  await act(async () => {
+    (host.querySelector(".finance-more-dashboard") as HTMLDetailsElement).open =
+      true;
+  });
   expect(host.querySelector(".fin-bills")?.textContent).toContain("قبض واقعی");
   expect(host.querySelector(".fin-month.expense")?.textContent).toContain("۰");
   await act(async () => {
@@ -72,8 +90,8 @@ it("renders real unpaid bills, opens the form and filters categories without inv
     ...host.querySelectorAll<HTMLButtonElement>(".fin-categories button"),
   ].find((x) => x.textContent === "مسکن")!;
   await act(async () => housing.click());
-  expect(host.querySelector(".finance-details")?.textContent).toContain(
-    "دسته انتخاب‌شده: مسکن",
+  expect(host.querySelector(".fin-ledger-filter-foot")?.textContent).toContain(
+    "حذف دستهٔ «مسکن»",
   );
   expect(
     new URL(window.location.href).searchParams.get("ledger_category"),
@@ -83,17 +101,35 @@ it("renders real unpaid bills, opens the form and filters categories without inv
   ].find((x) => x.textContent === "درآمد")!;
   await act(async () => category.click());
   expect(
-    (host.querySelector(".finance-details") as HTMLDetailsElement).open,
+    (host.querySelector(".finance-more-dashboard") as HTMLDetailsElement).open,
   ).toBe(true);
-  const selects = [
-    ...host.querySelectorAll<HTMLSelectElement>(".finance-details select"),
-  ];
-  expect(selects[0].value).toBe("INCOME");
+  expect(
+    [
+      ...host.querySelectorAll<HTMLButtonElement>(
+        ".fin-ledger-type-filters button",
+      ),
+    ].find((button) => button.getAttribute("aria-pressed") === "true")
+      ?.textContent,
+  ).toBe("درآمد");
   expect(
     new URL(window.location.href).searchParams.has("ledger_category"),
   ).toBe(false);
   expect(
-    (host.querySelector(".finance-details input") as HTMLInputElement).value,
+    (host.querySelector(".fin-ledger-search input") as HTMLInputElement).value,
   ).toBe("");
+  expect(host.querySelectorAll(".fin-categories button")).toHaveLength(8);
   await act(async () => root.unmount());
+});
+
+it("keeps the finance reference cards side by side on narrow phones", () => {
+  const css = readFileSync("mobile/src/finance-overview.css", "utf8");
+  expect(css).toMatch(
+    /\.fin-month-grid,\s*\.fin-middle,\s*\.fin-members\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/,
+  );
+  expect(css).not.toMatch(
+    /@media \(max-width: 380px\)\s*\{[^}]*\.fin-middle\s*\{[^}]*grid-template-columns:\s*1fr/,
+  );
+  expect(css).toMatch(
+    /\.fin-categories > div\s*\{[^}]*grid-template-columns:\s*repeat\(8, minmax\(0, 1fr\)\)/,
+  );
 });
